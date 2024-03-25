@@ -1,0 +1,27 @@
+{
+  "title": "Blog One Title",
+  "publishedAt": "2024-03-25T00:00:00.000Z",
+  "updatedAt": "2024-03-25T00:00:00.000Z",
+  "description": "This is the description for blog one",
+  "image": "../../public/blogs/blog1.png",
+  "isPublished": true,
+  "author": "baekki",
+  "tags": [
+    "web development",
+    "nextjs"
+  ],
+  "body": {
+    "raw": "\n# this is h1 tags\n\n## this is h2 tags\n",
+    "html": "<h1>this is h1 tags</h1>\n<h2>this is h2 tags</h2>"
+  },
+  "_id": "blog-one/index.mdx",
+  "_raw": {
+    "sourceFilePath": "blog-one/index.mdx",
+    "sourceFileName": "index.mdx",
+    "sourceFileDir": "blog-one",
+    "contentType": "mdx",
+    "flattenedPath": "blog-one"
+  },
+  "type": "Blog",
+  "url": "/blogs/blog-one"
+}
