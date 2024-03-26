@@ -17,7 +17,7 @@ export type Blog = {
   publishedAt: IsoDateTimeString
   updatedAt: IsoDateTimeString
   description: string
-  image: string
+  image?: ImageFieldData | undefined
   isPublished: boolean
   author: string
   tags?: string[] | undefined

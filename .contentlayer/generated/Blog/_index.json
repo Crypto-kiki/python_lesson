@@ -1,19 +1,26 @@
 [
   {
-    "title": "Blog One Title",
-    "publishedAt": "2024-03-25T00:00:00.000Z",
-    "updatedAt": "2024-03-25T00:00:00.000Z",
-    "description": "This is the description for blog one",
-    "image": "../../public/blogs/blog1.png",
+    "title": "Next.js blog with contentlayer: 5. Featured Posts",
+    "publishedAt": "2024-03-27T00:00:00.000Z",
+    "updatedAt": "2024-03-27T00:00:00.000Z",
+    "description": "Let's create Featured Posts.",
+    "image": {
+      "filePath": "../public/profile.png",
+      "relativeFilePath": "../../public/profile.png",
+      "format": "png",
+      "height": 1024,
+      "width": 1024,
+      "aspectRatio": 1,
+      "blurhashDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAABEUlEQVR4nA3Mu0pCcQDA4f8Q+AJpht1EK4W0I4UXUCI0DUtMpAuknqC2UE6iJFQUwekypAhN4VAQCA1dCBHBoTEaQnA8UNAL9Ag/nT/4hMHqxehJEczXiR6/sHLyxJAjxKDFg97iQow44+ilONPLOUwmO7POJGr1kblAFO/iLsJsX+DvR8PhiTNsGOUwf0anq7GvtvhqNxA21yqBWJExi4+1mMxdtUb7+ZXu7z8TZjdivA+SP8XkjI/ttEI4vM73R5Otg1uikh2hlN/JlB6wmiU2knvUri9w2XyUbhoYTc7+MBUhlFRI5Mo0PzU6rTfcgTSFowoR/xJCN6BjPrjDplwke64iXxXIZOtcVu5xJE7pAakEh5lEf5B/AAAAK3RFWHRDcmVhdGlvbiBUaW1lAFR1ZSwgMjYgTWFyIDIwMjQgMTM6NDk6MDMgR01UazGikAAAAC10RVh0U29mdHdhcmUAZ2l0aHViLmNvbS9tYXRtZW4vSW1hZ2VTY3JpcHQgdjEuMy4wGMaf9gAAAABJRU5ErkJggg=="
+    },
     "isPublished": true,
-    "author": "baekki",
+    "author": "Baekki",
     "tags": [
-      "web development",
-      "nextjs"
+      "web development"
     ],
     "body": {
-      "raw": "\n# this is h1 tags\n\n## this is h2 tags\n",
-      "html": "<h1>this is h1 tags</h1>\n<h2>this is h2 tags</h2>"
+      "raw": "",
+      "html": ""
     },
     "_id": "blog-one/index.mdx",
     "_raw": {
