@@ -1,0 +1,101 @@
+---
+title: "Next.js blog with contentlayer: 5. Featured Posts"
+description: Let's create Featured Posts.
+image: "../../public/blogs/carlos-muza-hpjSkU2UYSU-unsplash.jpg"
+publishedAt: "2024-03-27"
+updatedAt: "2024-03-27"
+author: "Baekki"
+isPublished: true
+tags:
+  - web development
+---
+
+## Previous post
+
+이어서 진행합니다.
+
+## Featured Posts
+
+src/components/Home/FeaturedPosts.js 를 생성합니다.
+
+src/app/page.js 에 FeaturedPosts.js 를 임포트하고 HomeCoverSection과 동일하게 blogs를 props로 전달합니다.
+
+```javascript
+// src/app/page.js
+
+import { allBlogs } from "contentlayer/generated";
+import HomeCoverSection from "../components/Home/HomeCoverSection";
+import FeaturedPosts from "../components/Home/FeaturedPosts";
+
+export default function Home() {
+  console.log(allBlogs);
+
+  return (
+    <main className="flex flex-col items-center justify-center">
+      <HomeCoverSection blogs={allBlogs} />
+      <FeaturedPosts blogs={allBlogs} />
+    </main>
+  );
+}
+```
+
+HomeCoverSection에서 publishedAt 기준으로 분류한 sortedBlogs 함수를 동일하게 사용합니다.
+
+```javascript
+import { sortBlogs } from "@/src/utils";
+import React from "react";
+
+const FeaturedPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <h2 className="w-full inline-block font-bold capitalize text-4xl">
+        Featured Posts
+      </h2>
+      <div className="grid grid-cols-2 grid-rows-2 gap-6 mt-16">
+        <article className="col-span-1 row-span-2 relative">
+          blog layout 1
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          blog layout 2
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          blog layout 3
+        </article>
+      </div>
+    </section>
+  );
+};
+
+export default FeaturedPosts;
+```
+
+<Image
+  src="/blogs/featuredPostsLayout.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 처럼 레이아웃까지 잡아줍니다. 이제 각 blog layout 1~3의 컴포넌트를 만들어줍니다.
+
+src/components/Blog/BlogLayoutOne.js 를 생성합니다.
+
+content폴더에 blog-one 한 개의 폴더만 있기 때문에, 테스트 하기 위해서 3개 이상 폴더를 복사 후 각 폴더이름/mdx파일의 내용을 조금씩 수정합니다.
+
+> this is blockqoute
+
+<ol>
+  <li>this is li 1</li>
+  <li>this is li 2</li>
+  <li>this is li 3</li>
+</ol>
+
+아래는 테이블 스타일입니다.
+
+| Header 1 | Header 2 |
+| -------- | -------- |
+| Row 1    | Data     |
+| Row 2    | Data     |

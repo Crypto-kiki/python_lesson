@@ -1,0 +1,489 @@
+---
+title: "Next.js blog with contentlayer: 3. contentlayer"
+description: contentlayer
+image: "../../public/blogs/emile-perron-xrVDYZRGdw4-unsplash.jpg"
+publishedAt: "2024-03-25"
+updatedAt: "2024-03-25"
+author: "Baekki"
+isPublished: true
+tags:
+  - web development
+---
+
+## Previous post
+
+이어서 진행합니다.
+
+## What is contentlayer ?
+
+contentlayer에 대해 알아봅시다.<a href="https://website-git-new-landing-page-schick.vercel.app/docs/getting-started">contentlayer website</a>
+
+- Contentlayer는 정적 사이트 생성기(SSG)를 위한 콘텐츠 통합 도구입니다. 이 도구는 여러 데이터 소스에서 콘텐츠를 가져와서 사용하기 쉬운 형식으로 변환하는 과정을 자동화합니다.
+- 다양한 데이터 소스 지원: 마크다운, MDX, JSON, YAML 등 다양한 형식의 파일을 데이터 소스로 사용할 수 있습니다. 이는 블로그 포스트, 문서, 설정 파일 등의 콘텐츠 관리를 용이하게 합니다.
+- 빌드 최적화: Contentlayer는 빌드 시간을 단축시키는 최적화 기능을 제공합니다. 콘텐츠 데이터를 정적으로 미리 처리하고 캐싱하여, 빌드 프로세스를 빠르게 진행할 수 있습니다.
+
+## Setup
+
+### install
+
+contentlayer 웹사이트에서 Next.js탭으로 들어갑니다.
+
+> npm install next-contentlayer
+
+⚠️ contentlayer 패키지 설치시 next14버전은 호환되지 않습니다. 따라서 12 또는 13버전으로 다운그레이드 후 설치를 진행하시면 됩니다.
+
+> npm install next@13 --save
+
+위 명령어를 실행하면 next 13버전으로 다운그레이드 된 것을 package.json에서 확인하세요.
+
+패키지를 설치했으면 next.config.js 을 다음과 같이 수정합니다.
+
+```javascript
+// next.config.js
+
+/** @type {import('next').NextConfig} */
+import { withContentlayer } from "next-contentlayer";
+
+const nextConfig = {};
+
+export default withContentlayer({ nextConfig });
+```
+
+변경된 부분을 살펴보면, next-contentlayer 패키지로부터 withContentlayer 함수를 임포트했습니다.
+
+contentlayer의 설정을 next.js프로젝트의 설정에 포함시키기 위해 nextConfig 객체를 withContentlayer 함수의 인자로 전달하고, 함수의 반환값을 내보냅니다.
+
+next.config.js를 수정했으면 서버를 껐다가 다시 켜줍니다. next.js는 프로젝트 시작 시 next.config.js 파일을 읽어들여 설정을 로드하기 때문에, 파일이 수정된 후에는 변경사항을 적용하기 위해 서버를 재시작해야 합니다.
+
+서버를 재시작하면 아래와 같은 오류가 발생합니다.
+
+<Image
+  src="/blogs/nextConfigJsError.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+에러 메세지를 확인해보면, ES 모듈을 사용하려면 package.json에서 "type": "module"을 설정하거나, next.config.js가 아닌, next.config.mjs확장자를 사용하면 된다고 합니다.
+
+즉, node.js는 next.config.js 파일을 CommonJS 모듈로 해석하려 했으며, package.json에 "type": "module"설정이 없기 때문에 'import'구문을 인식할 수 없어서 발생한 오류 입니다.
+
+따라서 ES 모듈 구문('import'/'export') 대신 CommonJS 모듈 구문('require'/'module.export')로 코드를 변경하겠습니다.
+
+```javascript
+// next.config.js
+
+/** @type {import('next').NextConfig} */
+const { withContentlayer } = require("next-contentlayer");
+
+const nextConfig = {};
+
+module.exports = withContentlayer({ ...nextConfig });
+```
+
+### contentlayer/source-files
+
+<a href="https://website-git-new-landing-page-schick.vercel.app/docs/reference/source-files">
+  contentlayer/source-files Link
+</a>
+
+위 링크에 로컬 파일(.mdx)을 컨텐츠 소스로 사용하는 방법을 제공해준다고 설명되어 있습니다.
+
+가이드 순서대로 따라서 진행해 보겠습니다.
+
+<a href="https://website-git-new-landing-page-schick.vercel.app/docs/reference/source-files/make-source">
+  makeSource Link
+</a>
+
+프로젝트 루트 디렉토리에(최상위. next.config.js와 같은 레벨) contentlayer.config.js 파일을 생성해줍니다.
+
+```javascript
+import { makeSource } from "contentlayer/source-files";
+
+export default makeSource({
+  /* options */
+});
+```
+
+첫 번째 필수 옵션인 contentDirPath 를 작성합니다.
+
+```javascript
+import { makeSource } from "contentlayer/source-files";
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+});
+```
+
+루트 디렉토리에 content 라는 폴더를 만들고 content 폴더 하위에 blog-one 폴더도 생성해줍니다. content 폴더는 contentDirPath 이고, blog-one은 포스트의 타이틀이 됩니다.
+
+그리고 blog-one 폴더에 index.mdx 파일을 생성해줍니다.
+
+blog-one 이라는 포스트에 접근하면 index.mdx 파일을 로드하여 실행합니다.
+
+.md 확장자를 사용 할 수 있지만, .mdx 확장자는 markdown + jsx로 리액트 컴포넌트를 마크다운 파일 내에 직접 삽입하고 사용 할 수도 있습니다. .ndx 파일을 사용함으로써, 단순한 텍스트 포메팅 뿐만 아니라 컴포넌트를 포함한 동적인 컨텐츠를 생성할 수 있습니다.
+
+두 번째 필수 옵션인 documentTypes을 확인해봅시다. <a href="https://website-git-new-landing-page-schick.vercel.app/docs/reference/source-files/define-document-type">documentTypes</a>
+
+defineDocumentType은 Contentlayer에서 특정 문서 유형의 스키마를 정의하는 데 사용됩니다. 여기서 '문서 유형'이란 블로그 포스트, 페이지, 제품 설명 등 콘텐츠의 모델 또는 유형을 말합니다. 즉, 각각의 문서 유형에 어떤 필드(제목, 내용, 날짜 등)가 있어야 하는지, 그리고 그 필드의 데이터 유형이 무엇인지를 정의합니다.
+
+contentlayer.config.js 파일에 defineDocumentType을 추가합니다.
+
+```javascript
+// contentlayer.config.js
+
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  fields: {
+    title: {
+      type: "string",
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+});
+```
+
+공식문서 예제에서는 filePathPattern: `**/*.md`이지만, 현재 content 경로가 content/blog-one/index.mdx이고, .mdx 확장자를 사용하기 때문에 위 코드처럼 변경합니다.
+
+### define document type
+
+위 코드에서 fields는 title만 있지만, 필요한 field type을 추가해보겠습니다. <a href="https://website-git-new-landing-page-schick.vercel.app/docs/reference/source-files/field-types#shared-options">Field Types Reference</a>
+
+```javascript
+// contentlayer.config.js
+
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "string",
+      required: true,
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+});
+```
+
+위 필드를 하나씩 알아볼까요?
+
+- title : 해당 글(포스트)의 제목.
+- publishedAt : 배포한 시간.
+- updatedAt : 수정한 시간.
+- description : 해당 글의 요약.
+- image : 해당 글에 대한 이미지를 지정. (예시 : 커버 이미지, 대표 이미지)
+- isPublished : 배포 되었는지 여부. 추후 해당 글을 삭제하고 싶으면 content의 해당 폴더를 삭제하는 것이 아닌, false값으로 변경해주면 노출되지 않음.
+- author : 작성자
+- tags : tpye은 list로 포스트에 할당된 태그의 목록을 저장.
+
+위 필드를 고려해서 .mdx(글) 파일을 작성 할 때, 아래와 같이 작성함. (예시)
+
+<Image
+  src="/blogs/defineDocumentTypeFields.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+다음으로 content의 글의 경로를 지정할 수 있도록 합니다. <a href="https://website-git-new-landing-page-schick.vercel.app/docs/reference/source-files/define-document-type#computedfields">compuedField</a>
+
+```javascript
+// contentlayer.config.js
+
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "string",
+      required: true,
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+});
+```
+
+공식문서의 예저에서 위 처럼 수정한 내용은 아래와 같습니다.
+
+- 문서의 경로를 `/blogs/`경로 아래로 지정하여 생성. (예시 url: http://localhost:3000/blogs/blog-one)
+- url : 문서의 원본 경로(`_raw.flattenedPath`)를 사용해서 `/blogs/`경로 아래에 문서의 위치를 지정. 각 게시물에 대한 url을 정의해서 블로그 게시물을 쉽게 식별하고 접근할 수 있습니다. 즉,
+
+이제 위에서 정의한 타입들(Blog)을 makeSource 함수가 콘텐츠 구조와 설정을 정의하도록 문서타입을 추가합니다.
+
+```javascript
+// contentlayer.config.js
+
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "string",
+      required: true,
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+});
+```
+
+documentTypes는 makeSource 함수의 옵션 중 하나로, 프로젝트에서 사용할 모든 문서 유형을 배열 형태로 지정합니다. 각 문서 유형은 defineDocumentType 함수를 통해 생성되며, 이를 통해 특정 형태의 문서에 대한 구조, 필드, 및 computedFields 등 정의할 수 있습니다.
+
+이제 파일을 저장하고 서버를 다시 껐다 켜보면 아래와 같은 경고 메세지가 출력됩니다.
+
+<Image
+  src="/blogs/notDefinedTypes.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+### generate documents in .contentlayer
+
+contentlayer.config.js에서 정의한 타입들이 content/blog-one/index.mdx 파일에 작성되지 않았기 때문에 Generated 0 document 가 출력된겁니다.
+
+아래와 같이 content/blog-one/index.mdx 파일을 작성해봅시다.
+
+```html
+---
+title: "Blog One Title"
+description: "This is the description for blog one"
+image: "../../public/blogs/blog1.png"
+publishedAt: "2024-03-25"
+updatedAt: "2024-03-25"
+isPublished: true
+author: "baekki"
+tags:
+  - web development
+  - nextjs
+---
+
+(# this is h1 tags ## this is h2 tags)
+```
+
+위 처럼 작성 후 다시 실행하면 Generated 1 documents in .contentlayer를 확인 할 수 있습니다.
+
+<Image
+  src="/blogs/generatedDocument.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+그리고 루트 디렉토리에 .contentlayer 폴더가 생성된 것을 볼 수 있습니다.
+
+<Image
+  src="/blogs/contentlayerFolder.png"
+  width="256"
+  height="256"
+  alt="Image"
+  sizes="100vw"
+/>
+
+이제 생성된 contentlayer를 랜더링 해봅시다.
+
+## Render post
+
+먼저 .contentlayer/generated/index.mjs 파일을 살펴봅시다.
+
+```javascript
+export { isType } from "contentlayer/client";
+
+import { allBlogs } from "./Blog/_index.mjs";
+
+export { allBlogs };
+
+export const allDocuments = [...allBlogs];
+```
+
+위 코드는 contentlayer에 의해 자동생성된 파일입니다. Contentlayer는 프로젝트의 콘텐츠 파일(예: MDX 파일)을 분석하고, 이를 기반으로 데이터를 생성하여 프로젝트의 다른 부분에서 쉽게 사용할 수 있도록 만듭니다. 생성된 index.mjs 파일은 이러한 데이터를 모듈로 내보내는 역할을 합니다.
+
+- `import { allBlogs } from "./Blog/_index.mjs";` : 생성된 콘텐츠 데이터 중에서 Blog 문서 유형에 해당하는 모든 블로그 게시물의 데이터를 임포트합니다. allBlogs는 배열 형태로, 프로젝트 내의 모든 블로그 게시물 데이터를 포함하고 있습니다. 이 데이터는 .mdx 파일에서 정의된 메타데이터와 함께 자동으로 생성됩니다.
+- `export { allBlogs };` : 임포트한 allBlogs 데이터를 다른 모듈에서 사용할 수 있도록 내보냅니다. 이를 통해 모든 블로그 게시물의 데이터에 쉽게 접근할 수 있습니다.
+- `export const allDocuments = [...allBlogs];` : 모든 문서 유형의 데이터를 하나의 배열로 결합하여 내보냅니다. 현재는 allBlogs만 포함되어 있지만, 여러 문서 유형이 있을 경우 여기에 추가될 수 있습니다. 이 배열은 프로젝트 내의 모든 콘텐츠에 대한 통합 접근을 제공합니다.
+- 이러한 방식으로 Contentlayer는 콘텐츠 파일로부터 데이터를 생성하고, 이를 쉽게 사용할 수 있도록 모듈 형태로 제공합니다. 이 모듈을 임포트하여 콘텐츠를 렌더링하거나 다른 방식으로 활용할 수 있습니다.
+
+이제 allBlogs에 어떠한 데이터가 있는지 알아봅시다.
+
+```javascript
+// src/app/page.js
+
+import { allBlogs } from "../../.contentlayer/generated";
+
+export default function Home() {
+  console.log(allBlogs);
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between">
+      블로그를 만들어 봅시다!
+    </main>
+  );
+}
+```
+
+위 코드를 실행하면 아래와 같은 결과를 확인 할 수 있습니다.
+
+<Image
+  src="/blogs/consoleLogAllBlogs.png"
+  width="718"
+  height="256"
+  alt="Image"
+  sizes="100vw"
+/>
+
+page.js에서 allBlogs를 임포트해오는 경로를 jsconfig.json에서 간략하게 해봅시다.
+
+```javascript
+// jsconfig.json
+
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"],
+      "contentlayer/generated": ["./.contentlayer/generated"]
+    }
+  }
+}
+```
+
+```javascript
+// src/app/page.js
+
+import { allBlogs } from "contentlayer/generated";
+
+export default function Home() {
+  console.log(allBlogs);
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between">
+      블로그를 만들어 봅시다!
+    </main>
+  );
+}
+```

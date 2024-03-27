@@ -1,10 +1,13 @@
 // contentlayer.config.js
 
 import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+import remarkGfm from "remark-gfm";
 
 const Blog = defineDocumentType(() => ({
   name: "Blog",
   filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
   fields: {
     title: {
       type: "string",
@@ -43,6 +46,10 @@ const Blog = defineDocumentType(() => ({
       type: "string",
       resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
     },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
   },
 }));
 
@@ -50,4 +57,5 @@ export default makeSource({
   /* options */
   contentDirPath: "content",
   documentTypes: [Blog],
+  mdx: { remarkPlugins: [remarkGfm] },
 });
