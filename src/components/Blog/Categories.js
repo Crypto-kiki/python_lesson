@@ -9,7 +9,7 @@ const Categories = ({ categories, currentSlug }) => {
       {categories.map((cat) => (
         <Category
           key={cat}
-          link={`/test/${cat}`}
+          link={`/categories/${cat}`}
           name={cat}
           active={currentSlug === slug(cat)}
         />
