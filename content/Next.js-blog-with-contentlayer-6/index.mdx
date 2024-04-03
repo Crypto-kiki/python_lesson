@@ -1,0 +1,472 @@
+---
+title: "Next.js blog with contentlayer: 6. Recent Posts and Footer"
+description: "Let's create Recent Posts and Footer."
+image: "../../public/blogs/nextjs-blog-contentlayer/6/mainCover.png"
+publishedAt: "2024-03-24"
+updatedAt: "2024-03-24"
+author: "Baekki"
+isPublished: true
+tags:
+  - web development
+---
+
+## Previous post
+
+이어서 진행합니다.
+
+## Recent Posts
+
+src/components/Home/RecentPosts.js 를 생성합니다.
+
+```javascript title="src/components/Home/RecentPosts.js"
+import { sortBlogs } from "@/src/utils";
+import React from "react";
+
+const RecentPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <h2 className="w-full inline-block font-bold capitalize text-4xl">
+        Recent Posts
+      </h2>
+    </section>
+  );
+};
+
+export default RecentPosts;
+```
+
+위 코드의 기본 틀은 FeaturedPosts 컴포넌트의 `<section>`태그와 그 안의 `<h2>`태그만 가져오시면 됩니다!
+
+그리고 page.js에 RecentPosts 컴포넌트를 임포트 합니다.
+
+```javascript title="src/app/page.js"
+import { allBlogs } from "contentlayer/generated";
+import HomeCoverSection from "../components/Home/HomeCoverSection";
+import FeaturedPosts from "../components/Home/FeaturedPosts";
+import RecentPosts from "../components/Home/RecentPosts";
+
+export default function Home() {
+  console.log(allBlogs);
+
+  return (
+    <main className="flex flex-col items-center justify-center">
+      <HomeCoverSection blogs={allBlogs} />
+      <FeaturedPosts blogs={allBlogs} />
+      <RecentPosts blogs={allBlogs} />
+    </main>
+  );
+}
+```
+
+"view all" 이라는 링크를 만들어 모든 카테고리(게시물)을 볼 수 있도록 만들기위해 아래처럼 작성합니다.
+
+```javascript title="src/components/Home/RecentPosts.js"
+import { sortBlogs } from "@/src/utils";
+import Link from "next/link";
+import React from "react";
+
+const RecentPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <div className="w-full flex justify-between">
+        <h2 className="inline-block font-bold capitalize text-4xl">
+          Recent Posts
+        </h2>
+        <Link
+          href="/categories/all"
+          className="inline-block font-medium text-accent underline underline-offset-2 text-lg"
+        >
+          view all
+        </Link>
+      </div>
+    </section>
+  );
+};
+
+export default RecentPosts;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/6/recentPosts1.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+하단에 Recent Posts와 view all을 확인 할 수 있습니다.
+
+이제 게시물들을 보여지도록 아래와 같이 작성합니다.
+
+```javascript title="src/components/Home/RecentPosts.js"
+import { sortBlogs } from "@/src/utils";
+import Link from "next/link";
+import React from "react";
+
+const RecentPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <div className="w-full flex justify-between">
+        <h2 className="inline-block font-bold capitalize text-4xl">
+          Recent Posts
+        </h2>
+        <Link
+          href="/categories/all"
+          className="inline-block font-medium text-accent underline underline-offset-2 text-lg"
+        >
+          view all
+        </Link>
+      </div>
+      <div className=" grid grid-cols-3 grid-rows-2 gap-16 mt-16">
+        {sortedBlogs.slice(4, 10).map((blog, index) => {
+          return (
+            <article className=" col-span-1 row-span-1 relative">
+              blog layout 3
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+export default RecentPosts;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/6/recentPosts2.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 코드에서 sortedBlogs.slice 부분은 slice 메서드를 사용하여 sortedBlogs 배열에서 특정 범위의 요소를 선택하는 데 사용됩니다.
+
+slice 메서드는 두 개의 인자를 받는데, 첫 번째 인자는 추출을 시작할 인덱스(이 경우는 4)이고, 두 번째 인자는 추출을 종료할 인덱스(이 경우는 10)입니다. 중요한 점은 slice 메서드는 첫 번째 인덱스는 포함하지만, 두 번째 인덱스는 포함하지 않는다는 것입니다.
+
+즉, slice(4, 10)은 인덱스 4부터 9까지의 요소를 새로운 배열로 반환합니다.
+
+HomeCoverSection에 가장 최신글(인덱스 0번), FeaturedPosts에 인덱스 1~3번, RecentPosts에는 인덱스 4~9번의 글 6개를 표현하기 위해 위처럼 작성했습니다.
+
+각 인덱스는 추후에 개인에 원하는대로 수정하시면 됩니다.
+
+⚠️ 실습을 위해 content폴더에 최소 10개의 컨텐츠(폴더/.mdx파일)가 있어야 합니다! 10개 까지 더 만들어주세요!
+
+이제 `<article>`태그에 들어갈 컴포넌트를 만들어봅시다.
+
+src/components/Blog/BlogLayoutThree.js 를 생성합니다.
+
+BlogLayoutThree 컴포넌트는 BlogLayoutTwo 컴포넌트와 거의 동일하기 때문에 코드 전체를 복사해서 가져온 후 수정합니다.
+
+```javascript title="src/components/Blog/BlogLayoutThree.js"
+import { format } from "date-fns";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+
+const BlogLayoutThree = ({ blog }) => {
+  return (
+    <div className="group grid grid-cols-12 gap-4 items-center text-dark">
+      <Link href={blog.url} className="col-span-4 rounded-xl overflow-hidden">
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
+        />
+      </Link>
+      <div className="col-span-8 w-full">
+        <span className=" uppercase text-accent font-semibold text-sm">
+          {blog.tags[0]}
+        </span>
+        <Link href={blog.url} className="inline-block my-1">
+          <h2 className="font-semibold capitalize text-lg">
+            <span className="bg-gradient-to-r from-accent/50 to-accent/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h2>
+        </Link>
+
+        <div className="capitalize text-dark/50 font-semibold">
+          {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutThree;
+```
+
+코드 전체를 가져온 후 BlogLayoutThree로 이름변경 후 RecentPosts 컴포넌트에 임포트 합니다.
+
+```javascript title="src/components/Home/RecentPosts.js"
+import { sortBlogs } from "@/src/utils";
+import Link from "next/link";
+import React from "react";
+import BlogLayoutThree from "../Blog/BlogLayoutThree";
+
+const RecentPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <div className="w-full flex justify-between">
+        <h2 className="inline-block font-bold capitalize text-4xl">
+          Recent Posts
+        </h2>
+        <Link
+          href="/categories/all"
+          className="inline-block font-medium text-accent underline underline-offset-2 text-lg"
+        >
+          view all
+        </Link>
+      </div>
+      <div className=" grid grid-cols-3 grid-rows-2 gap-16 mt-16">
+        {sortedBlogs.slice(4, 10).map((blog, index) => {
+          return (
+            <article className=" col-span-1 row-span-1 relative">
+              <BlogLayoutThree blog={blog} />
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+export default RecentPosts;
+```
+
+이제 아래와 같이 스타일을 수정해봅시다!
+
+```javascript title="src/components/Blog/BlogLayoutThree.js"
+import { format } from "date-fns";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+
+const BlogLayoutThree = ({ blog }) => {
+  return (
+    <div className="group flex flex-col items-center text-dark">
+      <Link href={blog.url} className="rounded-xl overflow-hidden">
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-[4/3] w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
+        />
+      </Link>
+      <div className=" flex flex-col mt-4 w-full">
+        <span className=" uppercase text-accent font-semibold text-sm">
+          {blog.tags[0]}
+        </span>
+        <Link href={blog.url} className="inline-block my-1">
+          <h2 className="font-semibold capitalize text-lg">
+            <span className="bg-gradient-to-r from-accent/50 to-accent/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h2>
+        </Link>
+
+        <div className="capitalize text-dark/50 font-semibold">
+          {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutThree;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/6/recentPosts3.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 사진과 같이 잘 적용된 것을 볼 수 있습니다.
+
+## Footer
+
+src/components/Footer/index.js 를 생성 후 layout.js의 `{children}`아래 임포트 합니다.
+
+```javascript title="src/components/Footer/index.js"
+import React from "react";
+
+const Footer = () => {
+  return (
+    <footer>
+      <h3>Explore the Future of Web & Blockchain</h3>
+      <p>
+        Dive into the latest trends in front-end and blockchain technologies.
+        <br />
+        Subscribe for cutting-edge guides, insightful analyses, and engaging
+        stories from the forefront of digital innovation.
+      </p>
+    </footer>
+  );
+};
+
+export default Footer;
+```
+
+```javascript title="src/app/layout.js"
+import { Inter, Manrope } from "next/font/google";
+import "./globals.css";
+import { cx } from "@/src/utils";
+import Header from "@/src/components/Header";
+import Footer from "../components/Footer";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-in",
+});
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mr",
+});
+
+export const metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body
+        className={cx(inter.variable, manrope.variable, "font-mr bg-light")}
+      >
+        <Header />
+        {children}
+        <Footer />
+      </body>
+    </html>
+  );
+}
+```
+
+이제 footer 스타일링과 header에서 사용한 social link도 작성해봅시다.
+
+```javascript title="src/components/Footer/index.js"
+import React from "react";
+import { GithubIcon, LinkedinIcon, TwitterIcon } from "../icons";
+
+const Footer = () => {
+  return (
+    <footer className="mt-16 rounded-2xl bg-dark m-10 flex flex-col items-center text-light">
+      <h3 className="mt-16 font-medium text-center capitalize text-4xl px-4">
+        Explore the Future of Web & Blockchain
+      </h3>
+      <p className="mt-5 px-4 text-center w-3/4 font-light">
+        Dive into the latest trends in front-end and blockchain technologies.
+        <br />
+        Subscribe for cutting-edge guides, insightful analyses, and engaging
+        stories from the forefront of digital innovation.
+      </p>
+      <div className="flex items-center mt-8">
+        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
+          <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
+          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
+          <GithubIcon className="hover:scale-125 transition-all ease duration-200 fill-light" />
+        </a>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/6/footer1.png"
+  width="1024"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+- header에서 아이콘`<a>`태그가 포함된 `<div>`태그를 가져옵니다.
+- GithubIcon에서 `fill-light`속성을 추가합니다.
+
+이제 Footer 맨 하단에 copyright, sitemap, Made by를 작성해 봅시다.
+
+```javascript title="src/components/Footer/index.js"
+import React from "react";
+import { GithubIcon, LinkedinIcon, TwitterIcon } from "../icons";
+import Link from "next/link";
+
+const Footer = () => {
+  return (
+    <footer className="mt-16 rounded-2xl bg-dark m-10 flex flex-col items-center text-light">
+      <h3 className="mt-16 font-medium text-center capitalize text-4xl px-4">
+        Explore the Future of Web & Blockchain
+      </h3>
+      <p className="mt-5 px-4 text-center w-3/4 font-light">
+        Dive into the latest trends in front-end and blockchain technologies.
+        <br />
+        Subscribe for cutting-edge guides, insightful analyses, and engaging
+        stories from the forefront of digital innovation.
+      </p>
+      <div className="flex items-center mt-8">
+        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
+          <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
+          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
+          <GithubIcon className="hover:scale-125 transition-all ease duration-200 fill-light" />
+        </a>
+      </div>
+      <div className="w-full mt-24 relative font-medium border-t border-solid border-light py-6 px-8 flex items-center justify-between">
+        <span className="text-center">
+          &copy; 2024 Baekki. All rights reserved.{" "}
+        </span>
+        <Link href="/sitemap.xml" className="text-center underline">
+          sitemap.xml
+        </Link>
+        <div className="text-center">
+          Made by{" "}
+          <a href="http://localhost:3000/" className="underline">
+            Baekki
+          </a>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
+```
+
+- copyright : `&copy;`로 표현할 수 있습니다.
+- sitemap.xml : sitemap.xml은 웹사이트의 구조를 설명하는 XML 파일로, 검색 엔진이 웹사이트를 더 효과적으로 크롤링하고 인덱싱할 수 있도록 도와줍니다. 추후 SEO포스팅에서 업데이트 예정입니다.
+- `<a>` 태그의 링크들은 추후 수정하세요.
+
+## 다음 포스팅 보러가기
+
+<a href="">7. Blog Page</a>

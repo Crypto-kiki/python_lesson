@@ -1,13 +1,13 @@
 ---
 title: "Next.js blog with contentlayer: 4. Home cover section"
-description: Let's create home cover section
-image: "../../public/blogs/emile-perron-xrVDYZRGdw4-unsplash.jpg"
-publishedAt: "2024-03-26"
-updatedAt: "2024-03-26"
+description: "Let's create home cover section"
+image: "../../public/blogs/nextjs-contentlayer.png"
+publishedAt: "2024-03-22"
+updatedAt: "2024-03-22"
 author: "Baekki"
 isPublished: true
 tags:
-  - research
+  - web development
 ---
 
 ## Previous post
@@ -19,7 +19,7 @@ tags:
 메인 페이지의 home cover section을 만들어봅시다.
 
 <Image
-  src="/blogs/homeCoverSection.png"
+  src="/blogs/nextjs-blog-contentlayer/4/homeCoverSection.png"
   width="718"
   height="404"
   alt="Image"
@@ -28,9 +28,7 @@ tags:
 
 components/Home/HomeCoverSection.js 파일을 생성해줍니다.
 
-```javascript
-// src/app/page.js
-
+```javascript title="src/app/page.js"
 import { allBlogs } from "contentlayer/generated";
 import HomeCoverSection from "../components/Home/HomeCoverSection";
 
@@ -47,7 +45,7 @@ export default function Home() {
 
 page.js에 임포트하고 allBolgs를 props로 전달합니다.
 
-```javascript
+```javascript title="components/Home/HomeCoverSection.js"
 import React from "react";
 
 const HomeCoverSection = ({ blogs }) => {
@@ -58,7 +56,7 @@ export default HomeCoverSection;
 ```
 
 <Image
-  src="/blogs/createHomeCoverSectionComponent.png"
+  src="/blogs/nextjs-blog-contentlayer/4/createHomeCoverSectionComponent.png"
   width="718"
   height="404"
   alt="Image"
@@ -93,9 +91,7 @@ tags:
 
 이제 시간을 내림차순하여 비교하기 위해 src/utils/index.js 에 작성해봅시다.
 
-```javascript
-// src/utils/index.js
-
+```javascript title="src/utils/index.js"
 import { compareDesc, parseISO } from "date-fns";
 
 export const cx = (...className) => className.filter(Boolean).join(" ");
@@ -117,9 +113,7 @@ export const sortBlogs = (blogs) => {
 
 이제 sortBlogs 함수를 HomeCoverSection.js에 임포트하여 적용해봅시다.
 
-```javascript
-// src/components/Home/HomeCoverSection.js
-
+```javascript title="src/components/Home/HomeCoverSection.js"
 import { sortBlogs } from "@/src/utils";
 import React from "react";
 
@@ -141,9 +135,7 @@ blog-one 이미지를 불러와봅시다.
 
 먼저 contentlayer.config.js에서 image 타입을 수정해주겠습니다.
 
-```javascript
-// contentlayer.config.js
-
+```javascript title="contentlayer.config.js"
 import { makeSource, defineDocumentType } from "contentlayer/source-files";
 
 const Blog = defineDocumentType(() => ({
@@ -200,7 +192,7 @@ export default makeSource({
 image type : string ➡️ image로 수정 후 다시 실행해보면 string 타입일 때 보다 이미지 넓이/높이, blurhashDataUrl 등 확인 할 수 있습니다.
 
 <Image
-  src="/blogs/changeImageType.png"
+  src="/blogs/nextjs-blog-contentlayer/4/changeImageType.png"
   width="718"
   height="404"
   alt="Image"
@@ -209,9 +201,7 @@ image type : string ➡️ image로 수정 후 다시 실행해보면 string 타
 
 위 데이터를 통해서 이미지를 표현해봅시다.
 
-```javascript
-// src/components/Home/HomeCoverSection.js
-
+```javascript title="src/components/Home/HomeCoverSection.js"
 import { sortBlogs } from "@/src/utils";
 import Image from "next/image";
 import React from "react";
@@ -245,7 +235,7 @@ export default HomeCoverSection;
 - fill : 이미지가 부모 컨테이너를 완전히 채우도록 설정합니다.
 
 <Image
-  src="/blogs/homeCoverImage.png"
+  src="/blogs/nextjs-blog-contentlayer/4/homeCoverImage.png"
   width="718"
   height="404"
   alt="Image"
@@ -258,9 +248,7 @@ export default HomeCoverSection;
 
 홈 커버 섹션에 해당 게시물의 title, subscription, tags를 표현할겁니다. 하지만 이미지가 밝은 경우 가독성이 떨어질 수 있기 때문에 홈 커버 섹션의 하단 부분에 명암 효과를 적용해봅시다!
 
-```javascript
-// src/components/Home/HomeCoverSection.js
-
+```javascript title="src/components/Home/HomeCoverSection.js"
 import { sortBlogs } from "@/src/utils";
 import Image from "next/image";
 import React from "react";
@@ -290,7 +278,7 @@ export default HomeCoverSection;
 ```
 
 <Image
-  src="/blogs/homeCoverImageDarker.png"
+  src="/blogs/nextjs-blog-contentlayer/4/homeCoverImageDarker.png"
   width="718"
   height="404"
   alt="Image"
@@ -303,9 +291,7 @@ export default HomeCoverSection;
 
 이제 Title, Subscription, Tag 표현해봅시다.
 
-```javascript
-// src/components/Home/HomeCoverSection.js
-
+```javascript title="src/components/Home/HomeCoverSection.js"
 import { sortBlogs } from "@/src/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -341,7 +327,7 @@ export default HomeCoverSection;
 ```
 
 <Image
-  src="/blogs/homeCoverMetadata.png"
+  src="/blogs/nextjs-blog-contentlayer/4/homeCoverMetadata.png"
   width="718"
   height="404"
   alt="Image"
@@ -354,9 +340,7 @@ Category(Tags)는 다른 컴포넌트에서도 사용하기 위해 컴포넌트�
 
 src/components/Elements/Tag.js 를 생성합니다.
 
-```javascript
-// src/components/Elements/Tag.js
-
+```javascript title="src/components/Elements/Tag.js"
 import { cx } from "@/src/utils";
 import Link from "next/link";
 import React from "react";
@@ -380,9 +364,7 @@ const Tag = ({ link = "#", name, ...props }) => {
 export default Tag;
 ```
 
-```javascript
-// src/components/Home/HomeCoverSection.js
-
+```javascript title="src/components/Home/HomeCoverSection.js"
 import { sortBlogs } from "@/src/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -425,9 +407,7 @@ export default HomeCoverSection;
 
 이제 title, description 스타일링과 함께 수정해보겠습니다.
 
-```javascript
-// src/components/Home/HomeCoverSection.js
-
+```javascript title="src/components/Home/HomeCoverSection.js"
 import { sortBlogs } from "@/src/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -483,3 +463,7 @@ export default HomeCoverSection;
 - bg-no-repeat: 배경 이미지가 반복되지 않도록 합니다. 여기서는 그라데이션 효과에 적용되므로, 기본적으로 반복되지 않는 속성이지만, 명시적으로 반복을 방지하기 위해 사용됩니다.
 - transition-[background-size]: 배경 크기 변경에 대한 전환 효과를 적용합니다. 이는 배경 크기가 변할 때(호버) 부드럽게 전환되도록 합니다.
 - duration-500: 전환 효과의 지속 시간을 설정합니다.
+
+## 다음 포스팅 보러가기
+
+<a href="">5. Featured Posts</a>

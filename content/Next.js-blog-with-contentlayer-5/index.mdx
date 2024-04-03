@@ -1,9 +1,9 @@
 ---
 title: "Next.js blog with contentlayer: 5. Featured Posts"
-description: Let's create Featured Posts.
-image: "../../public/blogs/carlos-muza-hpjSkU2UYSU-unsplash.jpg"
-publishedAt: "2024-03-27"
-updatedAt: "2024-03-27"
+description: "Let's create Featured Posts."
+image: "../../public/blogs/nextjs-blog-contentlayer/5/mainCover.png"
+publishedAt: "2024-03-23"
+updatedAt: "2024-03-23"
 author: "Baekki"
 isPublished: true
 tags:
@@ -18,11 +18,9 @@ tags:
 
 src/components/Home/FeaturedPosts.js 를 생성합니다.
 
-src/app/page.js 에 FeaturedPosts.js 를 임포트하고 HomeCoverSection과 동일하게 blogs를 props로 전달합니다.
+src/app/page.js 에 FeaturedPosts.js 를 임포트하고 HomeCoverSection과 동일하게 FeaturedPsts 컴포넌트에도 allBlogs를 prop로 전달합니다.
 
-```javascript showLineNumbers {1-3, 4, 7} title="page.js"
-// src/app/page.js
-
+```javascript title="src/app/page.js"
 import { allBlogs } from "contentlayer/generated";
 import HomeCoverSection from "../components/Home/HomeCoverSection";
 import FeaturedPosts from "../components/Home/FeaturedPosts";
@@ -39,9 +37,9 @@ export default function Home() {
 }
 ```
 
-HomeCoverSection에서 publishedAt 기준으로 분류한 sortedBlogs 함수를 동일하게 사용합니다.
+HomeCoverSection에서 publishedAt 기준으로 분류한 sortedBlogs 함수도 동일하게 사용합니다.
 
-```javascript
+```javascript title="src/components/Home/FeaturedPosts.js"
 import { sortBlogs } from "@/src/utils";
 import React from "react";
 
@@ -72,30 +70,323 @@ export default FeaturedPosts;
 ```
 
 <Image
-  src="/blogs/featuredPostsLayout.png"
+  src="/blogs/nextjs-blog-contentlayer/5/featuredPostsLayout.png"
   width="718"
   height="404"
   alt="Image"
   sizes="100vw"
 />
 
-위 처럼 레이아웃까지 잡아줍니다. 이제 각 blog layout 1~3의 컴포넌트를 만들어줍니다.
+위 처럼 레이아웃까지 잡아줍니다. 이제 각 layout 1~3의 컴포넌트를 만들어줍니다.
+
+### blogLayoutOne component
 
 src/components/Blog/BlogLayoutOne.js 를 생성합니다.
 
-content폴더에 blog-one 한 개의 폴더만 있기 때문에, 테스트 하기 위해서 3개 이상 폴더를 복사 후 각 폴더이름/mdx파일의 내용을 조금씩 수정합니다.
+content폴더에 blog-one 한 개의 폴더만 있기 때문에, 테스트 하기 위해서 3개 이상 예제 폴더를 만들어 주세요.
 
-> this is blockqoute
+⚠️ 저는 기존에 예제로 사용하던 blog1 폴더를 삭제하고 위 폴더 5개로 대체했습니다! 상기 포스팅했던 이미지/글과 다를 수 있습니다.
 
-<ol>
-  <li>this is li 1</li>
-  <li>this is li 2</li>
-  <li>this is li 3</li>
-</ol>
+<Image
+  src="/blogs/nextjs-blog-contentlayer/5/exampleForLayout.png"
+  width="512"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
 
-아래는 테이블 스타일입니다.
+이제 BlogLayoutOne.js를 작성해봅시다.
 
-| Header 1 | Header 2 |
-| -------- | -------- |
-| Row 1    | Data     |
-| Row 2    | Data     |
+```javascript title="src/components/Blog/BlogLayoutOne.js"
+import React from "react";
+
+const BlogLayoutOne = ({ blog }) => {
+  return <div className="inline-block overflow-hidden rounded-xl"></div>;
+};
+
+export default BlogLayoutOne;
+```
+
+구조와 css가 HomeCoverSection.js 에서 사용했던 것과 같기 때문에 HomeCoverSection 에서 `<article>`태그 안의 코드를 가져와 BlogLayoutOne.js의 `<div>`태그에 붙여넣습니다.
+
+```javascript title="src/components/Blog/BlogLayoutOne.js"
+import Image from "next/image";
+import React from "react";
+import Tag from "../Elements/Tag";
+import Link from "next/link";
+
+const BlogLayoutOne = ({ blog }) => {
+  return (
+    <div className="group inline-block overflow-hidden rounded-xl">
+      <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
+      <Image
+        src={blog.image.filePath.replace("../public", "")}
+        placeholder="blur"
+        blurDataURL={blog.image.blurhashDataUrl}
+        alt={blog.title}
+        fill
+        className="w-full h-full object-center object-cover rounded-3xl -z-10 group-hover:scale-105 transition-all ease duration-300"
+      />
+      <div className="w-3/4 p-16 flex flex-col justify-center text-light z-10">
+        <Tag link={`/categories/${blog.tags[0]}`} name={blog.tags[0]} />
+        <Link href={blog.url} className="mt-6">
+          <h1 className="font-bold capitalize text-4xl">
+            <span className="bg-gradient-to-r from-accent to-accent bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h1>
+        </Link>
+        <p className="inline-block mt-4 text-xl font-in">{blog.description}</p>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutOne;
+```
+
+⚠️ Image, Tag, Link 임포트 확인하세요!
+
+레이아웃의 일관성과 레이아웃에 적용되는 이미지 원본 비율을 유지하기 위해 `<Image>`태그 속성 중, fill 대신 width, height를 이미지 크기로 변경합니다.
+
+그리고 description을 필요 없기 때문에 `<p>`태그도 삭제해줍니다.
+
+게시물 제목(blog.title)에 hover gradient가 적용되어있지만, 게시물이 차지하는 공간에 hover했을 경우 scale과 title gradient가 같이 동작하도록 group으로 묶어줍니다.
+
+부모 컨테이너에 group 클래스를 적용함으로써 해당 컨테이너 내의 자식 요소들에 그룹으로 특정 상태(hover)를 기반으로 스타일을 적용할 수 있게 합니다.
+
+즉, 부모 요소에 마우스를 올렸을 때 자식 요소의 스타일을 변경합니다.
+
+```javascript title="src/components/Blog/BlogLayoutOne.js"
+import Image from "next/image";
+import React from "react";
+import Tag from "../Elements/Tag";
+import Link from "next/link";
+
+const BlogLayoutOne = ({ blog }) => {
+  return (
+    <div className="group inline-block overflow-hidden rounded-xl">
+      <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
+      <Image
+        src={blog.image.filePath.replace("../public", "")}
+        placeholder="blur"
+        blurDataURL={blog.image.blurhashDataUrl}
+        alt={blog.title}
+        width={blog.image.width}
+        height={blog.image.height}
+        className="w-full h-full object-center object-cover rounded-3xl -z-10 group-hover:scale-105 transition-all ease duration-300"
+      />
+      <div className="w-3/4 p-16 flex flex-col justify-center text-light z-10">
+        <Tag link={`/categories/${blog.tags[0]}`} name={blog.tags[0]} />
+        <Link href={blog.url} className="mt-6">
+          <h1 className="font-bold capitalize text-4xl">
+            <span className="bg-gradient-to-r from-accent to-accent bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h1>
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutOne;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/5/BlogLayoutOne1.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 처럼 잘 불러오면 이제 css를 수정해봅시다.
+
+```javascript title="src/components/Blog/BlogLayoutOne.js"
+import Image from "next/image";
+import React from "react";
+import Tag from "../Elements/Tag";
+import Link from "next/link";
+
+const BlogLayoutOne = ({ blog }) => {
+  return (
+    <div className="group inline-block overflow-hidden rounded-xl">
+      <div className="absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-10" />
+      <Image
+        src={blog.image.filePath.replace("../public", "")}
+        placeholder="blur"
+        blurDataURL={blog.image.blurhashDataUrl}
+        alt={blog.title}
+        width={blog.image.width}
+        height={blog.image.height}
+        className="w-full h-full object-center object-cover rounded-xl group-hover:scale-105 transition-all ease duration-300"
+        sizes="100vw"
+        priority
+      />
+
+      <div className="w-full absolute bottom-0 p-10 z-20">
+        <Tag
+          link={`/categories/${blog.tags[0]}`}
+          name={blog.tags[0]}
+          className="px-6 text-sm py-2 !border"
+        />
+        <Link href={blog.url} className="mt-6">
+          <h2 className="font-bold capitalize text-lg sm:text-xl md:text-3xl lg:text-2xl text-light mt-4">
+            <span className="bg-gradient-to-r from-accent to-accent dark:from-accentDark/50 dark:to-accentDark/50 bg-[length:0px_0px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-700">
+              {blog.title}
+            </span>
+          </h2>
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutOne;
+```
+
+변경사항
+
+- 배경 및 이미지 둥근 모서리 크기 : 배경의 둥근 모서리 크기가 3xl에서 xl로 수정
+- 내용을 담고 있는 div의 위치와 너비 변경 : 컨테이너의 하단에 고정, 너비 full로 수정, z-index 20으로 수정
+- 제목의 크기 및 태그 변경 : `<h1>`에서 `<h2>`로 변경, 텍스트 크기 4xl에서 2xl로 수정
+- Tag 컴포넌트 스타일 추가 : Tag컴포넌트를 보면, border-2가 적용되어 있음. 따라서 border 기본값인 1px을 적용/override 하기 위헤 `!border`로 수정.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/5/BlogLayoutOne2.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+### blogLayoutTwo component
+
+src/components/Blog/BlogLayoutTwo.js 를 생성합니다.
+
+```javascript title="src/components/Blog/BlogLayoutTwo.js"
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+
+const BlogLayoutTwo = ({ blog }) => {
+  return (
+    <div className="group grid grid-cols-12 gap-4 items-center text-dark">
+      <Link href={blog.url} className="col-span-4 rounded-xl overflow-hidden">
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
+        />
+      </Link>
+    </div>
+  );
+};
+
+export default BlogLayoutTwo;
+```
+
+이미지 태그는 BlogLayoutOne 컴포넌트의 `<Image>`와 동일하기 때문에 복사해서 가져오고 스타일링만 수정했습니다.
+
+FeaturedPosts 컴포넌트에 BlogLayoutTwo.js도 임포트 합니다.
+
+```javascript title="src/components/Home/FeaturedPosts.js"
+import { sortBlogs } from "@/src/utils";
+import React from "react";
+import BlogLayoutOne from "../Blog/BlogLayoutOne";
+import BlogLayoutTwo from "../Blog/BlogLayoutTwo";
+
+const FeaturedPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <h2 className="w-full inline-block font-bold capitalize text-4xl">
+        Featured Posts
+      </h2>
+      <div className="grid grid-cols-2 grid-rows-2 gap-6 mt-16">
+        <article className="col-span-1 row-span-2 relative">
+          <BlogLayoutOne blog={sortedBlogs[2]} />
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          <BlogLayoutTwo blog={sortedBlogs[3]} />
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          <BlogLayoutTwo blog={sortedBlogs[4]} />
+        </article>
+      </div>
+    </section>
+  );
+};
+
+export default FeaturedPosts;
+```
+
+BlogLayoutTwo는 레이아웃이 동일하기 때문에 2,3번 째 `<article>`태그에 동일하게 적용합니다. 단, 보여줄 게시물은 sortedBlogs[]로 작성일(publishedAt) 따라 인덱스를 수정해주면 됩니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/5/BlogLayoutTwo1.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+BlogLayoutOne 컴포넌트에서 `<Image>`태그 하위의 `<div>`태그도 가져와서 아래와 같이 수정해줍니다.
+
+```javascript title="src/components/Blog/BlogLayoutTwo.js"
+import { format } from "date-fns";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+
+const BlogLayoutTwo = ({ blog }) => {
+  return (
+    <div className="group grid grid-cols-12 gap-4 items-center text-dark">
+      <Link href={blog.url} className="col-span-4 rounded-xl overflow-hidden">
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
+        />
+      </Link>
+      <div className=" col-span-8 w-full">
+        <span className=" uppercase text-accent font-semibold text-sm">
+          {blog.tags[0]}
+        </span>
+        <Link href={blog.url} className="inline-block my-1">
+          <h2 className="font-semibold capitalize text-lg">
+            <span className="bg-gradient-to-r from-accent/50 to-accent/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h2>
+        </Link>
+
+        <div className="capitalize text-dark/50 font-semibold">
+          {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutTwo;
+```
+
+주요 변경사항
+
+- date-fns 라이브러리의 format 함수 추가 : 지난 포스팅에서 최신글을 HomeCoverSection에 불러오기 위해서 사용했던 date-fns라이브러리 입니다.
+- 게시물 제목 아래에 날짜 표시 : 게시물의 publishedAt 날짜 표현. ⚠️ format함수를 사용할 때, 포멧팅 형식은 대소문자 지켜야함.
+
+## 다음 포스팅 보러가기
+
+<a href="">6. Recent Posts and Footer</a>

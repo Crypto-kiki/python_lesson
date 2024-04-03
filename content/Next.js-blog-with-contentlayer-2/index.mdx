@@ -1,13 +1,13 @@
 ---
 title: "Next.js blog with contentlayer: 2. Navigation bar Component"
-description: Navbar component
-image: "../../public/blogs/emile-perron-xrVDYZRGdw4-unsplash.jpg"
-publishedAt: "2024-03-24"
-updatedAt: "2024-03-24"
+description: "Navbar component"
+image: "../../public/blogs/nextjs-blog-contentlayer/2/mainCover.png"
+publishedAt: "2024-03-20"
+updatedAt: "2024-03-20"
 author: "Baekki"
 isPublished: true
 tags:
-  - blockchain
+  - web development
 ---
 
 ## Previous post
@@ -16,9 +16,9 @@ tags:
 
 ## Header Component
 
-src > components folder > Header forlder > index.js
+Header 컴포넌트를 생성합니다.
 
-```javascript
+```javascript title="src/components/Header/index.js"
 import React from "react";
 
 const Header = () => {
@@ -30,9 +30,7 @@ export default Header;
 
 Header를 모든 페이지에 적용합니다. 따라서 layout에 Header 컴포넌트를 넣어줍니다.
 
-```javascript
-// src/app/layout.js
-
+```javascript title="src/app/layout.js"
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { cx } from "@/src/utils";
@@ -75,7 +73,7 @@ export default function RootLayout({ children }) {
 아래와 같이 적용된 것을 확인 할 수 있습니다.
 
 <Image
-  src="/blogs/header1.png"
+  src="/blogs/nextjs-blog-contentlayer/2/header1.png"
   width="718"
   height="404"
   alt="Image"
@@ -84,7 +82,7 @@ export default function RootLayout({ children }) {
 
 가독성을 위해 layout의 `<body>`태그에서 dark:bg-dark 부분 삭제. (추후 추가 예정)
 
-```javascript
+```javascript title="layout.js"
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { cx } from "@/src/utils";
@@ -122,11 +120,11 @@ export default function RootLayout({ children }) {
 
 ## Logo
 
-Logo 컴포넌트를 생성해줍니다(path : src/components/Header/logo.js)
+Logo 컴포넌트를 생성합니다.
 
 logo로 사용 할 이미지를 프로젝트 폴더 바로 하위인 public폴더에 준비해주세요.
 
-```javascript
+```javascript title="src/components/Header/logo.js"
 import Image from "next/image";
 import Link from "next/link";
 import profileImg from "@/public/profile.png";
@@ -151,8 +149,7 @@ export default Logo;
 
 위 Logo 컴포넌트를 Header에서 import 합니다.
 
-```javascript
-// src/components/Header/index.js
+```javascript title="src/components/Header/index.js"
 import React from "react";
 import Logo from "./logo";
 
@@ -170,7 +167,7 @@ export default Header;
 실행해보면 아래와 같은 오류가 발생합니다.
 
 <Image
-  src="/blogs/LogoPathError.png"
+  src="/blogs/nextjs-blog-contentlayer/2/logoPathError.png"
   width="718"
   height="404"
   alt="Image"
@@ -179,7 +176,7 @@ export default Header;
 
 jsconfig.json 파일을 아래와 같이 수정합니다.
 
-```javascript
+```javascript title="jsconfig.json"
 {
   "compilerOptions": {
     "paths": {
@@ -192,7 +189,7 @@ jsconfig.json 파일을 아래와 같이 수정합니다.
 이제 @ 또는 \*을 사용하면 프로젝트 폴더 최상위 기준으로 적용됩니다.
 
 <Image
-  src="/blogs/fixedLogoPath.png"
+  src="/blogs/nextjs-blog-contentlayer/2/fixedLogoPath.png"
   width="718"
   height="404"
   alt="Image"
@@ -203,8 +200,7 @@ jsconfig.json 파일을 아래와 같이 수정합니다.
 
 다음으로 Header 컴포넌트에서 navigation bar를 만들어 봅시다.
 
-```javascript
-// src/components/Header/index.js
+```javascript title="src/components/Header/index.js"
 import React from "react";
 import Logo from "./logo";
 import Link from "next/link";
@@ -213,14 +209,14 @@ const Header = () => {
   return (
     <div className="w-full p-4 px-10 flex items-center justify-between">
       <Logo />
-      <nav className="w-max py-3 px-8 border border-solid border-dark rounded-full font-medium capitalize flex items-center fixed top-6 right-1/2 translate-x-1/2 bg-light/80 backdrop-blur-sm">
+      <nav className="w-max py-3 px-8 border border-solid border-dark rounded-full font-medium capitalize flex items-center fixed top-6 right-1/2 translate-x-1/2 bg-light/80 backdrop-blur-sm z-50">
         <Link href="/" className="mr-2">
           Home
         </Link>
         <Link href="/about" className="mx-2">
           About
         </Link>
-        <Link href="/contact" className="mr-2">
+        <Link href="/contact" className="mx-2">
           Contact
         </Link>
         <button>dark</button>
@@ -236,7 +232,7 @@ export default Header;
 위 코드를 적용하면 아래와 같은 결과물이 나옵니다.
 
 <Image
-  src="/blogs/headerNav.png"
+  src="/blogs/nextjs-blog-contentlayer/2/headerNav.png"
   width="718"
   height="404"
   alt="Image"
@@ -253,11 +249,11 @@ nav 태그에 적용된 tailwindCSS 속성 중 몇 가지를 알아볼까요?
 - translate-x-1/2: 요소를 수평 방향으로 자신의 너비의 50%만큼 이동시킵니다. 이는 요소를 중앙 정렬하는 데 자주 사용됩니다.
 - bg-light/80: 요소의 배경 색상을 ligh로 설정하고, 투명도를 80%로 조정합니다. dark와 마찬가지로 tailwind.config.js에 작성한 light 색상입니다.
 - backdrop-blur-sm: 요소 뒤의 배경에 약간의 블러 효과를 적용합니다.
+- z-50 : 드래그 할 때, 다른 게시물들에 가려지지 않기 위해 넉넉히 z-50 적용한겁니다.
 
 ## Social Links
 
-```javascript
-// src/components/Header/index.js
+```javascript title="src/components/Header/index.js"
 import React from "react";
 import Logo from "./logo";
 import Link from "next/link";
@@ -273,7 +269,7 @@ const Header = () => {
         <Link href="/about" className="mx-2">
           About
         </Link>
-        <Link href="/contact" className="mr-2">
+        <Link href="/contact" className="mx-2">
           Contact
         </Link>
         <button>dark</button>
@@ -332,7 +328,7 @@ export default Header;
 SVGR Playground에서 컴포넌트화 시킵니다. <a href="https://react-svgr.com/playground/" target="_blank">SVGR Playground Link</a>
 
 <Image
-  src="/blogs/socialLinkSvg.png"
+  src="/blogs/nextjs-blog-contentlayer/2/socialLinkSvg.png"
   width="718"
   height="404"
   alt="Image"
@@ -372,7 +368,7 @@ export default SvgComponent;
 
 변환된 위 코드를 아래와 같이 수정합니다.
 
-```javascript
+```javascript title="src/components/icons.js"
 import { cx } from "../utils";
 
 export const LinkedinIcon = ({ className, ...rest }) => (
@@ -474,9 +470,7 @@ export const LinkedinIcon = ({ className, ...rest }) => (
 </svg>
 ```
 
-```javascript
-// src/components/icons.js
-
+```javascript title="src/components/icons.js"
 import { cx } from "../utils";
 
 export const LinkedinIcon = ({ className, ...rest }) => (
@@ -550,9 +544,7 @@ export const GithubIcon = ({ className, ...rest }) => (
 
 이제 Header 컴포넌트에 적용시켜줍니다.
 
-```javascript
-// src/components/Header/index.js
-
+```javascript title="src/components/Header/index.js"
 import React from "react";
 import Logo from "./logo";
 import Link from "next/link";
@@ -569,7 +561,7 @@ const Header = () => {
         <Link href="/about" className="mx-2">
           About
         </Link>
-        <Link href="/contact" className="mr-2">
+        <Link href="/contact" className="mx-2">
           Contact
         </Link>
         <button>dark</button>
@@ -595,7 +587,7 @@ export default Header;
 아래와 같이 적용된 결과를 확인 할 수 있습니다.
 
 <Image
-  src="/blogs/socialLink.png"
+  src="/blogs/nextjs-blog-contentlayer/2/socialLink.png"
   width="718"
   height="404"
   alt="Image"
@@ -604,7 +596,7 @@ export default Header;
 
 navigation bar에 있는 dark 텍스트도 sun / moon 아이콘으로 icons.js에 추가합니다. (아래 코드 그대로 추가하면 됩니다.)
 
-```javascript
+```javascript title="src/components/icons.js"
 export const SunIcon = ({ className, ...rest }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -943,9 +935,13 @@ export const MoonIcon = ({ className, ...rest }) => (
 아래와 같이 적용된 것을 확인하세요 😃
 
 <Image
-  src="/blogs/navBar.png"
+  src="/blogs/nextjs-blog-contentlayer/2/navBar.png"
   width="718"
   height="404"
   alt="Image"
   sizes="100vw"
 />
+
+## 다음 포스팅 보러가기
+
+<a href="">3. Contentlayer</a>

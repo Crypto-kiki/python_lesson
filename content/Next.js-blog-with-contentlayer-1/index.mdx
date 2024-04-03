@@ -1,9 +1,9 @@
 ---
 title: "Next.js blog with contentlayer: 1. Setup installation and tailwind CSS."
-description: Next.js, Tailwind CSS 셋팅하기
-image: "../../public/blogs/emile-perron-xrVDYZRGdw4-unsplash.jpg"
-publishedAt: "2024-03-07"
-updatedAt: "2024-03-07"
+description: "Next.js, Tailwind CSS 셋팅하기"
+image: "../../public/blogs/nextjs-blog-contentlayer/1/mainCover.png"
+publishedAt: "2024-03-19"
+updatedAt: "2024-03-19"
 author: "Baekki"
 isPublished: true
 tags:
@@ -30,7 +30,7 @@ Next.js 설치 명령어는 아래와 같습니다.
 Typescript는 사용하지 않을 것이기 때문에 아래의 이미지와 같이 설정합니다.
 
 <Image
-  src="/blogs/nextjs-setting.png"
+  src="/blogs/nextjs-blog-contentlayer/1/nextjs-setting.png"
   width="718"
   height="404"
   alt="Image"
@@ -42,7 +42,7 @@ Typescript는 사용하지 않을 것이기 때문에 아래의 이미지와 같
 > npm run dev
 
 <Image
-  src="/blogs/nextjs-run.png"
+  src="/blogs/nextjs-blog-contentlayer/1/nextjs-run.png"
   width="718"
   height="404"
   alt="Image"
@@ -55,9 +55,7 @@ app 폴더 하위에 page.js를 보면 Next.js 위 이미지에서 본 기본코
 
 `<main>` 태그 내에 코드를 모두 지운 후 아래와 같이 작성해봅시다.
 
-```javascript
-// src/app/page.js
-
+```javascript title="src/app/page.js"
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
@@ -70,7 +68,7 @@ export default function Home() {
 그리고 다시 실행시켜보면 아래와 같은 화면을 확인 할 수 있습니다.
 
 <Image
-  src="/blogs/nextjs-page.png"
+  src="/blogs/nextjs-blog-contentlayer/1/nextjs-page.png"
   width="718"
   height="404"
   alt="Image"
@@ -81,7 +79,7 @@ export default function Home() {
 아래 이미지를 참고해주세요.
 
 <Image
-  src="/blogs/nextjs-page2.png"
+  src="/blogs/nextjs-blog-contentlayer/1/nextjs-page2.png"
   width="718"
   height="404"
   alt="Image"
@@ -92,9 +90,7 @@ export default function Home() {
 
 tailwind.config.js 파일을 보면 기본 설정값이 있습니다.
 
-```javascript
-// tailwind.config.js
-
+```javascript title="tailwind.config.js"
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -120,9 +116,7 @@ backgroundImage는 사용하지 않기 때문에, 삭제합니다.
 
 ### setup color
 
-```javascript
-// tailwind.config.js
-
+```javascript title="tailwind.config.js"
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -149,9 +143,7 @@ module.exports = {
 
 ### setup fonts
 
-```javascript
-// src/app/layout.js
-
+```javascript title="src/app/layout.js"
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 
@@ -190,9 +182,7 @@ const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-in"
 
 그리고 `<body>`태그에 Inter와 Manrope 폰트를 적용해줍니다.
 
-```javascript
-// src/app/layout.js
-
+```javascript title="src/app/layout.js"
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 
@@ -227,9 +217,7 @@ export default function RootLayout({ children }) {
 
 inter와 manrope 폰트를 className으로 사용하기 위해서 tailwindcss에서 fontfamily를 추가합니다.
 
-```javascript
-// tailwind.config.js
-
+```javascript title="tailwind.config.js"
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -259,8 +247,7 @@ module.exports = {
 이제 Inter, Manrope 폰트를 사용하려면 className에 'font-in' 또는 'font-mr' 속성을 사용해서 폰트를 적용 할 수 있습니다.
 background-color는 light, manrope 폰트가 기본으로 적용되도록 body태그에 적용해줍니다.
 
-```javascript
-// src/app/layout.js
+```javascript title="src/app/layout.js"
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 
@@ -297,9 +284,7 @@ export default function RootLayout({ children }) {
 
 src/utils/index.js를 생성합니다.
 
-```javascript
-// src/utils/index.js
-
+```javascript title="src/utils/index.js"
 export const cx = (...className) => className.filter(Boolean).join(" ");
 ```
 
@@ -308,9 +293,7 @@ cx 함수는 여러 개의 클래스 이름을 받아서 하나의 문자열로 
 
 ### edit layout.js
 
-```javascript
-// src/app/layout.js
-
+```javascript title="src/app/layout.js"
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { cx } from "@/utils";
@@ -359,4 +342,6 @@ export default function RootLayout({ children }) {
     - 개발자가 CSS 클래스를 입력할 때, 가능한 옵션을 자동으로 제시하고, 해당 클래스가 적용될 스타일을 미리보기로 보여줍니다.
     - 프로젝트의 tailwind.config.js 파일 설정을 기반으로 한 맞춤 제안도 제공합니다.
 
-### 다음 :
+## 다음 포스팅 보러가기
+
+<a href="">2. Navigation bar component</a>

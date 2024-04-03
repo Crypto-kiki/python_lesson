@@ -1,0 +1,1208 @@
+---
+title: "Next.js blog with contentlayer: 7. Blog Page"
+description: "Let's create Blog Page."
+image: "../../public/blogs/nextjs-blog-contentlayer/7/mainCover.png"
+publishedAt: "2024-03-25"
+updatedAt: "2024-03-25"
+author: "Baekki"
+isPublished: true
+tags:
+  - web development
+---
+
+## Previous post
+
+이어서 진행합니다.
+
+## Blog page
+
+### dynamic routes
+
+먼저 각 게시물마다 url을 아래와 생성되도록 하려고합니다.
+
+> http://localhost:3000/blogs/Next.js-blog-with-contentlayer-1
+
+즉, `blog주소/blogs/게시물타이틀` 과 같이 생성되도록 하려면, 다이나믹 라우팅 사용해야 합니다.
+
+참고링크 : <a href="https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes" target="_blank">Next.js Dynamic Routes</a>
+
+Next.js의 다이나믹 라우팅 기능은 사이트 내에서 다양한 경로를 동적으로 생성할 수 있게 해줍니다.
+
+먼저, src/app/blogs/[slug]/page.js 를 생성합니다.
+
+```javascript title="src/app/blogs/[slug]/page.js"
+export default function BlogPage({ params }) {
+  return <div>My Post: {params.slug}</div>;
+}
+```
+
+여기서 slug는 URL에서 특정 페이지를 식별하는 데 사용되는 문자열이며, app/blogs/[slug]/page.js 파일 경로에 정의된 동적 경로의 일부입니다.
+
+위 파일을 저장 후, 게시글을 클릭해보면 아래와 같이 url이 생성됩니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage1.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+```javascript title="src/app/blogs/[slug]/page.js"
+import { allBlogs } from ".contentlayer/generated";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={`/categories/${blog.tags[0]}`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+    </article>
+  );
+}
+```
+
+- `const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);` : .find 메소드를 사용하여 allBlogs 배열 내의 각 블로그 객체(blog)를 순회합니다. 순회하는 동안 각 블로그 객체의 \_raw.flattenedPath 프로퍼티가 현재 페이지의 URL에서 추출된 slug 값과 일치하는지 확인합니다. 이는 다이나믹 라우팅을 통해 접근한 현재 페이지의 경로를 기반으로 해당 페이지에 맞는 블로그 포스트 데이터를 찾기 위함입니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage2.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+- `<Image>`태그는 BlogLayoutTwo 컴포넌트의 `<Image>`태그와 동일하기 때문에 그대로 가져오고, hover부분만 지워줍니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage3.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위와 같이 적용된 것을 볼 수 있습니다.
+
+다음으로 BlogDetails(작성일, views, reading time, tag)를 만들어봅시다.
+
+src/components/Blog/BlogDetails.js 를 생성합니다.
+
+```javascript title="src/components/Blog/BlogDetails.js"
+import { format, parseISO } from "date-fns";
+import React from "react";
+
+const BlogDetails = ({ blog, slug }) => {
+  return (
+    <div>
+      <time>{format(parseISO(blog.publishedAt), "LLLL d, yyyy")}</time>
+      <span>10 views</span>
+    </div>
+  );
+};
+
+export default BlogDetails;
+```
+
+src/app/blogs/[slug]/page.js 에 BlogDetails를 입포트하고 props를 전달합니다.
+
+```javascript title="src/app/blogs/[slug]/page.js"
+import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={`/categories/${blog.tags[0]}`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+    </article>
+  );
+}
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage4.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+좌측 하단에 시간(publishedAt), views를 확인 할 수 있습니다. (views는 supabase를 적용할 예정입니다.)
+
+reading time을 적용하기 위해서는 해당 라이브러리를 설치해야 합니다.
+
+> npm i reading-time
+
+그리고 contentlayer.config.js에 readingTime 필드를 추가합니다.
+
+```javascript title="contentlayer.config.js"
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+});
+```
+
+- readingTime : 주어진 텍스트의 길이를 기반으로 해당 텍스트를 읽는 데 걸리는 예상 시간을 계산하는 라이브러리입니다.
+- type: "json" : JSON 타입이란, 예상 읽는 시간을 포함한 정보가 객체 형태로 반환될 것임을 의미합니다.
+- `resolve: (doc) => readingTime(doc.body.raw)` : 현재 문서(doc)를 인자로 받으며, readingTime 라이브러리를 사용하여 doc.body.raw (즉, 블로그 포스트의 원시 본문 텍스트)를 분석합니다. readingTime 함수는 텍스트를 분석하여 읽는 데 걸리는 시간을 예측하고, 이 정보를 객체 형태로 반환합니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage5.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+BlogDetails.js에 readingTime과 tags를 적용해봅시다.
+
+```javascript title="src/components/Blog/BlogDetails.js"
+import { format, parseISO } from "date-fns";
+import Link from "next/link";
+import React from "react";
+
+const BlogDetails = ({ blog, slug }) => {
+  console.log(blog);
+  return (
+    <div className="px-10 bg-accent text-light py-2 flex items-center justify-around flex-wrap text-xl font-medium mx-10 rounded-lg">
+      <time className="m-3">
+        {format(parseISO(blog.publishedAt), "LLLL d, yyyy")}
+      </time>
+      <span className="m-3">10 views</span>
+      <div className="m-3">{blog.readingTime.text}</div>
+      <Link href={`categories/${blog.tags[0]}`} className="m-3">
+        #{blog.tags[0]}
+      </Link>
+    </div>
+  );
+};
+
+export default BlogDetails;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage6.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 이미지와 같이 잘 적용된 것을 확인할 수 있습니다.
+
+이제 컨텐츠 내용(글)을 불러오도록 작성해봅시다.
+
+```javascript title="src/app/blogs/[slug]/page.js"
+import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={`/categories/${blog.tags[0]}`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+
+      <div className="grid grid-cols-12 gap-16 mt-8 px-10">
+        <div className="col-span-4">Toc</div>
+        <div className="col-span-8">Render Mdx</div>
+      </div>
+    </article>
+  );
+}
+```
+
+- toc는 Table of Content로 해당 컨텐츠의 목차와 같고 특정 섹션으로 이동 할 수 있도록 하는 부분입니다. (다음 포스팅에 다룰 예정)
+
+이제 글을 불러오도록 해봅시다.
+
+먼저 contentlayer.config.js에서 contentType을 mdx로 정의해줍니다.
+
+```javascript title="contentlayer.config.js"
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+});
+```
+
+src/components/Blog/RenderMdx.js 컴포넌트를 생성하고 src/app/blogs/[slug]/page.js에 임포트 합니다.
+
+```javascript title="src/app/blogs/[slug]/page.js"
+import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import RenderMdx from "@/src/components/Blog/RenderMdx";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={`/categories/${blog.tags[0]}`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+
+      <div className="grid grid-cols-12 gap-16 mt-8 px-10">
+        <div className="col-span-4">Toc</div>
+        <RenderMdx blog={blog} />
+      </div>
+    </article>
+  );
+}
+```
+
+```javascript title="src/components/Blog/RenderMdx.js"
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+
+  return (
+    <div>
+      <MDXContent />
+    </div>
+  );
+};
+
+export default RenderMdx;
+```
+
+- useMDXComponent : next-contentlayer/hooks에서 가져온 훅으로, MDX 내용을 React 컴포넌트로 변환하는 데 사용됩니다.
+
+하지만 위 코드를 실행하면 아래와 같은 오류가 발생합니다.
+
+> Error: Expected component `Image` to be defined: you likely forgot to import, pass, or provide it.
+
+이 오류는 MDX 파일 내에서 Image 컴포넌트를 사용하려고 했지만, 해당 컴포넌트를 정의하거나 제공하지 않아 발생하는 문제입니다.
+
+RenderMdx 컴포넌트에서 MDXContent 컴포넌트를 사용할 때, MDX 파일 내에서 사용된 컴포넌트들에 대한 참조를 제공해야 합니다. 따라서 Image 컴포넌트를 RenderMdx 컴포넌트에 포함시키고, MDXContent에 이를 전달해야 합니다.
+
+먼저, Next.js의 Image 컴포넌트를 import 합니다. 그런 다음, MDX 파일 내에서 사용할 수 있도록 MDXContent 컴포넌트에 해당 Image 컴포넌트를 전달합니다.
+
+```javascript title="src/components/Blog/RenderMdx.js"
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+
+  return (
+    <div>
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;
+```
+
+위 처럼 적용하면 아래와 같은 오류가 발생합니다.
+
+> Error: Cannot access Image.propTypes on the server. You cannot dot into a client module from a server component. You can only pass the imported name through.
+
+위 오류의 원인은 서버 사이드에서 실행될 때 Next.js의 Image 컴포넌트의 속성에 접근하려고 시도했기 때문에 발생합니다.
+
+따라서 "use client" 지시어를 사용해줍니다.
+
+```javascript title="src/components/Blog/RenderMdx.js"
+"use client";
+
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+
+  return (
+    <div>
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage7.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+이제 위 이미지처럼 blog.body.code가 랜더링 된 것을 확인 할 수 있습니다.
+
+마크다운(mdx)에서 가져온 코드를 typography 요소의 스타일을 쉽게 관리하기 위해 tailwindCSS의 typography플러그인을 알아봅시다.
+
+참고링크 : <a href="https://tailwindcss.com/docs/plugins#typography" target="_blank">TailwindCSS typography</a>
+
+먼저 플러그인을 설치합니다.
+
+> npm install -D @tailwindcss/typography
+
+설치 후 tailwindcss.config.js에 플러그인 추가를 합니다.
+
+```javascript title="tailwindcss.config.js"
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        dark: "#1b1b1b",
+        light: "#fff",
+        accent: "#7b00d3",
+        accentDark: "#ffdb4d",
+        gray: "#747474",
+      },
+      fontFamily: {
+        mr: ["var(--font-mr)"],
+        in: ["var(--font-in)"],
+      },
+    },
+  },
+  plugins: [require("@tailwindcss/typography")],
+};
+```
+
+적용할 곳에 `prose`라는 속성을 붙입니다. `<MDXContent/>` 를 감싸고 있는 부모 태그에 적용합니다.
+
+```javascript title="src/components/Blog/RenderMdx.js"
+"use client";
+
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+
+  return (
+    <div className="col-span-8 font-in prose prose-lg max-w-max">
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage8.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 처럼 mdx의 컨텐츠에 typography가 적용된 것을 확인 할 수 있습니다.
+
+prose가 적용된 것들 중 blockquote, `<li>`태그를 스타일링해봅시다.
+
+```javascript title="src/components/Blog/RenderMdx.js"
+"use client";
+
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+
+  return (
+    <div className="col-span-8 font-in prose prose-lg max-w-max prose-blockquote:bg-accent/20 prose-blockquote:p-2 prose-blockquote:px-6 prose-blockquote:border-accent prose-blockquote:not-italic prose-blockquote:rounded-r-lg prose-li:marker:text-accent">
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage9.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+blockquote와 `<li>`태그에 스타일링이 적용된 것을 확인할 수 있습니다.
+
+아래 테이블스타일도 적용해봅시다.
+
+마크다운 문서를 파싱하고 변환하는데 사용되는 라이브러리인 remark-gfm을 설치해줍니다.
+
+> npm i remark-gfm
+
+설치 후 contentlayer.config.js에 추가합니다.
+
+```javascript title="contentlayer.config.js"
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+import remarkGfm from "remark-gfm";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: { remarkPlugins: [remarkGfm] },
+});
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage10.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 이미지처럼 잘 적용된 것을 볼 수 있습니다.
+
+- remark-gfm : autolink literals, footnotes, strikethrough, tables, tasklists 을 지원합니다.
+
+참고링크 : <a href="https://github.com/remarkjs/remark-gfm" target="_blank">remark-gfm</a>
+
+다음으로 rehype 관련 라이브러리를 설치합니다.
+
+> npm i rehype-slug
+
+- rehype-slug : HTML 문서의 제목 요소에 고유한 ID를 자동으로 추가합니다. rehype-autolink-headings와 함께 사용될 때 매우 유용합니다. 제목에 ID를 부여함으로써, 개별 제목에 직접 링크를 걸거나 페이지 내에서 쉽게 참조할 수 있게 됩니다.
+
+> npm i rehype-autolink-headings
+
+- rehype-autolink-headings: 이 플러그인은 HTML 문서 내의 제목(heading) 요소에 자동으로 링크를 추가합니다. 사용자가 제목을 클릭하면 해당 제목의 위치로 쉽게 이동할 수 있게 되며, 주로 문서의 내비게이션을 향상시키기 위해 사용됩니다. Markdown 파일을 HTML로 변환한 뒤, 각 제목에 고유한 ID를 부여하고 이 ID를 이용해 링크를 생성합니다.
+
+두 플러그인을 사용하기 위해 contentlayer.config.js에 추가합니다.
+
+```javascript title="contentlayer.config.js"
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [rehypeSlug, rehypeAutolinkHeadings],
+  },
+});
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage11.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 처럼 heading tag에 id가 부여되고, heading tag에 `<a>`태그가 생성된 것을 볼 수 있습니다.
+
+`<h2>`태그 안에 `<a>`태그가 생성되고 텍스트가 나옵니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage12.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+url을 아래와 같이 접속해볼까요? (각자의 .mdx파일에 h태그(#, ##, ###...)로 작성해보세요! )
+
+> http://localhost:3000/blogs/Next.js-blog-with-contentlayer-5#featured-posts
+
+그럼 Featured Posts heading tag로 이동합니다.
+
+`<h2>`태그 안에 `<a>`태그가 생성되고 텍스트가 나오는데, `<h2>`, 텍스트, `<a>`태그 순으로 바꿔봅시다! 바꾸는 이유는, 택스트 뒤에 "#" 를 붙여 표현하려고 합니다.
+
+rehypeAutolinkHeadings의 옵션 중 append라는 속성이 있습니다.
+
+참고링크 : <a href="https://www.npmjs.com/package/rehype-autolink-headings#unifieduserehypeautolinkheadings-options" target="_blank">rehypeAutolinkHeadings 옵션</a>
+
+contentlayer.config.js에 속성을 추가해줍니다.
+
+```javascript title="contentlayer.config.js"
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [
+      rehypeSlug,
+      [rehypeAutolinkHeadings, { behavior: "append" }],
+    ],
+  },
+});
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage13.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+이제 링크가 heading 텍스트 뒤에 생성된 것을 볼 수 있습니다.
+
+heading 텍스트 뒤에 "#" 을 넣으려는데 위 사진을 보면 `<a>`태그 안에 `<span>`태그가 있습니다.
+
+globals.css에서 추가해봅시다.
+
+```css title="src/app/globals.css"
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+h1 > a > .icon.icon-link:before,
+h2 > a > .icon.icon-link:before,
+h3 > a > .icon.icon-link:before {
+  content: "#";
+  font-size: 0.8rem;
+}
+
+h2 > a,
+h3 > a {
+  text-decoration: none !important;
+}
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage14.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 처럼 heading 텍스트 뒤에 "#"이 추가된 것을 볼 수 있습니다. 해당 링크를 누르면 url도 잘 변경되고, 해당 heading 태그로 이동합니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage15.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 이미지에서 코드블럭을 보면 code highlight 적용되지 않은 모습입니다. 코드블럭에도 프리티어를 적용하기 위해서 rehype pretty code라이브러를 사용합니다.
+
+참고링크 : <a href="https://rehype-pretty-code.netlify.app/" target="_blank">rehype-pretty-code</a>
+
+> npm install rehype-pretty-code shiki
+
+설치 후 contentlayer.config.js에 추가해줍니다.
+
+```javascript title="contentlayer.config.js"
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypePrettyCode from "rehype-pretty-code";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/blogs/${doc._raw.flattenedPath}`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+const codeOptions = {
+  theme: "github-dark",
+};
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [
+      rehypeSlug,
+      [rehypeAutolinkHeadings, { behavior: "append" }],
+      [rehypePrettyCode, codeOptions],
+    ],
+  },
+});
+```
+
+포스텡에서 테마는 "github-dark"를 사용했지만 아래 참고링크를 통해 다른 테마도 적용 할 수 있습니다.
+
+참고링크 : <a href="https://shiki.style/themes#themes" target="_blank">shiki theme</a>
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage16.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 처럼 code prettier가 적용된 것을 볼 수 있습니다. 추가로 코드블럭 좌측에 line number도 추가해봅시다.
+
+참고링크 : <a href="https://rehype-pretty-code.netlify.app/#line-numbers" target="_blank">rehype-pretty-code line numbers</a>
+
+참고링크의 코드를 globals.css에 추가합니다.
+
+```css title="src/app/globals.css"
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+h1 > a > .icon.icon-link:before,
+h2 > a > .icon.icon-link:before,
+h3 > a > .icon.icon-link:before {
+  content: "#";
+  font-size: 0.8rem;
+}
+
+h2 > a,
+h3 > a {
+  text-decoration: none !important;
+}
+
+code {
+  counter-reset: line;
+}
+
+code > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+
+  /* Other styling */
+  display: inline-block;
+  width: 1rem;
+  margin-right: 2rem;
+  text-align: right;
+  color: gray;
+}
+
+code[data-line-numbers-max-digits="2"] > [data-line]::before {
+  width: 2rem;
+}
+
+code[data-line-numbers-max-digits="3"] > [data-line]::before {
+  width: 3rem;
+}
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage17.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+코드블럭 좌측에 line number가 생성된 것을 볼 수 있습니다.
+
+코드블럭 내에서 특정 줄을 강조하고 싶다면 .mdx파일에서 아래처럼 작성해보세요!
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage18.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+코드블럭 작성란에 showLineNumbers `{적용할 줄}` 을 입력하면 아래와 같이 각 코드 줄`<span>`태그에 "data-highlighted-line"클래스가 붙습니다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage19.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+이제 해당 클래스에 css를 적용해봅시다. globals.css에 아래와 같이 추가하세요.
+
+```css title="src/app/globals.css"
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+h1 > a > .icon.icon-link:before,
+h2 > a > .icon.icon-link:before,
+h3 > a > .icon.icon-link:before {
+  content: "#";
+  font-size: 0.8rem;
+}
+
+h2 > a,
+h3 > a {
+  text-decoration: none !important;
+}
+
+code {
+  counter-reset: line;
+}
+
+code > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+
+  /* Other styling */
+  display: inline-block;
+  width: 1rem;
+  margin-right: 2rem;
+  text-align: right;
+  color: gray;
+}
+
+code[data-line-numbers-max-digits="2"] > [data-line]::before {
+  width: 2rem;
+}
+
+code[data-line-numbers-max-digits="3"] > [data-line]::before {
+  width: 3rem;
+}
+
+[data-highlighted-line] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  padding: 2px;
+  padding-left: 0;
+  padding-right: 4px;
+  border-radius: 2px;
+  border-left: 2px solid #7b00d3;
+}
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage20.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+이제 코드블럭의 타이틀을 만들어 봅시다.
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage21.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+코드블럭에 title="code block title"을 작성하고 해당 클래스를 globals.css에서 추가하면 됩니다.
+
+```css title="src/app/globals.css"
+[data-rehype-pretty-code-figure] {
+  position: relative;
+}
+
+[data-rehype-pretty-code-title] {
+  position: absolute;
+  right: 0;
+  background-color: #7b00d3;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 1rem;
+  border-end-start-radius: 4px;
+}
+```
+
+<Image
+  src="/blogs/nextjs-blog-contentlayer/7/blogPage22.png"
+  width="718"
+  height="404"
+  alt="Image"
+  sizes="100vw"
+/>
+
+이 외에도 다양한 옵션이 있으니 rehype-pretty-code 참고문서를 확인해보세요🙄
+
+## 다음 포스팅 보러가기
+
+<a href="">8. Table Of Contents</a>

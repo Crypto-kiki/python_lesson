@@ -1,0 +1,87 @@
+---
+title: "Next.js blog with contentlayer: 14. Favicon and manifest"
+description: "Let's apply SEO."
+image: "../../public/blogs/nextjs-blog-contentlayer/14/mainCover.png"
+publishedAt: "2024-04-03"
+updatedAt: "2024-04-03"
+author: "Baekki"
+isPublished: true
+tags:
+  - web development
+---
+
+## Previous post
+
+이어서 진행합니다.
+
+## Favicon
+
+Favicon을 적용해봅시다. <a href="https://nextjs.org/docs/app/api-reference/file-conventions/metadata/app-icons#image-files-ico-jpg-png" target="_blank">Next.js favicon</a>
+
+<a href="https://favicon.io/favicon-converter" target="_blank">
+  Favicon Generater
+</a>
+
+위 링크에서 Favicon으로 사용 할 이미지를 업로드하여 ICO파일로 변환 후 다운받습니다.
+
+다운받은 파일 중 favicon.ico와 apple-touch-icon.png 파일은 apple-icon.png로 이름 변경 후 src/app 하위로 파일을 옮깁니다.
+
+저장 후 실행하면 Favicon이 변경된 것을 확인 할 수 있습니다.
+
+## menifest
+
+manifest.js 파일은 웹 애플리케이션에 대한 메타데이터를 정의하는 데 사용됩니다. 주로 PWA(Progressive Web App)를 위해 사용되며, 사용자가 웹 애플리케이션을 자신의 홈 스크린에 추가할 때 필요한 정보를 제공합니다.
+
+Favicon Generater로 다운받은 폴더에있는 아래 4개의 이미지는 public폴더 하위로 옮겨줍니다.
+
+- android-chrome-192x192.png
+- android-chrome-512x512.png
+- favicon-16x16.png
+- favicon-32x32.png
+
+그리고 src.app하위에 manifest.js의 파일을 생성합니다.
+
+<a
+  href="https://nextjs.org/docs/app/api-reference/file-conventions/metadata/manifest#generate-a-manifest-file"
+  target="_blank"
+>
+  manifest
+</a>
+
+```javascript title="src/app/manifest.js"
+export default function manifest() {
+  return {
+    name: "Next.js App",
+    short_name: "Next.js App",
+    description: "Next.js App",
+    start_url: "/",
+    display: "standalone",
+    //   background_color: '#fff',
+    //   theme_color: '#fff',
+    icons: [
+      {
+        src: "/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        src: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        src: "/android-chrome-192x192",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/android-chrome-512x512",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+  };
+}
+```
+
+위 코드의 속성 중, name, description, short_name은 자신의 블로그에 맞게 수정하시면 됩니다.
