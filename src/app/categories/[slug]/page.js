@@ -51,12 +51,12 @@ const CategoryPage = ({ params }) => {
     });
   });
 
-  if (params.slug) {
-    // publishedAt을 기준으로 내림차순 정렬
-    blogs = blogs.sort(
-      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
-    );
-  }
+  // if (params.slug) {
+  //   // publishedAt을 기준으로 내림차순 정렬
+  //   blogs = blogs.sort(
+  //     (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
+  //   );
+  // }
 
   return (
     <article className="mt-12 flex flex-col text-dark dark:text-light">
