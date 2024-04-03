@@ -1,3 +1,5 @@
+// src/app/categories/[slug]/page.js
+
 import { allBlogs } from "@/.contentlayer/generated";
 import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
 import Categories from "@/src/components/Blog/Categories";
@@ -9,9 +11,9 @@ export async function generateStaticParams() {
   const categories = [];
   const paths = [{ slug: "all" }];
 
-  allBlogs.map((blog) => {
+  allBlogs.forEach((blog) => {
     if (blog.isPublished) {
-      blog.tags.map((tag) => {
+      blog.tags.forEach((tag) => {
         let slugified = slugger.slug(tag);
         if (!categories.includes(slugified)) {
           categories.push(slugified);
@@ -32,18 +34,9 @@ export async function generateMetadata({ params }) {
     }`,
   };
 }
+
 const CategoryPage = ({ params }) => {
   const allCategories = ["all"];
-  allBlogs.forEach((blog) => {
-    blog.tags.forEach((tag) => {
-      const slugified = slug(tag);
-      if (!allCategories.includes(slugified)) {
-        allCategories.push(slugified);
-      }
-    });
-  });
-
-  allCategories.sort();
 
   const blogs = allBlogs.filter((blog) => {
     if (params.slug === "all") {
@@ -52,12 +45,10 @@ const CategoryPage = ({ params }) => {
     return blog.tags.some((tag) => slug(tag) === params.slug);
   });
 
-  // if (params.slug) {
-  //   // publishedAt을 기준으로 내림차순 정렬
-  //   blogs = blogs.sort(
-  //     (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
-  //   );
-  // }
+  if (params.slug) {
+    // publishedAt을 기준으로 내림차순 정렬
+    blogs.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  }
 
   return (
     <article className="mt-12 flex flex-col text-dark dark:text-light">
