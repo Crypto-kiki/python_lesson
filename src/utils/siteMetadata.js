@@ -1,19 +1,19 @@
 // src/uitls/siteMeatadata.js
 
 const siteMetadata = {
-  title: "Next.js Blog With Tailwind CSS and Contentlayer",
+  title: "Baekki Developer Blog",
   author: "baekki",
-  headerTitle: "Next.js Blog",
-  description: "A blog created with Next.js, Tailwind.css and contentlayer.",
+  headerTitle: "Baekki dev blog",
+  description: "Baekki dev blog. web-development and blockchain.",
   language: "ko-kr",
   theme: "system",
-  siteUrl: "https://testSiteUrl.com",
+  siteUrl: "https://baekki-dev-blog.vercel.app/",
   siteLogo: "/logo.png",
   socialBanner: "/social-banner.png",
-  email: "baekki@gmail.com",
+  email: "kbg20100106@gmail.com",
   github: "https://github.com/baekki",
-  twitter: "https://twitter.com/baekki",
-  linkedin: "https://www.linkedin.com/in/baekki/",
+  twitter: "https://github.com/Crypto-kiki",
+  linkedin: "http://example.com",
   locale: "ko-kr",
 };
 
