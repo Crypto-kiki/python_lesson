@@ -30,8 +30,8 @@ export async function generateMetadata({ params }) {
   return {
     title: `${params.slug.replaceAll("-", " ")} Blogs`,
     description: `Learn more about ${
-      params.slug === "all" ? "seb development" : params.slug
-    }} `,
+      params.slug === "all" ? "web development" : params.slug
+    }`,
   };
 }
 
