@@ -1,5 +1,3 @@
-// src/app/categories/[slug]/page.js
-
 import { allBlogs } from "@/.contentlayer/generated";
 import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
 import Categories from "@/src/components/Blog/Categories";
@@ -37,7 +35,7 @@ export async function generateMetadata({ params }) {
 
 const CategoryPage = ({ params }) => {
   const allCategories = ["all"];
-  const blogs = allBlogs.filter((blog) => {
+  let blogs = allBlogs.filter((blog) => {
     return blog.tags.some((tag) => {
       const slugified = slug(tag);
 
@@ -52,6 +50,13 @@ const CategoryPage = ({ params }) => {
       return slugified === params.slug;
     });
   });
+
+  if (params.slug) {
+    // publishedAt을 기준으로 내림차순 정렬
+    blogs = blogs.sort(
+      (a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)
+    );
+  }
 
   return (
     <article className="mt-12 flex flex-col text-dark dark:text-light">
