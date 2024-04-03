@@ -38,7 +38,7 @@ export const metadata = {
     follow: true,
     googleBot: {
       index: true,
-      follow: false,
+      follow: true,
       noimageindex: true,
       "max-video-preview": -1,
       "max-image-preview": "large",
@@ -69,7 +69,6 @@ export default function RootLayout({ children }) {
               document.documentElement.classList.remove('dark')
             }`}
         </Script>
-
         <Header />
         {children}
         <Footer />
