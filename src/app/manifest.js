@@ -1,10 +1,8 @@
-// src/app/manifest.js
-
 export default function manifest() {
   return {
-    name: "Next.js App",
-    short_name: "Next.js App",
-    description: "Next.js App",
+    name: "Baekki Developer Blog",
+    short_name: "Baekki dev Blog",
+    description: "Baekki dev blog. web development and blockchain.",
     start_url: "/",
     display: "standalone",
     // background_color: '#fff',
