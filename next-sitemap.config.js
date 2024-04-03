@@ -1,5 +1,3 @@
-// next-sitemap.config.js
-
 const siteMetadata = require("./src/utils/siteMetadata");
 
 module.exports = {

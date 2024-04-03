@@ -1,9 +1,0 @@
-# *
-User-agent: *
-Allow: /
-
-# Host
-Host: https://baekki-dev-blog.vercel.app/
-
-# Sitemaps
-Sitemap: https://baekki-dev-blog.vercel.app/sitemap.xml
