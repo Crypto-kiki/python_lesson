@@ -12,7 +12,7 @@ export async function generateStaticParams() {
   allBlogs.map((blog) => {
     if (blog.isPublished) {
       blog.tags.map((tag) => {
-        const slugified = slugger.slug(tag);
+        let slugified = slugger.slug(tag);
         if (!categories.includes(slugified)) {
           categories.push(slugified);
           paths.push({ slug: slugified });
@@ -32,23 +32,24 @@ export async function generateMetadata({ params }) {
     }`,
   };
 }
-
 const CategoryPage = ({ params }) => {
   const allCategories = ["all"];
-  let blogs = allBlogs.filter((blog) => {
-    return blog.tags.some((tag) => {
+  allBlogs.forEach((blog) => {
+    blog.tags.forEach((tag) => {
       const slugified = slug(tag);
-
       if (!allCategories.includes(slugified)) {
         allCategories.push(slugified);
       }
-
-      if (params.slug === "all") {
-        return true;
-      }
-
-      return slugified === params.slug;
     });
+  });
+
+  allCategories.sort();
+
+  const blogs = allBlogs.filter((blog) => {
+    if (params.slug === "all") {
+      return true;
+    }
+    return blog.tags.some((tag) => slug(tag) === params.slug);
   });
 
   // if (params.slug) {
