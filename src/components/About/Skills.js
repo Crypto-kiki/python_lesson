@@ -7,6 +7,7 @@ const SkillList = [
   "solidity",
   "truffle",
   "hardhat",
+  "git",
   "firebase",
   "supabase",
   "generative AI",
