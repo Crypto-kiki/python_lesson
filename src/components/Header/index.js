@@ -62,20 +62,31 @@ const Header = () => {
       </button>
 
       <nav
-        className="w-max py-3 px-6 sm:px-8 border border-solid border-dark rounded-full font-medium capitalize flex items-center fixed top-6 right-1/2 translate-x-1/2 bg-light/80 backdrop-blur-sm z-50 transition-all ease duration-300"
+        className="w-max py-3 px-6 sm:px-8 font-medium capitalize flex items-center fixed top-6 right-1/2 translate-x-1/2  backdrop-blur-sm z-50 transition-all ease duration-300"
         style={{
           top: click ? "1rem" : "-5rem",
         }}
       >
-        <Link href="/" className="mr-2">
-          Home
-        </Link>
-        <Link href="/categories/all" className="mx-2">
-          Category
-        </Link>
-        <Link href="/about" className="mx-2">
-          About
-        </Link>
+        <div className={mode === "light" ? "text-dark" : "text-white"}>
+          <Link
+            href="/"
+            className="mr-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
+            Home
+          </Link>
+          <Link
+            href="/categories/all"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
+            Category
+          </Link>
+          <Link
+            href="/about"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
+            About
+          </Link>
+        </div>
         <button
           onClick={() => setMode(mode === "light" ? "dark" : "light")}
           className={cx(
@@ -91,16 +102,27 @@ const Header = () => {
         </button>
       </nav>
 
-      <nav className="w-max py-3 px-8 border border-solid border-dark rounded-full font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2 bg-light/80 backdrop-blur-sm z-50">
-        <Link href="/" className="mr-2">
-          Home
-        </Link>
-        <Link href="/categories/all" className="mx-2">
-          Category
-        </Link>
-        <Link href="/about" className="mx-2">
-          About
-        </Link>
+      <nav className="w-max py-3 px-8  font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2  backdrop-blur-sm z-50">
+        <div className={mode === "light" ? "text-dark" : "text-white"}>
+          <Link
+            href="/"
+            className="mr-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
+            Home
+          </Link>
+          <Link
+            href="/categories/all"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
+            Category
+          </Link>
+          <Link
+            href="/about"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
+            About
+          </Link>
+        </div>
         <button
           onClick={() => setMode(mode === "light" ? "dark" : "light")}
           className={cx(
