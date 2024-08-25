@@ -67,7 +67,7 @@ const Header = () => {
           top: click ? "1rem" : "-5rem",
         }}
       >
-        <div className={mode === "light" ? "text-dark" : "text-white"}>
+        <div className={mode === "light" ? "text-dark" : "text-light"}>
           <Link
             href="/"
             className="mr-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
@@ -102,8 +102,8 @@ const Header = () => {
         </button>
       </nav>
 
-      <nav className="w-max py-3 px-8  font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2  backdrop-blur-sm z-50">
-        <div className={mode === "light" ? "text-dark" : "text-white"}>
+      <nav className="w-max py-3 px-8 font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2 backdrop-blur-sm z-50 rounded-full">
+        <div className={mode === "light" ? "text-dark" : "text-light"}>
           <Link
             href="/"
             className="mr-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"

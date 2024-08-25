@@ -1,0 +1,38 @@
+---
+title: "Understanding the Basic Structure of Solidity"
+description: "Explore the core components of Solidity, including Pragma directives, contracts, state variables, and functions."
+image: "../../public/blogs/nextjs-blog-contentlayer/1/mainCover.png"
+publishedAt: "2024-08-26"
+updatedAt: "2024-08-26"
+author: "Baekki"
+isPublished: true
+tags:
+  - solidity
+---
+
+code copy 기능 완성하기.
+
+## Tailwind CSS
+
+tailwind.config.js 파일을 보면 기본 설정값이 있습니다.
+
+```javascript title="tailwind.config.js"
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "gradient-conic":
+          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+      },
+    },
+  },
+  plugins: [],
+};
+```
