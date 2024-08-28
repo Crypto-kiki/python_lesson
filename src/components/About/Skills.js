@@ -10,7 +10,6 @@ const SkillList = [
   "git",
   "firebase",
   "supabase",
-  "generative AI",
 ];
 
 const Skills = () => {

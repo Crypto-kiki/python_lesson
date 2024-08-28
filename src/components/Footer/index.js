@@ -17,13 +17,25 @@ const Footer = () => {
         stories from the forefront of digital innovation.
       </p>
       <div className="flex items-center mt-8">
-        <a href={siteMetadata.linkedin} className="inline-block w-6 h-6 mr-4">
+        <a
+          href={siteMetadata.linkedin}
+          className="inline-block w-6 h-6 mr-4"
+          target="_blank"
+        >
           <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
         </a>
-        <a href={siteMetadata.twitter} className="inline-block w-6 h-6 mr-4">
+        <a
+          href={siteMetadata.twitter}
+          className="inline-block w-6 h-6 mr-4"
+          target="_blank"
+        >
           <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
         </a>
-        <a href={siteMetadata.github} className="inline-block w-6 h-6 mr-4">
+        <a
+          href={siteMetadata.github}
+          className="inline-block w-6 h-6 mr-4"
+          target="_blank"
+        >
           <GithubIcon className="hover:scale-125 transition-all ease duration-200 fill-light dark:fill-dark" />
         </a>
       </div>
@@ -39,7 +51,11 @@ const Footer = () => {
         </Link>
         <div className="text-center">
           Made by{" "}
-          <a href="http://localhost:3000/" className="underline">
+          <a
+            href="https://baekki-dev-blog.vercel.app/"
+            className="underline"
+            target="_blank"
+          >
             Baekki
           </a>
         </div>
