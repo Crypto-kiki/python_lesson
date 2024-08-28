@@ -10,8 +10,6 @@ tags:
   - solidity
 ---
 
-code copy 기능 완성하기.
-
 ## Tailwind CSS
 
 tailwind.config.js 파일을 보면 기본 설정값이 있습니다.
@@ -36,3 +34,22 @@ module.exports = {
   plugins: [],
 };
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`export default function Home() {
+      return (
+        <main className="flex min-h-screen flex-col items-center justify-between">
+          블로그를 만들어 봅시다!dasdasdasd
+        </main>
+      );
+    }`);
+    document.getElementById("copy-feedback").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy-feedback").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy-feedback" style={{ marginLeft: "10px", color: "green" }}></span>

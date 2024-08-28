@@ -30,6 +30,24 @@ const CategoryPage = ({ params }) => {
 export default CategoryPage;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+const CategoryPage = ({ params }) => {
+  return <div>Category Name: {params.slug}</div>;
+};
+
+export default CategoryPage;`);
+    document.getElementById("copy1").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy1").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
+
 블로그 페이지에서 title 상단에 Tag를 클릭해보세요.
 
 <Image
@@ -126,6 +144,90 @@ export default function BlogPage({ params }) {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import RenderMdx from "@/src/components/Blog/RenderMdx";
+import Tag from "@/src/components/Elements/Tag";
+import { slug } from "github-slugger";
+import Image from "next/image";
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={\`/categories/\${slug(blog.tags[0])}\`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+      <div className="grid grid-cols-12 gap-16 mt-8 px-10">
+        <div className="col-span-4">
+          <details
+            className="border border-dark text-dark rounded-lg p-4 sticky top-6 max-h-[80vh] overflow-hidden overflow-y-auto"
+            open
+          >
+            <summary className="text-lg font-semibold capitalize cursor-pointer">
+              Table Of Contents
+            </summary>
+            <ul className="mt-4 font-in">
+              {blog.toc.map((heading) => {
+                return (
+                  <li key={\`#\${heading.slug}\`} className="py-1">
+                    <a
+                      href={\`#\${heading.slug}\`}
+                      data-level={heading.level}
+                      className="data-[level=two]:pl-0 data-[level=two]:pt-2
+                    data-[level=two]:border-b border-dark/40 data-[level=three]:pl-6
+                    flex items-center"
+                    >
+                      {heading.level === "three" ? (
+                        <span className="flex w-1 h-1 rounded-full bg-dark mr-2 ">
+                          &nbsp;
+                        </span>
+                      ) : null}
+                      <span className="hover:underline">{heading.text}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        </div>
+        <RenderMdx blog={blog} />
+      </div>
+    </article>
+  );
+}`);
+    document.getElementById("copy2").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy2").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
+
 위 코드에서 `<Tag>`컴포넌트의 link를 slug로 감싸줍니다.
 
 <Image
@@ -190,6 +292,61 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { sortBlogs } from "@/src/utils";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+import Tag from "../Elements/Tag";
+import { slug } from "github-slugger";
+const HomeCoverSection = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+  const blog = sortedBlogs[0];
+  return (
+    <div className="w-full inline-block">
+      <article className=" flex flex-col items-start justify-end mx-5 sm:mx-10 relative h-[60vh] sm:h-[85vh]">
+        <div className="absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          fill
+          className="w-full h-full object-center object-cover rounded-3xl -z-10"
+          sizes="100vw"
+          priority
+        />
+        <div className="w-full lg:w-3/4 p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col items-start justify-center z-0 text-light">
+          <Tag link={\`/categories/\${slug(blog.tags[0])}\`} name={blog.tags[0]} />
+          <Link href={blog.url} className="mt-6">
+            <h1 className="font-bold capitalize text-lg sm:text-xl md:text-3xl lg:text-4xl">
+              <span className="bg-gradient-to-r from-accent to-accent dark:from-accentDark/50 dark:to-accentDark/50 bg-[length:0px_0px] hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-700">
+                {blog.title}
+              </span>
+            </h1>
+          </Link>
+          <p className="hidden sm:inline-block mt-4 md:text-lg lg:text-xl font-in">
+            {blog.description}
+          </p>
+        </div>
+      </article>
+    </div>
+  );
+};
+
+export default HomeCoverSection;`);
+    document.getElementById("copy3").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy3").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
+
 그리고 BlogDetails.js에서 `<Tag>`부분도 동일하게 수정합니다.
 
 <Image
@@ -226,6 +383,40 @@ const BlogDetails = ({ blog, slug: blogSlug }) => {
 
 export default BlogDetails;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { format, parseISO } from "date-fns";
+import { slug } from "github-slugger";
+import Link from "next/link";
+import React from "react";
+const BlogDetails = ({ blog, slug: blogSlug }) => {
+  console.log(blog);
+  return (
+    <div className="px-10 bg-accent text-light py-2 flex items-center justify-around flex-wrap text-xl font-medium mx-10 rounded-lg">
+      <time className="m-3">
+        {format(parseISO(blog.publishedAt), "LLLL d, yyyy")}
+      </time>
+      <span className="m-3">10 views</span>
+      <div className="m-3">{blog.readingTime.text}</div>
+      <Link href={\`categories/\${slug(blog.tags[0])}\`} className="m-3">
+        #{blog.tags[0]}
+      </Link>
+    </div>
+  );
+};
+
+export default BlogDetails;`);
+    document.getElementById("copy4").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy4").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - `const BlogDetails = ({ blog, slug: blogSlug })` : BlogDetails 컴포넌트를 사용할 때 전달된 slug라는 이름의 prop을 blogSlug라는 이름으로 컴포넌트 내에서 사용하겠다는 의미입니다. (비구조화 할당)
 
@@ -265,6 +456,46 @@ const CategoryPage = ({ params }) => {
 
 export default CategoryPage;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from "@/.contentlayer/generated";
+import { slug } from "github-slugger";
+const CategoryPage = ({ params }) => {
+  const allCategories = ["all"];
+  const blogs = allBlogs.filter((blog) => {
+    return blog.tags.some((tag) => {
+      const slugified = slug(tag);
+      if (!allCategories.includes(slugified)) {
+        allCategories.push(slugified);
+      }
+      if (params.slug === "all") {
+        return true;
+      }
+      return slugified === params.slug;
+    });
+  });
+  return (
+    <article>
+      <div>
+        <h1>#{params.slug}</h1>
+        <span>Discover more categories and expand your knowledge!</span>
+      </div>
+    </article>
+  );
+};
+
+export default CategoryPage;`);
+    document.getElementById("copy5").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy5").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - `const allCategories = ["all"]` : 모든 카테고리를 저장하기 위한 배열을 초기화하고, "all"을 첫 번째 요소로 추가합니다. "all"은 모든 게시물을 보여주는 카테고리로 사용됩니다.
 
@@ -321,6 +552,48 @@ const CategoryPage = ({ params }) => {
 export default CategoryPage;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from "@/.contentlayer/generated";
+import Categories from "@/src/components/Blog/Categories";
+import { slug } from "github-slugger";
+const CategoryPage = ({ params }) => {
+  const allCategories = ["all"];
+  const blogs = allBlogs.filter((blog) => {
+    return blog.tags.some((tag) => {
+      const slugified = slug(tag);
+      if (!allCategories.includes(slugified)) {
+        allCategories.push(slugified);
+      }
+      if (params.slug === "all") {
+        return true;
+      }
+      return slugified === params.slug;
+    });
+  });
+  return (
+    <article>
+      <div>
+        <h1>#{params.slug}</h1>
+        <span>Discover more categories and expand your knowledge!</span>
+      </div>
+      <Categories categories={allCategories} atcive={params.slug} />
+    </article>
+  );
+};
+
+export default CategoryPage;`);
+    document.getElementById("copy6").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy6").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
+
 ```javascript title="src/components/Blog/Categories.js"
 const Categories = ({ categories, active }) => {
   return <div></div>;
@@ -328,6 +601,24 @@ const Categories = ({ categories, active }) => {
 
 export default Categories;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+const Categories = ({ categories, active }) => {
+  return <div></div>;
+};
+
+export default Categories;`);
+    document.getElementById("copy7").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy7").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy7" style={{ marginLeft: "10px", color: "green" }}></span>
 
 각 카테고리 컴포넌트를 랜더링해봅시다.
 
@@ -358,6 +649,40 @@ const Category = ({ link = "#", name, active, ...props }) => {
 export default Category;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { cx } from "@/src/utils";
+import Link from "next/link";
+import React from "react";
+const Category = ({ link = "#", name, active, ...props }) => {
+  return (
+    <div>
+      <Link
+        href={link}
+        className={cx(
+          "inline-block py-3 px-10 rounded-full capitalize font-semibold border-2 border-solid border-light hover:scale-105 transition-all ease duration-200",
+          props.className,
+          active ? "bg-dark text-light" : "bg-light text-dark"
+        )}
+      >
+        {name}
+      </Link>
+    </div>
+  );
+};
+
+export default Category;`);
+    document.getElementById("copy8").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy8").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy8" style={{ marginLeft: "10px", color: "green" }}></span>
+
 - Link태그 className에서 bg-dark, text-light 제거 및 active 조건부 요소 추가.
 
 위 컴포넌트를 Categories.js 컴포넌트에 임포트합니다.
@@ -380,6 +705,33 @@ const Categories = ({ categories, active }) => {
 
 export default Categories;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import Category from "./Category";
+const Categories = ({ categories, active }) => {
+  return (
+    <div>
+        {
+            categories.map(cat => <Category key={cat} link={\`/categories/\${cat}\`} name={cat}
+            active={}
+            />)
+        }
+    </div>
+  )
+};
+
+export default Categories;`);
+    document.getElementById("copy9").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy9").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy9" style={{ marginLeft: "10px", color: "green" }}></span>
 
 위 컴포넌트에서 active 속성을 넣어야 하는데, props로 active 이름이 중복되기 때문에 active ➡️ currentSlug 바꿔줍니다.
 
@@ -404,6 +756,37 @@ const Categories = ({ categories, currentSlug }) => {
 
 export default Categories;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { slug } from "github-slugger";
+import Category from "./Category";
+const Categories = ({ categories, currentSlug }) => {
+  return (
+    <div>
+      {categories.map((cat) => (
+        <Category
+          key={cat}
+          link={\`/categories/\${cat}\`}
+          name={cat}
+          active={currentSlug === slug(cat)}
+        />
+      ))}
+    </div>
+  );
+};
+
+export default Categories;`);
+    document.getElementById("copy10").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy10").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy10" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - currentSlug와 현재 slug가 같다면 Category.js 컴포넌트의 스타일이 적용됩니다. (active ? "bg-dark text-light" : "bg-light text-dark")
 
@@ -456,6 +839,50 @@ const CategoryPage = ({ params }) => {
 export default CategoryPage;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from "@/.contentlayer/generated";
+import Categories from "@/src/components/Blog/Categories";
+import { slug } from "github-slugger";
+const CategoryPage = ({ params }) => {
+  const allCategories = ["all"];
+  const blogs = allBlogs.filter((blog) => {
+    return blog.tags.some((tag) => {
+      const slugified = slug(tag);
+      if (!allCategories.includes(slugified)) {
+        allCategories.push(slugified);
+      }
+      if (params.slug === "all") {
+        return true;
+      }
+      return slugified === params.slug;
+    });
+  });
+  return (
+    <article className="mt-12 flex flex-col text-dark ">
+      <div className="px-32 flex flex-col ">
+        <h1 className="mt-6 font-semibold text-5xl">#{params.slug}</h1>
+        <span className="mt-2 inline-block ">
+          Discover more categories and expand your knowledge!
+        </span>
+      </div>
+      <Categories categories={allCategories} currentSlug={params.slug} />
+    </article>
+  );
+};
+
+export default CategoryPage;`);
+    document.getElementById("copy11").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy11").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy11" style={{ marginLeft: "10px", color: "green" }}></span>
+
 ```javascript title="src/components/Blog/Categories.js"
 import { slug } from "github-slugger";
 import Category from "./Category";
@@ -477,6 +904,37 @@ const Categories = ({ categories, currentSlug }) => {
 
 export default Categories;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { slug } from "github-slugger";
+import Category from "./Category";
+const Categories = ({ categories, currentSlug }) => {
+  return (
+    <div className="px-20 mt-10 border-t-2 text-dark border-b-2 border-dark py-4 flex flex-wrap font-medium mx-10">
+      {categories.map((cat) => (
+        <Category
+          key={cat}
+          link={\`/categories/\${cat}\`}
+          name={cat}
+          active={currentSlug === slug(cat)}
+        />
+      ))}
+    </div>
+  );
+};
+
+export default Categories;`);
+    document.getElementById("copy12").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy12").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy12" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ```javascript title="src/components/Blog/Category.js"
 import { cx } from "@/src/utils";
@@ -502,6 +960,40 @@ const Category = ({ link = "#", name, active, ...props }) => {
 
 export default Category;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { cx } from "@/src/utils";
+import Link from "next/link";
+import React from "react";
+const Category = ({ link = "#", name, active, ...props }) => {
+  return (
+    <div>
+      <Link
+        href={link}
+        className={cx(
+          "inline-block py-2 px-10 rounded-full border-2 border-solid border-dark  hover:scale-105 transition-all ease duration-200 m-2",
+          props.className,
+          active ? "bg-dark text-light" : "bg-light text-dark"
+        )}
+      >
+        # {name}
+      </Link>
+    </div>
+  );
+};
+
+export default Category;`);
+    document.getElementById("copy13").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy13").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy13" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/9/category6.png"
@@ -560,6 +1052,58 @@ const CategoryPage = ({ params }) => {
 
 export default CategoryPage;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from "@/.contentlayer/generated";
+import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
+import Categories from "@/src/components/Blog/Categories";
+import { slug } from "github-slugger";
+const CategoryPage = ({ params }) => {
+  const allCategories = ["all"];
+  const blogs = allBlogs.filter((blog) => {
+    return blog.tags.some((tag) => {
+      const slugified = slug(tag);
+      if (!allCategories.includes(slugified)) {
+        allCategories.push(slugified);
+      }
+      if (params.slug === "all") {
+        return true;
+      }
+      return slugified === params.slug;
+    });
+  });
+  return (
+    <article className="mt-12 flex flex-col text-dark ">
+      <div className="px-32 flex flex-col ">
+        <h1 className="mt-6 font-semibold text-5xl">#{params.slug}</h1>
+        <span className="mt-2 inline-block ">
+          Discover more categories and expand your knowledge!
+        </span>
+      </div>
+      <Categories categories={allCategories} currentSlug={params.slug} />
+      <div className="grid grid-cols-3 grid-rows-2 gap-16 mt-24 px-32">
+        {blogs.map((blog, index) => (
+          <article key={index} className="col-span-1 row-span-1 relative">
+            <BlogLayoutThree blog={blog} />
+          </article>
+        ))}
+      </div>
+    </article>
+  );
+};
+
+export default CategoryPage;`);
+    document.getElementById("copy14").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy14").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy14" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/9/category7.png"
@@ -669,6 +1213,75 @@ const CategoryPage = ({ params }) => {
 export default CategoryPage;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from "@/.contentlayer/generated";
+import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
+import Categories from "@/src/components/Blog/Categories";
+import GithubSlugger, { slug } from "github-slugger";
+const slugger = new GithubSlugger();
+export async function generateStaticParams() {
+  const categories = [];
+  const paths = [{ slug: "all" }];
+  allBlogs.map((blog) => {
+    if (blog.isPublished) {
+      blog.tags.map((tag) => {
+        const slugified = slugger.slug(tag);
+        if (!categories.includes(slugified)) {
+          categories.push(slugified);
+          paths.push({ slug: slugified });
+        }
+      });
+    }
+  });
+  return paths;
+}
+const CategoryPage = ({ params }) => {
+  const allCategories = ["all"];
+  const blogs = allBlogs.filter((blog) => {
+    return blog.tags.some((tag) => {
+      const slugified = slug(tag);
+      if (!allCategories.includes(slugified)) {
+        allCategories.push(slugified);
+      }
+      if (params.slug === "all") {
+        return true;
+      }
+      return slugified === params.slug;
+    });
+  });
+  return (
+    <article className="mt-12 flex flex-col text-dark ">
+      <div className="px-32 flex flex-col ">
+        <h1 className="mt-6 font-semibold text-5xl">#{params.slug}</h1>
+        <span className="mt-2 inline-block ">
+          Discover more categories and expand your knowledge!
+        </span>
+      </div>
+      <Categories categories={allCategories} currentSlug={params.slug} />
+      <div className="grid grid-cols-3 grid-rows-2 gap-16 mt-24 px-32">
+        {blogs.map((blog, index) => (
+          <article key={index} className="col-span-1 row-span-1 relative">
+            <BlogLayoutThree blog={blog} />
+          </article>
+        ))}
+      </div>
+    </article>
+  );
+};
+
+export default CategoryPage;`);
+    document.getElementById("copy15").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy15").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy15" style={{ marginLeft: "10px", color: "green" }}></span>
+
 - paths 배열을 초기화하고, 모든 카테고리를 나타내는 `{slug :"all"}` 경로를 추가합니다. 이는 "all" 게시물을 보여주는 기본 경로 역할을 합니다.
 - allBlogs 배열을 순회하면서 게시물이 isPublished 상태인 경우에만 해당 게시물의 태그들을 순회합니다.
 - slug가 categories 배열에 존재하지 않는다면, 새로운 카테고리로 간주하고 categories 배열에 추가한 후, 해당 slug를 사용하여 paths 배열에 새 경로를 추가합니다.
@@ -755,6 +1368,93 @@ export default function BlogPage({ params }) {
   );
 }
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import RenderMdx from "@/src/components/Blog/RenderMdx";
+import Tag from "@/src/components/Elements/Tag";
+import { slug } from "github-slugger";
+import Image from "next/image";
+export async function generateStaticParams() {
+  return allBlogs.map((blog) => ({ slug: blog._raw.flattenedPath }));
+}
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={\`/categories/\${slug(blog.tags[0])}\`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+      <div className="grid grid-cols-12 gap-16 mt-8 px-10">
+        <div className="col-span-4">
+          <details
+            className="border border-dark text-dark rounded-lg p-4 sticky top-6 max-h-[80vh] overflow-hidden overflow-y-auto"
+            open
+          >
+            <summary className="text-lg font-semibold capitalize cursor-pointer">
+              Table Of Contents
+            </summary>
+            <ul className="mt-4 font-in">
+              {blog.toc.map((heading) => {
+                return (
+                  <li key={\`#\${heading.slug}\`} className="py-1">
+                    <a
+                      href={\`#\${heading.slug}\`}
+                      data-level={heading.level}
+                      className="data-[level=two]:pl-0 data-[level=two]:pt-2
+                    data-[level=two]:border-b border-dark/40 data-[level=three]:pl-6
+                    flex items-center"
+                    >
+                      {heading.level === "three" ? (
+                        <span className="flex w-1 h-1 rounded-full bg-dark mr-2 ">
+                          &nbsp;
+                        </span>
+                      ) : null}
+                      <span className="hover:underline">{heading.text}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        </div>
+        <RenderMdx blog={blog} />
+      </div>
+    </article>
+  );
+}`);
+    document.getElementById("copy16").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy16").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy16" style={{ marginLeft: "10px", color: "green" }}></span>
 
 유저의 요청이 있을 때 마다 서버에서 페이지를 생성하고 랜더링하는 과정대신,
 

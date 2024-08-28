@@ -60,6 +60,36 @@ end;
 $$ language plpgsql;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+-- grant create on schema public to anon
+create
+or replace function increment (slug_text text) returns void AS $$
+declare view_id int;
+begin
+
+select id into view_id from views where slug = slug_text limit 1;
+
+if view_id is not null then
+update views set count = count + 1 where id = view_id;
+else
+insert into views (slug, count) values (slug_text, 1);
+end if;
+end;
+
+$$
+language plpgsql;`);
+    document.getElementById("copy1").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy1").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
+
 - `-- grant create on schema public to anon` : 이 줄은 public 스키마에 대한 생성 권한을 anon 사용자에게 부여합니다. 여기서 anon은 사용자 이름이며, 이 사용자는 보통 익명 사용자를 의미합니다. (함수와 직접적인 관련은 없음)
 - `create or replace function increment (slug_text text) returns void AS $$` :
   - create or replace function : 새 함수를 생성하거나, 만약 같은 이름의 함수가 이미 존재한다면 그 함수를 대체합니다.
@@ -98,6 +128,19 @@ SQL Editor 탭으로 이동해서 New query 로 새로 생성합니다.
 select increment('abcd')
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`select increment('abcd')`);
+    document.getElementById("copy2").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy2").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
+
 위 코드를 실행 후 Table Editor - views 에서 확인해보면 1 증가되어 있습니다.
 
 <Image
@@ -126,6 +169,21 @@ supabase 에서 API Docs 탭으로 이동하면 views, increment 로 생성된 �
 NEXT_PUBLIC_SUPABASE_URL=project url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=project API Keys
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+NEXT_PUBLIC_SUPABASE_URL=project url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=project API Keys`);
+    document.getElementById("copy3").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy3").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
 
 Blog 컴포넌트 폴더에 ViewCounter.js 파일을 생성합니다.
 
@@ -162,6 +220,43 @@ const BlogDetails = ({ blog, slug: blogSlug }) => {
 
 export default BlogDetails;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { format, parseISO } from "date-fns";
+import { slug } from "github-slugger";
+import Link from "next/link";
+import React from "react";
+import ViewCounter from "./ViewCounter";
+const BlogDetails = ({ blog, slug: blogSlug }) => {
+  console.log(blog);
+  return (
+    <div className="px-10 bg-accent text-light py-2 flex items-center justify-around flex-wrap text-xl font-medium mx-10 rounded-lg">
+      <time className="m-3">
+        {format(parseISO(blog.publishedAt), "LLLL d, yyyy")}
+      </time>
+      <span className="m-3">
+        <ViewCounter slug={blogSlug} />
+      </span>
+      <div className="m-3">{blog.readingTime.text}</div>
+      <Link href={\`categories/\${slug(blog.tags[0])}\`} className="m-3">
+        #{blog.tags[0]}
+      </Link>
+    </div>
+  );
+};
+
+export default BlogDetails;`);
+    document.getElementById("copy4").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy4").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ```javascript title="src/components/Blog/ViewCounter.js"
 "use client";
@@ -208,6 +303,60 @@ const ViewCounter = ({ slug, noCount = false, showCount = true }) => {
 
 export default ViewCounter;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+"use client";
+
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useEffect, useState } from "react";
+const supabase = createClientComponentClient();
+
+const ViewCounter = ({ slug, noCount = false, showCount = true }) => {
+  const [views, setViews] = useState(0);
+
+  useEffect(() => {
+    const incrementView = async () => {
+      try {
+        let { error } = await supabase.rpc("increment", {
+          slug_text: slug,
+        });
+        if (error) {
+          console.log(
+            "Error incrementing view count inside try block :",
+            error
+          );
+        }
+      } catch (error) {
+        console.error(
+          "This error occured while incrementing the view count:",
+          error
+        );
+      }
+    };
+    if (!noCount) {
+      incrementView();
+    }
+  }, [slug, noCount]);
+
+  if (showCount) {
+    return <div>{views} views</div>;
+  } else {
+    return null;
+  }
+};
+
+export default ViewCounter;`);
+    document.getElementById("copy5").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy5").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
 
 try구문 안의 코드는 supabase API Docs에서 increment 코드를 가져와 수정합니다.
 
@@ -347,6 +496,92 @@ const ViewCounter = ({ slug, noCount = false, showCount = true }) => {
 export default ViewCounter;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+"use client";
+
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useEffect, useState } from "react";
+
+const supabase = createClientComponentClient();
+
+const ViewCounter = ({ slug, noCount = false, showCount = true }) => {
+  const [views, setViews] = useState(0);
+
+  useEffect(() => {
+    const incrementView = async () => {
+      try {
+        let { error } = await supabase.rpc("increment", {
+          slug_text: slug,
+        });
+        if (error) {
+          console.log(
+            "Error incrementing view count inside try block :",
+            error
+          );
+        }
+      } catch (error) {
+        console.error(
+          "This error occured while incrementing the view count:",
+          error
+        );
+      }
+    };
+
+    if (!noCount) {
+      incrementView();
+    }
+  }, [slug, noCount]);
+
+  useEffect(() => {
+    const getViews = async () => {
+      try {
+        let { data, error } = await supabase
+          .from("views")
+          .select("count")
+          .match({ slug: slug })
+          .single();
+
+        if (error) {
+          console.log(
+            "Error incrementing view count inside try block :",
+            error
+          );
+        }
+
+        console.log(data);
+
+        setViews(data ? data.count : 0);
+      } catch (error) {
+        console.error(
+          "This error occured while incrementing the view count:",
+          error
+        );
+      }
+    };
+
+    getViews();
+  }, [slug]);
+
+  if (showCount) {
+    return <div>{views} views</div>;
+  } else {
+    return null;
+  }
+};
+
+export default ViewCounter;`);
+    document.getElementById("copy6").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy6").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
+
 위 코드를 실행하면 이미지와 같이 views count를 불러온 것을 볼 수 있습니다.
 
 ## 다음 포스팅 보러가기
@@ -354,3 +589,6 @@ export default ViewCounter;
 <a href="https://baekki-dev-blog.vercel.app/blogs/Next.js-blog-with-contentlayer-12">
   12. SEO & Image Optimization
 </a>
+
+
+$$

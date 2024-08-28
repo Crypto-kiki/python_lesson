@@ -41,6 +41,32 @@ export default function Home() {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from "contentlayer/generated";
+import HomeCoverSection from "../components/Home/HomeCoverSection";
+import FeaturedPosts from "../components/Home/FeaturedPosts";
+
+export default function Home() {
+  console.log(allBlogs);
+  return (
+    <main className="flex flex-col items-center justify-center">
+      <HomeCoverSection blogs={allBlogs} />
+      <FeaturedPosts blogs={allBlogs} />
+    </main>
+  );
+}`);
+    document.getElementById("copy1").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy1").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
+
 HomeCoverSection에서 publishedAt 기준으로 분류한 sortedBlogs 함수도 동일하게 사용합니다.
 
 ```javascript title="src/components/Home/FeaturedPosts.js"
@@ -72,6 +98,44 @@ const FeaturedPosts = ({ blogs }) => {
 
 export default FeaturedPosts;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { sortBlogs } from "@/src/utils";
+import React from "react";
+const FeaturedPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <h2 className="w-full inline-block font-bold capitalize text-4xl">
+        Featured Posts
+      </h2>
+      <div className="grid grid-cols-2 grid-rows-2 gap-6 mt-16">
+        <article className="col-span-1 row-span-2 relative">
+          blog layout 1
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          blog layout 2
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          blog layout 3
+        </article>
+      </div>
+    </section>
+  );
+};
+
+export default FeaturedPosts;`);
+    document.getElementById("copy2").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy2").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/5/featuredPostsLayout.png"
@@ -111,6 +175,25 @@ const BlogLayoutOne = ({ blog }) => {
 export default BlogLayoutOne;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import React from "react";
+const BlogLayoutOne = ({ blog }) => {
+  return <div className="inline-block overflow-hidden rounded-xl"></div>;
+};
+
+export default BlogLayoutOne;`);
+    document.getElementById("copy3").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy3").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
+
 구조와 css가 HomeCoverSection.js 에서 사용했던 것과 같기 때문에 HomeCoverSection 에서 `<article>`태그 안의 코드를 가져와 BlogLayoutOne.js의 `<div>`태그에 붙여넣습니다.
 
 ```javascript title="src/components/Blog/BlogLayoutOne.js"
@@ -148,6 +231,51 @@ const BlogLayoutOne = ({ blog }) => {
 
 export default BlogLayoutOne;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import Image from "next/image";
+import React from "react";
+import Tag from "../Elements/Tag";
+import Link from "next/link";
+const BlogLayoutOne = ({ blog }) => {
+  return (
+    <div className="group inline-block overflow-hidden rounded-xl">
+      <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
+      <Image
+        src={blog.image.filePath.replace("../public", "")}
+        placeholder="blur"
+        blurDataURL={blog.image.blurhashDataUrl}
+        alt={blog.title}
+        fill
+        className="w-full h-full object-center object-cover rounded-3xl -z-10 group-hover:scale-105 transition-all ease duration-300"
+      />
+      <div className="w-3/4 p-16 flex flex-col justify-center text-light z-10">
+        <Tag link={\`/categories/\${blog.tags[0]}\`} name={blog.tags[0]} />
+        <Link href={blog.url} className="mt-6">
+          <h1 className="font-bold capitalize text-4xl">
+            <span className="bg-gradient-to-r from-accent to-accent bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h1>
+        </Link>
+        <p className="inline-block mt-4 text-xl font-in">{blog.description}</p>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutOne;`);
+    document.getElementById("copy4").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy4").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ⚠️ Image, Tag, Link 임포트 확인하세요!
 
@@ -196,6 +324,51 @@ const BlogLayoutOne = ({ blog }) => {
 
 export default BlogLayoutOne;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import Image from "next/image";
+import React from "react";
+import Tag from "../Elements/Tag";
+import Link from "next/link";
+const BlogLayoutOne = ({ blog }) => {
+  return (
+    <div className="group inline-block overflow-hidden rounded-xl">
+      <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
+      <Image
+        src={blog.image.filePath.replace("../public", "")}
+        placeholder="blur"
+        blurDataURL={blog.image.blurhashDataUrl}
+        alt={blog.title}
+        width={blog.image.width}
+        height={blog.image.height}
+        className="w-full h-full object-center object-cover rounded-3xl -z-10 group-hover:scale-105 transition-all ease duration-300"
+      />
+      <div className="w-3/4 p-16 flex flex-col justify-center text-light z-10">
+        <Tag link={\`/categories/\${blog.tags[0]}\`} name={blog.tags[0]} />
+        <Link href={blog.url} className="mt-6">
+          <h1 className="font-bold capitalize text-4xl">
+            <span className="bg-gradient-to-r from-accent to-accent bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h1>
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutOne;`);
+    document.getElementById("copy5").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy5").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/5/BlogLayoutOne1.png"
@@ -250,6 +423,59 @@ const BlogLayoutOne = ({ blog }) => {
 export default BlogLayoutOne;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import Image from "next/image";
+import React from "react";
+import Tag from "../Elements/Tag";
+import Link from "next/link";
+const BlogLayoutOne = ({ blog }) => {
+  return (
+    <div className="group inline-block overflow-hidden rounded-xl">
+      <div className="absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-10" />
+      <Image
+        src={blog.image.filePath.replace("../public", "")}
+        placeholder="blur"
+        blurDataURL={blog.image.blurhashDataUrl}
+        alt={blog.title}
+        width={blog.image.width}
+        height={blog.image.height}
+        className="w-full h-full object-center object-cover rounded-xl group-hover:scale-105 transition-all ease duration-300"
+        sizes="100vw"
+        priority
+      />
+
+      <div className="w-full absolute bottom-0 p-10 z-20">
+        <Tag
+          link={\`/categories/\${blog.tags[0]}\`}
+          name={blog.tags[0]}
+          className="px-6 text-sm py-2 !border"
+        />
+        <Link href={blog.url} className="mt-6">
+          <h2 className="font-bold capitalize text-lg sm:text-xl md:text-3xl lg:text-2xl text-light mt-4">
+            <span className="bg-gradient-to-r from-accent to-accent dark:from-accentDark/50 dark:to-accentDark/50 bg-[length:0px_0px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-700">
+              {blog.title}
+            </span>
+          </h2>
+        </Link>
+      </div>
+    </div>
+
+);
+};
+
+export default BlogLayoutOne;`);
+    document.getElementById("copy6").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy6").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
+
 변경사항
 
 - 배경 및 이미지 둥근 모서리 크기 : 배경의 둥근 모서리 크기가 3xl에서 xl로 수정
@@ -295,6 +521,41 @@ const BlogLayoutTwo = ({ blog }) => {
 export default BlogLayoutTwo;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+const BlogLayoutTwo = ({ blog }) => {
+  return (
+    <div className="group grid grid-cols-12 gap-4 items-center text-dark">
+      <Link href={blog.url} className="col-span-4 rounded-xl overflow-hidden">
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
+        />
+      </Link>
+    </div>
+  );
+};
+
+export default BlogLayoutTwo;`);
+    document.getElementById("copy7").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy7").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy7" style={{ marginLeft: "10px", color: "green" }}></span>
+
 이미지 태그는 BlogLayoutOne 컴포넌트의 `<Image>`와 동일하기 때문에 복사해서 가져오고 스타일링만 수정했습니다.
 
 FeaturedPosts 컴포넌트에 BlogLayoutTwo.js도 임포트 합니다.
@@ -330,6 +591,46 @@ const FeaturedPosts = ({ blogs }) => {
 
 export default FeaturedPosts;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { sortBlogs } from "@/src/utils";
+import React from "react";
+import BlogLayoutOne from "../Blog/BlogLayoutOne";
+import BlogLayoutTwo from "../Blog/BlogLayoutTwo";
+const FeaturedPosts = ({ blogs }) => {
+  const sortedBlogs = sortBlogs(blogs);
+  return (
+    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
+      <h2 className="w-full inline-block font-bold capitalize text-4xl">
+        Featured Posts
+      </h2>
+      <div className="grid grid-cols-2 grid-rows-2 gap-6 mt-16">
+        <article className="col-span-1 row-span-2 relative">
+          <BlogLayoutOne blog={sortedBlogs[2]} />
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          <BlogLayoutTwo blog={sortedBlogs[3]} />
+        </article>
+        <article className="col-span-1 row-span-1 relative">
+          <BlogLayoutTwo blog={sortedBlogs[4]} />
+        </article>
+      </div>
+    </section>
+  );
+};
+
+export default FeaturedPosts;`);
+    document.getElementById("copy8").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy8").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy8" style={{ marginLeft: "10px", color: "green" }}></span>
 
 BlogLayoutTwo는 레이아웃이 동일하기 때문에 2,3번 째 `<article>`태그에 동일하게 적용합니다. 단, 보여줄 게시물은 sortedBlogs[]로 작성일(publishedAt) 따라 인덱스를 수정해주면 됩니다.
 
@@ -385,6 +686,57 @@ const BlogLayoutTwo = ({ blog }) => {
 
 export default BlogLayoutTwo;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { format } from "date-fns";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+const BlogLayoutTwo = ({ blog }) => {
+  return (
+    <div className="group grid grid-cols-12 gap-4 items-center text-dark">
+      <Link href={blog.url} className="col-span-4 rounded-xl overflow-hidden">
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
+        />
+      </Link>
+      <div className=" col-span-8 w-full">
+        <span className=" uppercase text-accent font-semibold text-sm">
+          {blog.tags[0]}
+        </span>
+        <Link href={blog.url} className="inline-block my-1">
+          <h2 className="font-semibold capitalize text-lg">
+            <span className="bg-gradient-to-r from-accent/50 to-accent/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+              {blog.title}
+            </span>
+          </h2>
+        </Link>
+        <div className="capitalize text-dark/50 font-semibold">
+          {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BlogLayoutTwo;`);
+    document.getElementById("copy9").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy9").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy9" style={{ marginLeft: "10px", color: "green" }}></span>
 
 주요 변경사항
 

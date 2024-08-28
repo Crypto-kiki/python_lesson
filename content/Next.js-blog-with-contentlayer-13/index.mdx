@@ -79,6 +79,61 @@ const useThemeSwitch = () => {
 export default useThemeSwitch;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+"use client";
+
+import { useEffect, useState } from "react";
+const useThemeSwitch = () => {
+  const preferDarkQuery = "prefers-color-scheme:dark";
+  const storageKey = "theme";
+  const toggleTheme = (theme) => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    window.localStorage.setItem(storageKey, theme);
+  };
+  const getUserPreference = () => {
+    const userPref = window.localStorage.getItem(storageKey);
+    if (userPref) {
+      return userPref;
+    }
+    return window.matchMedia(preferDarkQuery).matches ? "dark" : "light";
+  };
+  const [mode, setMode] = useState("dark");
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(preferDarkQuery);
+    const handleChange = () => {
+      const newMode = getUserPreference();
+      setMode(newMode);
+      toggleTheme(newMode);
+    };
+    handleChange();
+    mediaQuery.addEventListener("change", handleChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange);
+    };
+  }, []);
+  useEffect(() => {
+    toggleTheme(mode);
+  }, [mode]);
+  return [mode, setMode];
+};
+
+export default useThemeSwitch;`);
+    document.getElementById("copy1").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy1").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
+
 - preferDarkQuery : 사용자의 시스템 테마 선호도를 확인하기 위한 미디어 쿼리 문자열이며 "prefers-color-scheme:dark"는 내장된 미디어 쿼리입니다.
 - storageKey : 로컬 스토리지에 테마(theme) 선호도를 저장하기 위한 키 이름입니다.
 
@@ -226,6 +281,145 @@ const Header = () => {
 export default Header;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+"use client";
+import React, { useState } from "react";
+import Logo from "./logo";
+import Link from "next/link";
+import {
+  GithubIcon,
+  LinkedinIcon,
+  SunIcon,
+  TwitterIcon,
+  MoonIcon,
+} from "../icons";
+import siteMetadata from "@/src/utils/siteMetadata";
+import useThemeSwitch from "../Hooks/useThemeSwitch";
+import { cx } from "@/src/utils";
+const Header = () => {
+  const [mode, setMode] = useThemeSwitch();
+  const [click, setClick] = useState(false);
+  const toggle = () => {
+    setClick(!click);
+  };
+  return (
+    <div className="w-full p-4 px-5 sm:px-10 flex items-center justify-between">
+      <Logo />
+      <button className="inline-block sm:hidden z-50" onClick={toggle}>
+        <div className="w-6 cursor-pointer transition-all ease duration-300">
+          <div className="relative">
+            <span
+              className="absolute top-0 inline-block w-full h-0.5 bg-dark dark:bg-light rounded transition-all ease duration-200"
+              style={{
+                transform: click
+                  ? "rotate(-45deg) translateY(0)"
+                  : "rotate(0deg) translateY(6px)",
+              }}
+            >
+              &nbsp;
+            </span>
+            <span
+              className="absolute top-0 inline-block w-full h-0.5 bg-dark dark:bg-light rounded transition-all ease duration-200"
+              style={{
+                opacity: click ? 0 : 1,
+              }}
+            >
+              &nbsp;
+            </span>
+            <span
+              className="absolute top-0 inline-block w-full h-0.5 bg-dark dark:bg-light rounded transition-all ease duration-200"
+              style={{
+                transform: click
+                  ? "rotate(45deg) translateY(0)"
+                  : "rotate(0deg) translateY(-6px)",
+              }}
+            >
+              &nbsp;
+            </span>
+          </div>
+        </div>
+      </button>
+      <nav
+        className="w-max py-3 px-6 sm:px-8 border border-solid border-dark rounded-full font-medium capitalize flex items-center fixed top-6 right-1/2 translate-x-1/2 bg-light/80 backdrop-blur-sm z-50 transition-all ease duration-300"
+        style={{
+          top: click ? "1rem" : "-5rem",
+        }}
+      >
+        <Link href="/" className="mr-2">
+          Home
+        </Link>
+        <Link href="/about" className="mx-2">
+          About
+        </Link>
+        <Link href="/contact" className="mx-2">
+          Contact
+        </Link>
+        <button
+          onClick={() => setMode(mode === "light" ? "dark" : "light")}
+          className={cx(
+            "w-6 h-6 ease ml-2 flex items-center justify-center rounded-full p-1",
+            mode === "light" ? "bg-dark text-light" : "bg-light text-dark"
+          )}
+        >
+          {mode === "light" ? (
+            <MoonIcon className={"fill-dark"} />
+          ) : (
+            <SunIcon className={"fill-dark"} />
+          )}
+        </button>
+      </nav>
+      <nav className="w-max py-3 px-8 border border-solid border-dark rounded-full font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2 bg-light/80 backdrop-blur-sm z-50">
+        <Link href="/" className="mr-2">
+          Home
+        </Link>
+        <Link href="/about" className="mx-2">
+          About
+        </Link>
+        <Link href="/contact" className="mx-2">
+          Contact
+        </Link>
+        <button
+          onClick={() => setMode(mode === "light" ? "dark" : "light")}
+          className={cx(
+            "w-6 h-6 ease ml-2 flex items-center justify-center rounded-full p-1",
+            mode === "light" ? "bg-dark text-light" : "bg-light text-dark"
+          )}
+        >
+          {mode === "light" ? (
+            <MoonIcon className={"fill-dark"} />
+          ) : (
+            <SunIcon className={"fill-dark"} />
+          )}
+        </button>
+      </nav>
+      <div className="hidden sm:flex items-center">
+        <a href={siteMetadata.linkedin} className="inline-block w-6 h-6 mr-4">
+          <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a href={siteMetadata.twitter} className="inline-block w-6 h-6 mr-4">
+          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
+        </a>
+        <a href={siteMetadata.github} className="inline-block w-6 h-6 mr-4">
+          <GithubIcon className="hover:scale-125 transition-all ease duration-200 dark:fill-light" />
+        </a>
+      </div>
+    </div>
+  );
+};
+
+export default Header;`);
+    document.getElementById("copy2").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy2").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
+
 추가로 darkMode 클릭시 mode값에 따라 `<SunIcon>`,`<MoonIcon>`이 변경되도록 버튼태그도 위 처럼 수정합니다.
 
 header/index.js는 "use client" 를 사용해야 합니다.
@@ -305,6 +499,86 @@ export default function RootLayout({ children }) {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { Inter, Manrope } from "next/font/google";
+import "./globals.css";
+import { cx } from "@/src/utils";
+import Header from "@/src/components/Header";
+import Footer from "../components/Footer";
+import siteMetadata from "../utils/siteMetadata";
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-in",
+});
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mr",
+});
+export const metadata = {
+  metadataBase: new URL(siteMetadata.siteUrl),
+  title: {
+    template: \`%s | \${siteMetadata.title}\`,
+    default: siteMetadata.title,
+  },
+  description: siteMetadata.description,
+  openGraph: {
+    title: siteMetadata.title,
+    description: siteMetadata.description,
+    url: siteMetadata.siteUrl,
+    siteName: siteMetadata.title,
+    images: [siteMetadata.socialBanner],
+    locale: "ko-kr",
+    type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: false,
+      noimageindex: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteMetadata.title,
+    images: [siteMetadata.socialBanner],
+  },
+};
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body
+        className={cx(
+          inter.variable,
+          manrope.variable,
+          "font-mr bg-light dark:bg-dark"
+        )}
+      >
+        <Header />
+        {children}
+        <Footer />
+      </body>
+    </html>
+  );
+}`);
+    document.getElementById("copy3").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy3").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
+
 <Image
   src="/blogs/nextjs-blog-contentlayer/13/darkMode1.png"
   width="718"
@@ -351,6 +625,44 @@ module.exports = {
   plugins: [require("@tailwindcss/typography")],
 };
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  darkMode: "selector",
+  theme: {
+    extend: {
+      colors: {
+        dark: "#1b1b1b",
+        light: "#fff",
+        accent: "#7b00d3",
+        accentDark: "#ffdb4d",
+        gray: "#747474",
+      },
+      fontFamily: {
+        mr: ["var(--font-mr)"],
+        in: ["var(--font-in)"],
+      },
+    },
+  },
+  plugins: [require("@tailwindcss/typography")],
+};`);
+    document.getElementById("copy4").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy4").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 위 처럼 darkMode 추가 후, layout.js도 수정합니다.
 
@@ -436,6 +748,94 @@ export default function RootLayout({ children }) {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { Inter, Manrope } from "next/font/google";
+import "./globals.css";
+import { cx } from "@/src/utils";
+import Header from "@/src/components/Header";
+import Footer from "../components/Footer";
+import siteMetadata from "../utils/siteMetadata";
+import Script from "next/script";
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-in",
+});
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mr",
+});
+export const metadata = {
+  metadataBase: new URL(siteMetadata.siteUrl),
+  title: {
+    template: \`%s | \${siteMetadata.title}\`,
+    default: siteMetadata.title,
+  },
+  description: siteMetadata.description,
+  openGraph: {
+    title: siteMetadata.title,
+    description: siteMetadata.description,
+    url: siteMetadata.siteUrl,
+    siteName: siteMetadata.title,
+    images: [siteMetadata.socialBanner],
+    locale: "ko-kr",
+    type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: false,
+      noimageindex: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteMetadata.title,
+    images: [siteMetadata.socialBanner],
+  },
+};
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body
+        className={cx(
+          inter.variable,
+          manrope.variable,
+          "font-mr bg-light dark:bg-dark"
+        )}
+      >
+        <Script>
+          {\`if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+              document.documentElement.classList.add('dark')
+            } else {
+              document.documentElement.classList.remove('dark')
+            }\`}
+        </Script>
+        <Header />
+        {children}
+        <Footer />
+      </body>
+    </html>
+  );
+}`);
+    document.getElementById("copy5").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy5").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
+
 위 코드에서 `<Script>`태그가 추가되었습니다.
 
 <a
@@ -454,6 +854,22 @@ export default function RootLayout({ children }) {
   {blog.title}
 </span>
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+<span className="bg-gradient-to-r from-accent to-accent dark:from-accentDark/50 dark:to-accentDark/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
+  {blog.title}
+</span>`);
+    document.getElementById("copy6").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy6").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ## 다음 포스팅 보러가기
 

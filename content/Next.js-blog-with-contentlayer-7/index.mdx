@@ -40,6 +40,22 @@ export default function BlogPage({ params }) {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+export default function BlogPage({ params }) {
+  return <div>My Post: {params.slug}</div>;
+}`);
+    document.getElementById("copy1").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy1").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
+
 여기서 slug는 URL에서 특정 페이지를 식별하는 데 사용되는 문자열이며, app/blogs/[slug]/page.js 파일 경로에 정의된 동적 경로의 일부입니다.
 
 위 파일을 저장 후, 게시글을 클릭해보면 아래와 같이 url이 생성됩니다.
@@ -89,6 +105,52 @@ export default function BlogPage({ params }) {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from ".contentlayer/generated";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={\`/categories/\${blog.tags[0]}\`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+    </article>
+  );
+}`);
+    document.getElementById("copy2").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy2").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
+
 - `const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);` : .find 메소드를 사용하여 allBlogs 배열 내의 각 블로그 객체(blog)를 순회합니다. 순회하는 동안 각 블로그 객체의 \_raw.flattenedPath 프로퍼티가 현재 페이지의 URL에서 추출된 slug 값과 일치하는지 확인합니다. 이는 다이나믹 라우팅을 통해 접근한 현재 페이지의 경로를 기반으로 해당 페이지에 맞는 블로그 포스트 데이터를 찾기 위함입니다.
 
 <Image
@@ -131,6 +193,31 @@ const BlogDetails = ({ blog, slug }) => {
 export default BlogDetails;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { format, parseISO } from "date-fns";
+import React from "react";
+const BlogDetails = ({ blog, slug }) => {
+  return (
+    <div>
+      <time>{format(parseISO(blog.publishedAt), "LLLL d, yyyy")}</time>
+      <span>10 views</span>
+    </div>
+  );
+};
+
+export default BlogDetails;`);
+    document.getElementById("copy3").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy3").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
+
 src/app/blogs/[slug]/page.js 에 BlogDetails를 입포트하고 props를 전달합니다.
 
 ```javascript title="src/app/blogs/[slug]/page.js"
@@ -171,6 +258,54 @@ export default function BlogPage({ params }) {
   );
 }
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+    import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={\`/categories/\${blog.tags[0]}\`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+    </article>
+  );
+}`);
+    document.getElementById("copy4").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy4").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage4.png"
@@ -247,6 +382,74 @@ export default makeSource({
 });
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+});`);
+    document.getElementById("copy5").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy5").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
+
 - readingTime : 주어진 텍스트의 길이를 기반으로 해당 텍스트를 읽는 데 걸리는 예상 시간을 계산하는 라이브러리입니다.
 - type: "json" : JSON 타입이란, 예상 읽는 시간을 포함한 정보가 객체 형태로 반환될 것임을 의미합니다.
 - `resolve: (doc) => readingTime(doc.body.raw)` : 현재 문서(doc)를 인자로 받으며, readingTime 라이브러리를 사용하여 doc.body.raw (즉, 블로그 포스트의 원시 본문 텍스트)를 분석합니다. readingTime 함수는 텍스트를 분석하여 읽는 데 걸리는 시간을 예측하고, 이 정보를 객체 형태로 반환합니다.
@@ -284,6 +487,39 @@ const BlogDetails = ({ blog, slug }) => {
 
 export default BlogDetails;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { format, parseISO } from "date-fns";
+import Link from "next/link";
+import React from "react";
+const BlogDetails = ({ blog, slug }) => {
+  console.log(blog);
+  return (
+    <div className="px-10 bg-accent text-light py-2 flex items-center justify-around flex-wrap text-xl font-medium mx-10 rounded-lg">
+      <time className="m-3">
+        {format(parseISO(blog.publishedAt), "LLLL d, yyyy")}
+      </time>
+      <span className="m-3">10 views</span>
+      <div className="m-3">{blog.readingTime.text}</div>
+      <Link href={\`categories/\${blog.tags[0]}\`} className="m-3">
+        #{blog.tags[0]}
+      </Link>
+    </div>
+  );
+};
+
+export default BlogDetails;`);
+    document.getElementById("copy6").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy6").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage6.png"
@@ -340,6 +576,57 @@ export default function BlogPage({ params }) {
   );
 }
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={\`/categories/\${blog.tags[0]}\`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+      <div className="grid grid-cols-12 gap-16 mt-8 px-10">
+        <div className="col-span-4">Toc</div>
+        <div className="col-span-8">Render Mdx</div>
+      </div>
+    </article>
+  );
+}`);
+    document.getElementById("copy7").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy7").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy7" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - toc는 Table of Content로 해당 컨텐츠의 목차와 같고 특정 섹션으로 이동 할 수 있도록 하는 부분입니다. (다음 포스팅에 다룰 예정)
 
@@ -407,6 +694,75 @@ export default makeSource({
 });
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+});`);
+    document.getElementById("copy8").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy8").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy8" style={{ marginLeft: "10px", color: "green" }}></span>
+
 src/components/Blog/RenderMdx.js 컴포넌트를 생성하고 src/app/blogs/[slug]/page.js에 임포트 합니다.
 
 ```javascript title="src/app/blogs/[slug]/page.js"
@@ -454,6 +810,58 @@ export default function BlogPage({ params }) {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { allBlogs } from ".contentlayer/generated";
+import BlogDetails from "@/src/components/Blog/BlogDetails";
+import RenderMdx from "@/src/components/Blog/RenderMdx";
+import Tag from "@/src/components/Elements/Tag";
+import Image from "next/image";
+export default function BlogPage({ params }) {
+  const blog = allBlogs.find((blog) => blog._raw.flattenedPath === params.slug);
+  return (
+    <article>
+      <div className="mb-8 text-center relative w-full h-[70vh] bg-dark">
+        <div className="w-full z-10 flex flex-col items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Tag
+            name={blog.tags[0]}
+            link={\`/categories/\${blog.tags[0]}\`}
+            className="px-6 text-sm py-2"
+          />
+          <h1 className="inline-block mt-6 font-semibold capitalize text-light text-5xl leading-normal relative w-5/6">
+            {blog.title}
+          </h1>
+        </div>
+        <div className="absolute top-0 left-0 right-0 bottom-0 h-full bg-dark/60" />
+        <Image
+          src={blog.image.filePath.replace("../public", "")}
+          placeholder="blur"
+          blurDataURL={blog.image.blurhashDataUrl}
+          alt={blog.title}
+          width={blog.image.width}
+          height={blog.image.height}
+          className=" aspect-square w-full h-full object-cover object-center"
+        />
+      </div>
+      <BlogDetails blog={blog} slug={params.slug} />
+      <div className="grid grid-cols-12 gap-16 mt-8 px-10">
+        <div className="col-span-4">Toc</div>
+        <RenderMdx blog={blog} />
+      </div>
+    </article>
+  );
+}`);
+    document.getElementById("copy9").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy9").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy9" style={{ marginLeft: "10px", color: "green" }}></span>
+
 ```javascript title="src/components/Blog/RenderMdx.js"
 import React from "react";
 import { useMDXComponent } from "next-contentlayer/hooks";
@@ -470,6 +878,31 @@ const RenderMdx = ({ blog }) => {
 
 export default RenderMdx;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+  return (
+    <div>
+      <MDXContent />
+    </div>
+  );
+};
+
+export default RenderMdx;`);
+    document.getElementById("copy10").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy10").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy10" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - useMDXComponent : next-contentlayer/hooks에서 가져온 훅으로, MDX 내용을 React 컴포넌트로 변환하는 데 사용됩니다.
 
@@ -506,6 +939,36 @@ const RenderMdx = ({ blog }) => {
 export default RenderMdx;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+  return (
+    <div>
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;`);
+    document.getElementById("copy11").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy11").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy11" style={{ marginLeft: "10px", color: "green" }}></span>
+
 위 처럼 적용하면 아래와 같은 오류가 발생합니다.
 
 > Error: Cannot access Image.propTypes on the server. You cannot dot into a client module from a server component. You can only pass the imported name through.
@@ -538,6 +1001,37 @@ const RenderMdx = ({ blog }) => {
 
 export default RenderMdx;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+"use client";
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+  return (
+    <div>
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;`);
+    document.getElementById("copy12").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy12").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy12" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage7.png"
@@ -586,6 +1080,43 @@ module.exports = {
 };
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        dark: "#1b1b1b",
+        light: "#fff",
+        accent: "#7b00d3",
+        accentDark: "#ffdb4d",
+        gray: "#747474",
+      },
+      fontFamily: {
+        mr: ["var(--font-mr)"],
+        in: ["var(--font-in)"],
+      },
+    },
+  },
+  plugins: [require("@tailwindcss/typography")],
+};`);
+    document.getElementById("copy13").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy13").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy13" style={{ marginLeft: "10px", color: "green" }}></span>
+
 적용할 곳에 `prose`라는 속성을 붙입니다. `<MDXContent/>` 를 감싸고 있는 부모 태그에 적용합니다.
 
 ```javascript title="src/components/Blog/RenderMdx.js"
@@ -612,6 +1143,37 @@ const RenderMdx = ({ blog }) => {
 
 export default RenderMdx;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+"use client";
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+  return (
+    <div className="col-span-8 font-in prose prose-lg max-w-max">
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;`);
+    document.getElementById("copy14").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy14").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy14" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage8.png"
@@ -649,6 +1211,37 @@ const RenderMdx = ({ blog }) => {
 
 export default RenderMdx;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+"use client";
+import React from "react";
+import { useMDXComponent } from "next-contentlayer/hooks";
+import Image from "next/image";
+// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
+const mdxComponents = {
+  Image, // Image 컴포넌트를 추가합니다.
+};
+const RenderMdx = ({ blog }) => {
+  const MDXContent = useMDXComponent(blog.body.code);
+  return (
+    <div className="col-span-8 font-in prose prose-lg max-w-max prose-blockquote:bg-accent/20 prose-blockquote:p-2 prose-blockquote:px-6 prose-blockquote:border-accent prose-blockquote:not-italic prose-blockquote:rounded-r-lg prose-li:marker:text-accent">
+      <MDXContent components={mdxComponents} />
+    </div>
+  );
+};
+
+export default RenderMdx;`);
+    document.getElementById("copy15").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy15").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy15" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage9.png"
@@ -729,6 +1322,77 @@ export default makeSource({
   mdx: { remarkPlugins: [remarkGfm] },
 });
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+import remarkGfm from "remark-gfm";
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: { remarkPlugins: [remarkGfm] },
+});`);
+    document.getElementById("copy16").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy16").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy16" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage10.png"
@@ -823,6 +1487,82 @@ export default makeSource({
 });
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [rehypeSlug, rehypeAutolinkHeadings],
+  },
+});`);
+    document.getElementById("copy17").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy17").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy17" style={{ marginLeft: "10px", color: "green" }}></span>
+
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage11.png"
   width="718"
@@ -872,6 +1612,31 @@ export default makeSource({
 });
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+  export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [
+      rehypeSlug,
+      [rehypeAutolinkHeadings, { behavior: "append" }],
+    ],
+  },
+});`);
+    document.getElementById("copy18").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy18").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy18" style={{ marginLeft: "10px", color: "green" }}></span>
+
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage13.png"
   width="718"
@@ -907,6 +1672,35 @@ h3 > a {
   text-decoration: none !important;
 }
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+html {
+  scroll-behavior: smooth;
+}
+h1 > a > .icon.icon-link:before,
+h2 > a > .icon.icon-link:before,
+h3 > a > .icon.icon-link:before {
+  content: "#";
+  font-size: 0.8rem;
+}
+h2 > a,
+h3 > a {
+  text-decoration: none !important;
+}`);
+    document.getElementById("copy19").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy19").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy19" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage14.png"
@@ -1010,6 +1804,91 @@ export default makeSource({
 });
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import { makeSource, defineDocumentType } from "contentlayer/source-files";
+import readingTime from "reading-time";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypePrettyCode from "rehype-pretty-code";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+const Blog = defineDocumentType(() => ({
+  name: "Blog",
+  filePathPattern: "**/**/*.mdx",
+  contentType: "mdx",
+  fields: {
+    title: {
+      type: "string",
+      required: true,
+    },
+    publishedAt: {
+      type: "date",
+      required: true,
+    },
+    updatedAt: {
+      type: "date",
+      required: true,
+    },
+    description: {
+      type: "string",
+      required: true,
+    },
+    image: {
+      type: "image",
+    },
+    isPublished: {
+      type: "boolean",
+      default: true,
+    },
+    author: {
+      type: "string",
+      required: true,
+    },
+    tags: {
+      type: "list",
+      of: { type: "string" },
+    },
+  },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
+    },
+    readingTime: {
+      type: "json",
+      resolve: (doc) => readingTime(doc.body.raw),
+    },
+  },
+}));
+
+const codeOptions = {
+theme: "github-dark",
+};
+
+export default makeSource({
+  /* options */
+  contentDirPath: "content",
+  documentTypes: [Blog],
+  mdx: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [
+      rehypeSlug,
+      [rehypeAutolinkHeadings, { behavior: "append" }],
+      [rehypePrettyCode, codeOptions],
+    ],
+  },
+});`);
+    document.getElementById("copy20").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy20").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy20" style={{ marginLeft: "10px", color: "green" }}></span>
+
 포스텡에서 테마는 "github-dark"를 사용했지만 아래 참고링크를 통해 다른 테마도 적용 할 수 있습니다.
 
 참고링크 : <a href="https://shiki.style/themes#themes" target="_blank">shiki theme</a>
@@ -1073,6 +1952,54 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
   width: 3rem;
 }
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+  html {
+    scroll-behavior: smooth;
+  }
+  h1 > a > .icon.icon-link:before,
+  h2 > a > .icon.icon-link:before,
+  h3 > a > .icon.icon-link:before {
+    content: "#";
+    font-size: 0.8rem;
+  }
+  h2 > a,
+  h3 > a {
+    text-decoration: none !important;
+  }
+  code {
+    counter-reset: line;
+  }
+  code > [data-line]::before {
+    counter-increment: line;
+    content: counter(line);
+    /* Other styling */
+    display: inline-block;
+    width: 1rem;
+    margin-right: 2rem;
+    text-align: right;
+    color: gray;
+  }
+  code[data-line-numbers-max-digits="2"] > [data-line]::before {
+    width: 2rem;
+  }
+  code[data-line-numbers-max-digits="3"] > [data-line]::before {
+    width: 3rem;
+}`);
+    document.getElementById("copy21").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy21").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy21" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage17.png"
@@ -1161,6 +2088,62 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
 }
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+html {
+  scroll-behavior: smooth;
+}
+h1 > a > .icon.icon-link:before,
+h2 > a > .icon.icon-link:before,
+h3 > a > .icon.icon-link:before {
+  content: "#";
+  font-size: 0.8rem;
+}
+h2 > a,
+h3 > a {
+  text-decoration: none !important;
+}
+code {
+  counter-reset: line;
+}
+code > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  /* Other styling */
+  display: inline-block;
+  width: 1rem;
+  margin-right: 2rem;
+  text-align: right;
+  color: gray;
+}
+code[data-line-numbers-max-digits="2"] > [data-line]::before {
+  width: 2rem;
+}
+code[data-line-numbers-max-digits="3"] > [data-line]::before {
+  width: 3rem;
+}
+[data-highlighted-line] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  padding: 2px;
+  padding-left: 0;
+  padding-right: 4px;
+  border-radius: 2px;
+  border-left: 2px solid #7b00d3;
+}`);
+    document.getElementById("copy21").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy21").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy21" style={{ marginLeft: "10px", color: "green" }}></span>
+
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage20.png"
   width="718"
@@ -1196,6 +2179,31 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
   border-end-start-radius: 4px;
 }
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+[data-rehype-pretty-code-figure] {
+  position: relative;
+}
+[data-rehype-pretty-code-title] {
+  position: absolute;
+  right: 0;
+  background-color: #7b00d3;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 1rem;
+  border-end-start-radius: 4px;
+}`);
+    document.getElementById("copy22").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy22").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy22" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/7/blogPage22.png"

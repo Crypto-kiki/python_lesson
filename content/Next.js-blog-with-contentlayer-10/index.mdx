@@ -38,6 +38,29 @@ const About = () => {
 export default About;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import AboutCoverSection from "@/src/components/About/AboutCoverSection";
+const About = () => {
+  return (
+    <div>
+      <AboutCoverSection />
+    </div>
+  );
+};
+
+export default About;`);
+    document.getElementById("copy1").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy1").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
+
 ```javascript title="src/components/About/AboutCoverSection.js"
 import Image from "next/image";
 import React from "react";
@@ -77,6 +100,53 @@ const AboutCoverSection = () => {
 export default AboutCoverSection;
 ```
 
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import Image from "next/image";
+import React from "react";
+import profileCharater from "@/public/character.png";
+const AboutCoverSection = () => {
+  return (
+    <section className="w-full h-[75vh] border-b-2 border-dark flex items-center justify-center text-dark">
+      <div className="w-1/2 h-full border-r-2 border-dark flex justify-center">
+        <Image
+          src={profileCharater}
+          alt="Baekki"
+          className="w-full h-full object-contain object-center"
+        />
+      </div>
+      <div className="w-1/2 flex flex-col justify-center px-16">
+        <h2 className="font-bold capitalize text-6xl">
+          Imagine Limitlessly, Strive Relentlessly, Surpass Expectations!
+        </h2>
+        <p className="font-medium capitalize mt-4">
+          In the realms of blockchain and front-end development, I focus on
+          redefining user experiences through innovative solutions. Working at
+          the forefront of technology, I develop applications that enable
+          efficient and secure digital transactions, harnessing the potential of
+          blockchain technology. Simultaneously, by leveraging modern web
+          technologies, I craft intuitive and visually appealing interfaces that
+          allow users to navigate and interact with information effectively and
+          seamlessly. If you have a project in mind, please reach out to me.
+          Let's make it happen together.
+        </p>
+      </div>
+    </section>
+  );
+};
+
+export default AboutCoverSection;`);
+    document.getElementById("copy2").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy2").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
+
 <Image
   src="/blogs/nextjs-blog-contentlayer/10/about1.png"
   width="718"
@@ -106,6 +176,35 @@ const About = () => {
 
 export default About;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+import AboutCoverSection from "@/src/components/About/AboutCoverSection";
+import Skills from "@/src/components/About/Skills";
+const About = () => {
+  return (
+    <>
+      <AboutCoverSection />
+      <Skills />
+      <h2 className="mt-8 font-semibold text-2xl self-start mx-20 text-dark ">
+        Do you have a project idea? Contact me, and together we can turn that
+        dream into reality.
+      </h2>
+    </>
+  );
+};
+
+export default About;`);
+    document.getElementById("copy3").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy3").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ```javascript title="src/components/About/Skills.js"
 const SkillList = [
@@ -144,6 +243,53 @@ const Skills = () => {
 
 export default Skills;
 ```
+
+<button
+  onClick={() => {
+    navigator.clipboard.writeText(`
+const SkillList = [
+  "next.js",
+  "tailwind css",
+  "javaScript",
+  "solidity",
+  "truffle",
+  "hardhat",
+  "firebase",
+  "supabase",
+  "generative AI",
+];
+const Skills = () => {
+  return (
+    <section className="w-full flex flex-col p-20 border-b-2 border-dark text-dark">
+      <span className="font-semibold text-4xl text-accent">
+        I'm proficient in...
+      </span>
+      <ul className="flex flex-wrap mt-8">
+        {SkillList.map((item, index) => {
+          return (
+            <li
+              key={index}
+              className="font-semibold inline-block capitalize text-2xl py-5 px-12 border-2 border-dark rounded mr-6 mb-6 hover:scale-105 transition-all ease duration-200 cursor-pointer"
+            >
+              {item}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+};
+
+export default Skills;`);
+    document.getElementById("copy4").textContent = "✔️ copied";
+    setTimeout(() => {
+      document.getElementById("copy4").textContent = "";
+    }, 2000);
+  }}
+>
+  📄 Code Copy
+</button>
+<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/10/about2.png"
