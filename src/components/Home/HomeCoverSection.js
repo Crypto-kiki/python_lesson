@@ -27,9 +27,6 @@ const HomeCoverSection = ({ blogs }) => {
         />
 
         <div className="w-full lg:w-3/4 p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col items-start justify-center z-0 text-light">
-          <p className="text-[11px] sm:text-xs md:text-sm font-medium uppercase tracking-[0.16em] text-accentDark">
-            Python Lesson Website
-          </p>
           <Tag link={`/categories/${slug(blog.tags[0])}`} name={blog.tags[0]} className="mt-2" />
           <Link href={blog.url} className="mt-3">
             <h1 className="font-bold capitalize text-base sm:text-xl md:text-2xl lg:text-3xl leading-tight">

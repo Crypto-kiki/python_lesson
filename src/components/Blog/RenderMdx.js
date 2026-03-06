@@ -22,15 +22,13 @@ const RenderMdx = ({ blog }) => {
       document.querySelectorAll("[data-rehype-pretty-code-figure]")
     );
 
-    figures.forEach((figure, index) => {
+    figures.forEach((figure) => {
       if (figure.querySelector("[data-copy-code-btn]")) {
         return;
       }
 
-      const pre = figure.querySelector("pre");
       const code = figure.querySelector("code");
-
-      if (!pre || !code) {
+      if (!code) {
         return;
       }
 
@@ -51,27 +49,26 @@ const RenderMdx = ({ blog }) => {
       button.type = "button";
       button.setAttribute("data-copy-code-btn", "true");
       button.className = "code-copy-btn";
-      button.setAttribute("aria-label", "코드 복사");
-      button.textContent = "📋";
+      button.setAttribute("aria-label", "Copy code");
+      button.textContent = "Copy";
 
       button.onclick = async () => {
         try {
           await navigator.clipboard.writeText(code.textContent || "");
-          button.textContent = "✅";
+          button.textContent = "Copied";
           setTimeout(() => {
-            button.textContent = "📋";
+            button.textContent = "Copy";
           }, 1500);
         } catch {
-          button.textContent = "❌";
+          button.textContent = "Failed";
           setTimeout(() => {
-            button.textContent = "📋";
+            button.textContent = "Copy";
           }, 1500);
         }
       };
 
       actionWrapper.appendChild(button);
       figure.appendChild(actionWrapper);
-      pre.setAttribute("data-code-index", `${index}`);
     });
   }, [blog.body.code]);
 

@@ -10,13 +10,13 @@ const Logo = () => {
       <div className="w-12 md:w-16 rounded-full overflow-hidden border border-solid border-accent/50 dark:border-accentDark/60 mr-2 md:mr-4">
         <Image
           src={profileImg}
-          alt="Python Lesson Lab"
+          alt="Python Bootcamp"
           className="w-full h-auto rounded-r-full"
           sizes="33vw"
           priority
         />
       </div>
-      <span className="font-bold dark:font-semibold text-lg md:text-xl">Python Lab</span>
+      <span className="font-bold dark:font-semibold text-lg md:text-xl">Python Bootcamp</span>
     </Link>
   );
 };

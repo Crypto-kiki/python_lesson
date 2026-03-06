@@ -111,7 +111,7 @@ export default function BlogPage({ params }) {
             <Tag
               name={blog.tags[0]}
               link={`/categories/${slug(blog.tags[0])}`}
-              className="px-6 text-sm py-2"
+              className="px-5 py-2 text-sm !rounded-xl !border !border-light/60 !bg-light/15 backdrop-blur-sm shadow-md"
             />
             <h1 className="inline-block mt-6 font-semibold capitalize text-light text-2xl md:text-3xl lg:text-5xl leading-normal relative w-full md:w-5/6">
               {blog.title}

@@ -9,10 +9,10 @@ const FeaturedPosts = ({ blogs }) => {
   return (
     <section className="w-full h-full mt-16 sm:mt-24 md:mt-32 px-5 sm:px-10 md:px-24 sxl:px-32 flex flex-col items-center justify-center">
       <h2 className="w-full inline-block font-bold capitalize text-2xl md:text-4xl text-dark dark:text-light">
-        추천 강의 교안
+        Featured Lessons
       </h2>
       <p className="w-full mt-3 text-gray dark:text-light/70">
-        실습과 이론을 함께 정리한 핵심 파이썬 강의를 빠르게 시작해보세요.
+        Start with the most useful lesson materials and practical walkthroughs.
       </p>
 
       <div className="grid grid-cols-2 grid-rows-2 gap-6 mt-10 sm:mt-16">

@@ -28,7 +28,6 @@ code > [data-line]::before {
   counter-increment: line;
   content: counter(line);
 
-  /* Other styling */
   display: inline-block;
   width: 1rem;
   margin-right: 2rem;
@@ -55,16 +54,48 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
 
 [data-rehype-pretty-code-figure] {
   position: relative;
+  padding-top: 2.75rem;
 }
 
 [data-rehype-pretty-code-title] {
-  position: absolute;
-  right: 0;
+  position: static;
   background-color: #7b00d3;
   color: #fff;
-  padding: 4px 8px;
-  font-size: 1rem;
-  border-end-start-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  max-width: calc(100% - 96px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.code-actions {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.code-copy-btn {
+  border: none;
+  background: #7b00d3;
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.dark .code-copy-btn {
+  background: #ffdb4d;
+  color: #1b1b1b;
 }
 
 
