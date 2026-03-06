@@ -13,8 +13,8 @@ const HomeCoverSection = ({ blogs }) => {
 
   return (
     <div className="w-full inline-block">
-      <article className=" flex flex-col items-start justify-end mx-5 sm:mx-10 relative h-[60vh] sm:h-[85vh]">
-        <div className="absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
+      <article className="flex flex-col items-start justify-end mx-5 sm:mx-10 relative h-[38vh] sm:h-[50vh] lg:h-[56vh]">
+        <div className="absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% via-dark/30 to-dark/90 rounded-3xl z-0" />
         <Image
           src={blog.image.filePath.replace("../public", "")}
           placeholder="blur"
@@ -26,16 +26,20 @@ const HomeCoverSection = ({ blogs }) => {
           priority
         />
 
-        <div className="w-full lg:w-3/4 p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col items-start justify-center z-0 text-light">
-          <Tag link={`/categories/${slug(blog.tags[0])}`} name={blog.tags[0]} />
-          <Link href={blog.url} className="mt-6">
-            <h1 className="font-bold capitalize text-lg sm:text-xl md:text-3xl lg:text-4xl">
-              <span className="bg-gradient-to-r from-accent to-accent dark:from-accentDark/50 dark:to-accentDark/50 bg-[length:0px_0px] hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-700">
+        <div className="w-full lg:w-3/4 p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col items-start justify-center z-0 text-light">
+          <Tag
+            link={`/categories/${slug(blog.tags[0])}`}
+            name={blog.tags[0]}
+            className="mt-2"
+          />
+          <Link href={blog.url} className="mt-3">
+            <h1 className="font-bold capitalize text-base sm:text-xl md:text-2xl lg:text-3xl leading-tight">
+              <span className="bg-gradient-to-r from-accentDark/70 to-accentDark/70 bg-[length:0px_6px] hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-700">
                 {blog.title}
               </span>
             </h1>
           </Link>
-          <p className="hidden sm:inline-block mt-4 md:text-lg lg:text-xl font-in">
+          <p className="hidden sm:inline-block mt-2 md:text-sm lg:text-base font-in text-light/85 line-clamp-2">
             {blog.description}
           </p>
         </div>

@@ -58,11 +58,51 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
 }
 
 [data-rehype-pretty-code-title] {
-  position: absolute;
-  right: 0;
   background-color: #7b00d3;
   color: #fff;
   padding: 4px 8px;
-  font-size: 1rem;
-  border-end-start-radius: 4px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  max-width: min(65%, 420px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.code-title {
+  position: static !important;
+  pointer-events: auto;
+}
+
+.code-copy-btn {
+  border: none;
+  background: #7b00d3;
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
+.dark .code-copy-btn {
+  background: #ffdb4d;
+  color: #1b1b1b;
+}
+
+[data-rehype-pretty-code-figure] pre {
+  padding-top: 2.75rem !important;
 }

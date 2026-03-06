@@ -19,7 +19,7 @@ const BlogLayoutTwo = ({ blog }) => {
           alt={blog.title}
           width={blog.image.width}
           height={blog.image.height}
-          className=" aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
+          className="aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
       </Link>
@@ -34,6 +34,9 @@ const BlogLayoutTwo = ({ blog }) => {
             </span>
           </h2>
         </Link>
+        <p className="line-clamp-2 text-sm text-dark/70 dark:text-light/70 mb-2">
+          {blog.description}
+        </p>
 
         <div className="inline-block w-full capitalize text-dark/50 dark:text-light/50 font-semibold text-sm sm:text-base">
           {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}

@@ -10,14 +10,15 @@ const Category = ({ link = "#", name, active, ...props }) => {
       <Link
         href={link}
         className={cx(
-          "inline-block py-1.5 md:py-2 px-6 md:px-10 rounded-full border-2 border-solid border-dark dark:border-light  hover:scale-105 transition-all ease duration-200 m-2",
+          "inline-flex items-center py-1.5 md:py-2 px-4 md:px-6 rounded-full border border-solid border-dark/20 dark:border-light/20 hover:-translate-y-0.5 transition-all ease duration-200 m-2 text-sm md:text-base shadow-sm",
           props.className,
           active
-            ? "bg-dark text-light dark:text-dark dark:bg-light"
-            : "bg-light text-dark dark:bg-dark dark:text-light"
+            ? "bg-dark text-light dark:text-dark dark:bg-light shadow-md"
+            : "bg-light/80 text-dark dark:bg-dark/70 dark:text-light hover:bg-light dark:hover:bg-dark"
         )}
       >
-        # {name}
+        <span className="mr-1 text-accent">#</span>
+        {name}
       </Link>
     </div>
   );
