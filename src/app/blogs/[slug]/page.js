@@ -135,11 +135,11 @@ export default function BlogPage({ params }) {
         </div>
         <BlogDetails blog={blog} />
         <details
-          className="lg:hidden border border-dark dark:border-light text-dark dark:text-light rounded-lg p-4 mx-5 md:mx-10 mb-6"
+          className="lg:hidden border border-dark/20 dark:border-light/20 text-dark dark:text-light rounded-2xl p-5 mx-5 md:mx-10 mb-6 bg-light/70 dark:bg-dark/50 shadow-sm"
           open
         >
-          <summary className="text-lg font-semibold cursor-pointer">목차 (Table of Contents)</summary>
-          <ul className="mt-4 font-in">
+          <summary className="text-base font-bold tracking-wide cursor-pointer list-none flex items-center justify-between">📚 Table of Contents</summary>
+          <ul className="mt-4 font-in space-y-1">
             {blog.toc.map((heading) => {
               return (
                 <li key={`mobile-#${heading.slug}`} className="py-1">
@@ -147,8 +147,8 @@ export default function BlogPage({ params }) {
                     href={`#${heading.slug}`}
                     data-level={heading.level}
                     className="data-[level=two]:pl-0 data-[level=two]:pt-2
-                data-[level=two]:border-b border-dark/40 data-[level=three]:pl-3 sm:data-[level=three]:pl-6
-                flex items-center"
+                data-[level=two]:border-b border-dark/20 data-[level=three]:pl-3 sm:data-[level=three]:pl-6
+                flex items-center rounded-md px-2 py-1 hover:bg-dark/5 dark:hover:bg-light/10 transition-colors"
                   >
                     {heading.level === "three" ? (
                       <span className="flex w-1 h-1 rounded-full bg-dark mr-2 ">
@@ -165,13 +165,13 @@ export default function BlogPage({ params }) {
         <div className="grid grid-cols-12 gap-y-8 lg:gap-8 sxl:gap-16 mt-8 px-5 md:px-10">
           <aside className="hidden lg:block lg:col-span-4 lg:self-start lg:sticky lg:top-24 h-fit">
             <details
-              className="border border-dark dark:border-light text-dark dark:text-light rounded-lg p-4 max-h-[calc(100vh-8rem)] overflow-hidden overflow-y-auto bg-light/70 dark:bg-dark/60"
+              className="border border-dark/20 dark:border-light/20 text-dark dark:text-light rounded-2xl p-5 max-h-[calc(100vh-8rem)] overflow-hidden overflow-y-auto bg-light/80 dark:bg-dark/60 shadow-md"
               open
             >
-              <summary className="text-lg font-semibold cursor-pointer">
-                목차 (Table of Contents)
+              <summary className="text-base font-bold tracking-wide cursor-pointer list-none flex items-center justify-between">
+                📚 Table of Contents
               </summary>
-              <ul className="mt-4 font-in">
+              <ul className="mt-4 font-in space-y-1">
                 {blog.toc.map((heading) => {
                   return (
                     <li key={`#${heading.slug}`} className="py-1">
@@ -179,8 +179,8 @@ export default function BlogPage({ params }) {
                         href={`#${heading.slug}`}
                         data-level={heading.level}
                         className="data-[level=two]:pl-0 data-[level=two]:pt-2
-                    data-[level=two]:border-b border-dark/40 data-[level=three]:pl-3 sm:data-[level=three]:pl-6
-                    flex items-center"
+                    data-[level=two]:border-b border-dark/20 data-[level=three]:pl-3 sm:data-[level=three]:pl-6
+                    flex items-center rounded-md px-2 py-1 hover:bg-dark/5 dark:hover:bg-light/10 transition-colors"
                       >
                         {heading.level === "three" ? (
                           <span className="flex w-1 h-1 rounded-full bg-dark mr-2 ">
