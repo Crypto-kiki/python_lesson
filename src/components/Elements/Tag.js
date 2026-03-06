@@ -9,11 +9,12 @@ const Tag = ({ link = "#", name, ...props }) => {
     <Link
       href={link}
       className={cx(
-        "inline-block py-2 sm:py-3 px-6 sm:px-10 bg-dark text-light rounded-full capitalize font-semibold border-2 border-solid border-light hover:scale-105 transition-all ease duration-200 text-sm sm:text-base",
+        "inline-flex items-center py-2 md:py-2.5 px-4 md:px-5 rounded-xl border border-dark/15 dark:border-light/20 hover:-translate-y-0.5 transition-all duration-200 text-sm md:text-base backdrop-blur-sm bg-light/80 text-dark dark:bg-dark/70 dark:text-light hover:border-accent/40 hover:text-accent",
         props.className
       )}
     >
-      {name}
+      <span className="mr-1 text-accent">#</span>
+      <span className="capitalize">{name}</span>
     </Link>
   );
 };

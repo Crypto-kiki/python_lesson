@@ -2,21 +2,79 @@
 
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useMDXComponent } from "next-contentlayer/hooks";
 import Image from "next/image";
+import MultipleChoiceQuiz from "@/src/components/Quiz/MultipleChoiceQuiz";
+import ShortAnswerQuiz from "@/src/components/Quiz/ShortAnswerQuiz";
 
-// MDX 파일에서 사용할 컴포넌트들을 정의합니다.
 const mdxComponents = {
-  Image, // Image 컴포넌트를 추가합니다.
+  Image,
+  MultipleChoiceQuiz,
+  ShortAnswerQuiz,
 };
 
 const RenderMdx = ({ blog }) => {
   const MDXContent = useMDXComponent(blog.body.code);
 
+  useEffect(() => {
+    const figures = Array.from(
+      document.querySelectorAll("[data-rehype-pretty-code-figure]")
+    );
+
+    figures.forEach((figure) => {
+      if (figure.querySelector("[data-copy-code-btn]")) {
+        return;
+      }
+
+      const code = figure.querySelector("code");
+      if (!code) {
+        return;
+      }
+
+      const title = figure.querySelector("[data-rehype-pretty-code-title]");
+      let actionWrapper = figure.querySelector("[data-code-actions]");
+
+      if (!actionWrapper) {
+        actionWrapper = document.createElement("div");
+        actionWrapper.setAttribute("data-code-actions", "true");
+        actionWrapper.className = "code-actions";
+      }
+
+      if (title && !actionWrapper.contains(title)) {
+        actionWrapper.appendChild(title);
+      }
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("data-copy-code-btn", "true");
+      button.className = "code-copy-btn";
+      button.setAttribute("aria-label", "Copy code");
+      button.innerHTML = "📋 <span>Copy</span>";
+
+      button.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(code.textContent || "");
+          button.innerHTML = "✅ <span>Copied</span>";
+          setTimeout(() => {
+            button.innerHTML = "📋 <span>Copy</span>";
+          }, 1500);
+        } catch {
+          button.innerHTML = "⚠️ <span>Retry</span>";
+          setTimeout(() => {
+            button.innerHTML = "📋 <span>Copy</span>";
+          }, 1500);
+        }
+      };
+
+      actionWrapper.appendChild(button);
+      figure.appendChild(actionWrapper);
+    });
+  }, [blog.body.code]);
+
   return (
     <div
-      className="col-span-12 lg:col-span-8 font-in prose sm:prose-base md:prose-lg max-w-max prose-blockquote:bg-accent/20 prose-blockquote:p-2 prose-blockquote:px-6 prose-blockquote:border-accent prose-blockquote:not-italic prose-blockquote:rounded-r-lg prose-li:marker:text-accent
+      className="font-in prose sm:prose-base md:prose-lg max-w-max prose-blockquote:bg-accent/20 prose-blockquote:p-2 prose-blockquote:px-6 prose-blockquote:border-accent prose-blockquote:not-italic prose-blockquote:rounded-r-lg prose-li:marker:text-accent
     
     dark:prose-invert
     dark:prose-blockquote:border-accentDark

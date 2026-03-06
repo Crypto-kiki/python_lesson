@@ -2,20 +2,21 @@ import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import React from "react";
 import { slug } from "github-slugger";
-import ViewCounter from "./ViewCounter";
 
-const BlogDetails = ({ blog, slug: blogSlug }) => {
+const BlogDetails = ({ blog }) => {
   return (
-    <div className="px-2  md:px-10 bg-accent dark:bg-accentDark text-light dark:text-dark py-2 flex items-center justify-around flex-wrap text-lg sm:text-xl font-medium mx-5  md:mx-10 rounded-lg">
-      <time className="m-3">
-        {format(parseISO(blog.publishedAt), "LLLL d, yyyy")}
+    <div className="px-4 md:px-10 py-4 flex items-center justify-center md:justify-between gap-3 flex-wrap text-sm sm:text-base font-medium mx-5 md:mx-10 rounded-2xl bg-gradient-to-r from-dark to-dark/90 text-light shadow-xl">
+      <time className="inline-flex items-center rounded-full bg-light/15 px-4 py-2 border border-light/20">
+        📅 Published: {format(parseISO(blog.publishedAt), "yyyy.MM.dd")}
       </time>
-      <span className="m-3">
-        <ViewCounter slug={blogSlug} />
-      </span>
-      <div className="m-3">{blog.readingTime.text}</div>
-      <Link href={`/categories/${slug(blog.tags[0])}`} className="m-3">
-        #{blog.tags[0]}
+      <div className="inline-flex items-center rounded-full bg-light/15 px-4 py-2 border border-light/20">
+        ⏱️ Reading time: {blog.readingTime.text}
+      </div>
+      <Link
+        href={`/categories/${slug(blog.tags[0])}`}
+        className="inline-flex items-center rounded-full bg-accent/80 px-4 py-2 border border-light/20 hover:scale-105 transition-transform"
+      >
+        🏷️ {blog.tags[0]}
       </Link>
     </div>
   );

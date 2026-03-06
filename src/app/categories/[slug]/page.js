@@ -1,4 +1,4 @@
-import { allBlogs } from "@/.contentlayer/generated";
+import { allBlogs } from "contentlayer/generated";
 import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
 import Categories from "@/src/components/Blog/Categories";
 import GithubSlugger, { slug } from "github-slugger";
@@ -9,13 +9,12 @@ export async function generateStaticParams() {
   const categories = [];
   const paths = [{ slug: "all" }];
 
-  // 모든 블로그를 isPublishedAt을 기준으로 내림차순으로 정렬
   const sortedBlogs = allBlogs
     .filter((blog) => blog.isPublished)
-    .sort((a, b) => new Date(b.isPublishedAt) - new Date(a.isPublishedAt));
+    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
-  sortedBlogs.map((blog) => {
-    blog.tags.map((tag) => {
+  sortedBlogs.forEach((blog) => {
+    blog.tags.forEach((tag) => {
       const slugified = slugger.slug(tag);
       if (!categories.includes(slugified)) {
         categories.push(slugified);
@@ -29,10 +28,8 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   return {
-    title: `${params.slug.replaceAll("-", " ")} Blogs`,
-    description: `Learn more about ${
-      params.slug === "all" ? "web development" : params.slug
-    }`,
+    title: `${params.slug.replaceAll("-", " ")} Lessons`,
+    description: `파이썬 ${params.slug === "all" ? "전체" : params.slug} 교안 모음입니다.`,
   };
 }
 
@@ -54,17 +51,14 @@ const CategoryPage = ({ params }) => {
     });
   });
 
-  // 모든 카테고리에서 updatedAt 기준으로 내림차순으로 정렬
   blogs = blogs.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
   return (
     <article className="mt-12 flex flex-col text-dark dark:text-light">
-      <div className="px-5 sm:px-10 md:px-24 sxl:px-32 flex flex-col ">
-        <h1 className="mt-6 font-semibold text-2xl md:text-4xl lg:text-5xl">
-          #{params.slug}
-        </h1>
-        <span className="mt-2 inline-block ">
-          Discover more categories and expand your knowledge!
+      <div className="px-5 sm:px-10 md:px-24 sxl:px-32 flex flex-col">
+        <h1 className="mt-6 font-semibold text-2xl md:text-4xl lg:text-5xl">#{params.slug}</h1>
+        <span className="mt-2 inline-block text-gray dark:text-light/70">
+          파이썬 학습 주제별로 강의 교안을 탐색해보세요.
         </span>
       </div>
       <Categories categories={allCategories} currentSlug={params.slug} />

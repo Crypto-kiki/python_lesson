@@ -4,14 +4,7 @@
 import React, { useState } from "react";
 import Logo from "./logo";
 import Link from "next/link";
-import {
-  GithubIcon,
-  LinkedinIcon,
-  SunIcon,
-  TwitterIcon,
-  MoonIcon,
-} from "../icons";
-import siteMetadata from "@/src/utils/siteMetadata";
+import { SunIcon, MoonIcon } from "../icons";
 import { useThemeSwitch } from "../Hooks/useThemeSwitch";
 import { cx } from "@/src/utils";
 
@@ -24,9 +17,9 @@ const Header = () => {
   };
 
   return (
-    <div className="w-full p-4 px-5 sm:px-10 flex items-center justify-between">
+    <header className="w-full p-4 px-5 sm:px-10 flex items-center justify-between">
       <Logo />
-      <button className="inline-block sm:hidden z-50" onClick={toggle}>
+      <button className="inline-block sm:hidden z-50" onClick={toggle} aria-label="메뉴 열기">
         <div className="w-6 cursor-pointer transition-all ease duration-300">
           <div className="relative">
             <span
@@ -41,9 +34,7 @@ const Header = () => {
             </span>
             <span
               className="absolute top-0 inline-block w-full h-0.5 bg-dark dark:bg-light rounded transition-all ease duration-200"
-              style={{
-                opacity: click ? 0 : 1,
-              }}
+              style={{ opacity: click ? 0 : 1 }}
             >
               &nbsp;
             </span>
@@ -62,29 +53,18 @@ const Header = () => {
       </button>
 
       <nav
-        className="w-max py-3 px-6 sm:px-8 font-medium capitalize flex items-center fixed top-6 right-1/2 translate-x-1/2  backdrop-blur-sm z-50 transition-all ease duration-300"
-        style={{
-          top: click ? "1rem" : "-5rem",
-        }}
+        className="w-max py-3 px-6 sm:px-8 font-medium capitalize flex items-center fixed top-6 right-1/2 translate-x-1/2 backdrop-blur-md bg-light/70 dark:bg-dark/80 border border-gray/20 rounded-2xl z-50 transition-all ease duration-300"
+        style={{ top: click ? "1rem" : "-5rem" }}
       >
         <div className={mode === "light" ? "text-dark" : "text-light"}>
-          <Link
-            href="/"
-            className="mr-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
-          >
+          <Link href="/" className="mx-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded">
             Home
           </Link>
           <Link
             href="/categories/all"
-            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded"
           >
-            Category
-          </Link>
-          <Link
-            href="/about"
-            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
-          >
-            About
+            Lessons
           </Link>
         </div>
         <button
@@ -93,34 +73,22 @@ const Header = () => {
             "w-6 h-6 ease ml-2 flex items-center justify-center rounded-full p-1",
             mode === "light" ? "bg-dark text-light" : "bg-light text-dark"
           )}
+          aria-label="테마 전환"
         >
-          {mode === "light" ? (
-            <MoonIcon className={"fill-dark"} />
-          ) : (
-            <SunIcon className={"fill-dark"} />
-          )}
+          {mode === "light" ? <MoonIcon className={"fill-dark"} /> : <SunIcon className={"fill-dark"} />}
         </button>
       </nav>
 
-      <nav className="w-max py-3 px-8 font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2 backdrop-blur-sm z-50 rounded-full">
+      <nav className="w-max py-3 px-8 font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2 backdrop-blur-md bg-light/70 dark:bg-dark/80 border border-gray/20 z-50 rounded-full">
         <div className={mode === "light" ? "text-dark" : "text-light"}>
-          <Link
-            href="/"
-            className="mr-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
-          >
+          <Link href="/" className="mr-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded">
             Home
           </Link>
           <Link
             href="/categories/all"
-            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded"
           >
-            Category
-          </Link>
-          <Link
-            href="/about"
-            className="mx-2 relative inline-block hover:font-bold hover:scale-110 transition-transform duration-300 ease-out px-2 py-1 rounded"
-          >
-            About
+            Lessons
           </Link>
         </div>
         <button
@@ -129,38 +97,12 @@ const Header = () => {
             "w-6 h-6 ease ml-2 flex items-center justify-center rounded-full p-1",
             mode === "light" ? "bg-dark text-light" : "bg-light text-dark"
           )}
+          aria-label="테마 전환"
         >
-          {mode === "light" ? (
-            <MoonIcon className={"fill-dark"} />
-          ) : (
-            <SunIcon className={"fill-dark"} />
-          )}
+          {mode === "light" ? <MoonIcon className={"fill-dark"} /> : <SunIcon className={"fill-dark"} />}
         </button>
       </nav>
-      <div className="hidden sm:flex items-center">
-        <a
-          href={siteMetadata.linkedin}
-          className="inline-block w-6 h-6 mr-4"
-          target="_blank"
-        >
-          <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
-        </a>
-        <a
-          href={siteMetadata.twitter}
-          className="inline-block w-6 h-6 mr-4"
-          target="_blank"
-        >
-          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
-        </a>
-        <a
-          href={siteMetadata.github}
-          className="inline-block w-6 h-6 mr-4"
-          target="_blank"
-        >
-          <GithubIcon className="hover:scale-125 transition-all ease duration-200 dark:fill-light" />
-        </a>
-      </div>
-    </div>
+    </header>
   );
 };
 
