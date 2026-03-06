@@ -97,3 +97,28 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
   background: #ffdb4d;
   color: #1b1b1b;
 }
+
+
+.code-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.code-copy-btn {
+  border: none;
+  background: #7b00d3;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-end-start-radius: 4px;
+}
+
+.dark .code-copy-btn {
+  background: #ffdb4d;
+  color: #1b1b1b;
+}
