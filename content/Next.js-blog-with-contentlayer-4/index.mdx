@@ -47,28 +47,6 @@ export default function Home() {
 }
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { allBlogs } from "contentlayer/generated";
-import HomeCoverSection from "../components/Home/HomeCoverSection";
-export default function Home() {
-  console.log(allBlogs);
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <HomeCoverSection blogs={allBlogs} />
-    </main>
-  );
-}`);
-    document.getElementById("copy1").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy1").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
 
 page.js에 임포트하고 allBolgs를 props로 전달합니다.
 
@@ -82,24 +60,6 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import React from "react";
-const HomeCoverSection = ({ blogs }) => {
-  return <div>This is Home Cover Section</div>;
-};
-export default HomeCoverSection;
-`);
-    document.getElementById("copy2").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy2").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/4/createHomeCoverSectionComponent.png"
@@ -129,29 +89,6 @@ tags:
 ---
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
----
-title: "Next.js blog with contentlayer: 4. Home cover section"
-description: Let's create home cover section
-image: "../../public/blogs/blog1.png"
-publishedAt: "2024-03-26"
-updatedAt: "2024-03-26"
-author: "Baekki"
-isPublished: true
-tags:
-  - web development
----`);
-    document.getElementById("copy3").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy3").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
 
 이는 해당 게시물의 메타데이터이며, 각 게시물들의 publishedAt 날짜 기준으로 내림차순 정률 후 최신 게시물을 Home Cover Section에 노출해봅시다.
 
@@ -175,29 +112,6 @@ export const sortBlogs = (blogs) => {
 };
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { compareDesc, parseISO } from "date-fns";
-
-export const cx = (...className) => className.filter(Boolean).join(" ");
-
-export const sortBlogs = (blogs) => {
-  return blogs
-    .slice()
-    .sort((a, b) =>
-      compareDesc(parseISO(a.publishedAt), parseISO(b.publishedAt))
-    );
-};`);
-    document.getElementById("copy4").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy4").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - sortBlogs 함수는 블로그 게시물 목록을 받아서 해당 포스트들을 날짜 순으로 내림차순하는 역할을 합니다. 각 게시물의 publishedAt을 기준으로 합니다.
 - blogs 배열의 복사본을 만듭니다. .slice() 사용하여 원본 배열은 변경되지 않고, 새로운 배열이 생성됩니다.
@@ -221,28 +135,6 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import React from "react";
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
-  return <div>This is Home Cover Section</div>;
-};
-
-export default HomeCoverSection;
-`);
-    document.getElementById("copy5").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy5").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
 
 sortedBlogs는 blogs를 받아 publishedAt 기준으로 내림차순 정렬되어 있는 배열입니다. 그리고 blog는 정렬된 블로그 중 0번째, 즉 가장 최신의 글을 의미합니다.
 
@@ -306,68 +198,6 @@ export default makeSource({
 });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { makeSource, defineDocumentType } from "contentlayer/source-files";
-const Blog = defineDocumentType(() => ({
-  name: "Blog",
-  filePathPattern: "**/**/*.mdx",
-  fields: {
-    title: {
-      type: "string",
-      required: true,
-    },
-    publishedAt: {
-      type: "date",
-      required: true,
-    },
-    updatedAt: {
-      type: "date",
-      required: true,
-    },
-    description: {
-      type: "string",
-      required: true,
-    },
-    image: {
-      type: "image",
-    },
-    isPublished: {
-      type: "boolean",
-      default: true,
-    },
-    author: {
-      type: "string",
-      required: true,
-    },
-    tags: {
-      type: "list",
-      of: { type: "string" },
-    },
-  },
-  computedFields: {
-    url: {
-      type: "string",
-      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
-    },
-  },
-}));
-
-export default makeSource({
-  /* options */
-  contentDirPath: "content",
-  documentTypes: [Blog],
-});`);
-    document.getElementById("copy6").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy6").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
 
 image type : string ➡️ image로 수정 후 다시 실행해보면 string 타입일 때 보다 이미지 넓이/높이, blurhashDataUrl 등 확인 할 수 있습니다.
 
@@ -409,41 +239,6 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Image from "next/image";
-import React from "react";
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
-  return (
-    <div className="w-full inline-block">
-      <article className="flex flex-col justify-end mx-10 relative h-[85vh]">
-        <Image
-          src={blog.image.filePath.replace("../public", "")}
-          placeholder="blur"
-          blurDataURL={blog.image.blurhashDataUrl}
-          alt={blog.title}
-          fill
-          className="w-full h-full object-center object-cover rounded-3xl"
-        />
-      </article>
-    </div>
-  );
-};
-
-export default HomeCoverSection;`);
-    document.getElementById("copy7").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy7").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy7" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - blog.image.filePath.replace("../public", "") : ../public 경로를 제거한 나머지 경로를 이미지의 소스로 사용합니다.
 - placeholder : 이 속성은 이미지가 로드되기 전까지 표시할 임시 이미지의 형태를 정의합니다. "blur" 값을 가질 경우, blurDataURL에 지정된 데이터 URL을 사용하여 흐릿한 미리보기 이미지를 표시합니다.
@@ -493,42 +288,6 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Image from "next/image";
-import React from "react";
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
-  return (
-    <div className="w-full inline-block">
-      <article className="flex flex-col justify-end mx-10 relative h-[85vh]">
-        <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl" />
-        <Image
-          src={blog.image.filePath.replace("../public", "")}
-          placeholder="blur"
-          blurDataURL={blog.image.blurhashDataUrl}
-          alt={blog.title}
-          fill
-          className="w-full h-full object-center object-cover rounded-3xl -z-10"
-        />
-      </article>
-    </div>
-  );
-};
-
-export default HomeCoverSection;`);
-    document.getElementById("copy8").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy8").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy8" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/4/homeCoverImageDarker.png"
@@ -579,48 +338,6 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
-  return (
-    <div className="w-full inline-block">
-      <article className="flex flex-col justify-end mx-10 relative h-[85vh]">
-        <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
-        <Image
-          src={blog.image.filePath.replace("../public", "")}
-          placeholder="blur"
-          blurDataURL={blog.image.blurhashDataUrl}
-          alt={blog.title}
-          fill
-          className="w-full h-full object-center object-cover rounded-3xl -z-10"
-        />
-        <div className="w-3/4 p-16 flex flex-col justify-center text-light z-10">
-          <Link href={\`/categories/\${blog.tags[0]}\`}>{blog.tags[0]}</Link>
-          <h1>{blog.title}</h1>
-          <p>{blog.description}</p>
-        </div>
-      </article>
-    </div>
-  );
-};
-
-export default HomeCoverSection;`);
-    document.getElementById("copy9").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy9").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy9" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/4/homeCoverMetadata.png"
@@ -660,38 +377,6 @@ const Tag = ({ link = "#", name, ...props }) => {
 export default Tag;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { cx } from "@/src/utils";
-import Link from "next/link";
-import React from "react";
-const Tag = ({ link = "#", name, ...props }) => {
-  return (
-    <div>
-      <Link
-        href={link}
-        className={cx(
-          "inline-block py-3 px-10 bg-dark text-light rounded-full capitalize font-semibold border-2 border-solid border-light hover:scale-105 transition-all ease duration-200",
-          props.className
-        )}
-      >
-        {name}
-      </Link>
-    </div>
-  );
-};
-
-export default Tag;`);
-    document.getElementById("copy10").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy10").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy10" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ```javascript title="src/components/Home/HomeCoverSection.js"
 import { sortBlogs } from "@/src/utils";
@@ -729,49 +414,6 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
-import Tag from "../Elements/Tag";
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
-  return (
-    <div className="w-full inline-block">
-      <article className="flex flex-col justify-end mx-10 relative h-[85vh]">
-        <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
-        <Image
-          src={blog.image.filePath.replace("../public", "")}
-          placeholder="blur"
-          blurDataURL={blog.image.blurhashDataUrl}
-          alt={blog.title}
-          fill
-          className="w-full h-full object-center object-cover rounded-3xl -z-10"
-        />
-        <div className="w-3/4 p-16 flex flex-col justify-center text-light z-10">
-          <Tag link={\`/categories/\${blog.tags[0]}\`} name={blog.tags[0]} />
-          <h1>{blog.title}</h1>
-          <p>{blog.description}</p>
-        </div>
-      </article>
-    </div>
-  );
-};
-
-export default HomeCoverSection;`);
-    document.getElementById("copy11").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy11").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy11" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - `const Tag = ({ link = "#", name, ...props })` : HomeCoverSection.js에서 prop을 전달 할때, 해당 태그에 관련된 카테고리 페이지로의 링크를 설정. 여기서 link = "#"은 기본 매개변수 값 설정입니다. HomeCoverSection.js에서 link의 prop이 전달되지 않았다면, 기본값인 "#"으로 인해 페이지 이동 없이 현재 페이지에 머무릅니다.
 - ...props / cx() : Tag.js 컴포넌트의 코드에서 ...props는 컴포넌트에 전달된 모든 props 중에서 link와 name을 제외한 나머지 props를 나타냅니다. cx 함수는 "inline-block"과 props.className을 매개변수로 받아, 두 클래스를 조건부로 결합합니다.
@@ -824,57 +466,6 @@ const HomeCoverSection = ({ blogs }) => {
 export default HomeCoverSection;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
-import Tag from "../Elements/Tag";
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
-  return (
-    <div className="w-full inline-block">
-      <article className="flex flex-col justify-end mx-10 relative h-[85vh]">
-        <div className=" absolute top-0 left-0 bottom-0 right-0 h-full bg-gradient-to-b from-transparent from-0% to-dark/90 rounded-3xl z-0" />
-        <Image
-          src={blog.image.filePath.replace("../public", "")}
-          placeholder="blur"
-          blurDataURL={blog.image.blurhashDataUrl}
-          alt={blog.title}
-          fill
-          className="w-full h-full object-center object-cover rounded-3xl -z-10"
-        />
-        <div className="w-3/4 p-16 flex flex-col justify-center text-light z-10">
-          <Tag link={\`/categories/\${blog.tags[0]}\`} name={blog.tags[0]} />
-          <Link href={blog.url} className="mt-6">
-            <h1 className="font-bold capitalize text-4xl">
-              <span className="bg-gradient-to-r from-accent to-accent bg-[length:0px_6px] hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
-                {blog.title}
-              </span>
-            </h1>
-          </Link>
-          <p className="inline-block mt-4 text-xl font-in">
-            {blog.description}
-          </p>
-        </div>
-      </article>
-    </div>
-  );
-};
-
-export default HomeCoverSection;`);
-    document.getElementById("copy12").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy12").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy12" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - `<Link href={blog.url} className="mt-6">` : blog.url은 contentlayer.config.js에서 computedFields 에서 정의한 url로 이동합니다. 즉, `http://localhost:3000/blogs/blog-one` 위 주소로 이동합니다.
 
@@ -894,3 +485,20 @@ export default HomeCoverSection;`);
 <a href="https://baekki-dev-blog.vercel.app/blogs/Next.js-blog-with-contentlayer-5">
   5. Featured Posts
 </a>
+
+## Quick Quiz
+
+<MultipleChoiceQuiz
+  question="Python에서 리스트를 만들 때 사용하는 문법으로 올바른 것은 무엇인가요?"
+  options={["(1, 2, 3)", "[1, 2, 3]", "{1, 2, 3}", "<1, 2, 3>"]}
+  correctIndex={1}
+  explanation="Python 리스트는 대괄호([])로 선언합니다."
+/>
+
+<ShortAnswerQuiz
+  question="Python에서 함수를 정의할 때 사용하는 키워드는 무엇인가요?"
+  answers={["def"]}
+  placeholder="예: def"
+  explanation="함수 선언은 def 키워드로 시작합니다."
+/>
+

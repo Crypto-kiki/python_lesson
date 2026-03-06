@@ -41,32 +41,6 @@ const RecentPosts = ({ blogs }) => {
 export default RecentPosts;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import React from "react";
-const RecentPosts = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  return (
-    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
-      <h2 className="w-full inline-block font-bold capitalize text-4xl">
-        Recent Posts
-      </h2>
-    </section>
-  );
-};
-
-export default RecentPosts;`);
-    document.getElementById("copy1").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy1").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
 
 위 코드의 기본 틀은 FeaturedPosts 컴포넌트의 `<section>`태그와 그 안의 `<h2>`태그만 가져오시면 됩니다!
 
@@ -91,32 +65,6 @@ export default function Home() {
 }
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { allBlogs } from "contentlayer/generated";
-import HomeCoverSection from "../components/Home/HomeCoverSection";
-import FeaturedPosts from "../components/Home/FeaturedPosts";
-import RecentPosts from "../components/Home/RecentPosts";
-export default function Home() {
-  console.log(allBlogs);
-  return (
-    <main className="flex flex-col items-center justify-center">
-      <HomeCoverSection blogs={allBlogs} />
-      <FeaturedPosts blogs={allBlogs} />
-      <RecentPosts blogs={allBlogs} />
-    </main>
-  );
-}`);
-    document.getElementById("copy2").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy2").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
 
 "view all" 이라는 링크를 만들어 모든 카테고리(게시물)을 볼 수 있도록 만들기위해 아래처럼 작성합니다.
 
@@ -148,41 +96,6 @@ const RecentPosts = ({ blogs }) => {
 export default RecentPosts;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Link from "next/link";
-import React from "react";
-const RecentPosts = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  return (
-    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
-      <div className="w-full flex justify-between">
-        <h2 className="inline-block font-bold capitalize text-4xl">
-          Recent Posts
-        </h2>
-        <Link
-          href="/categories/all"
-          className="inline-block font-medium text-accent underline underline-offset-2 text-lg"
-        >
-          view all
-        </Link>
-      </div>
-    </section>
-  );
-};
-
-export default RecentPosts;`);
-    document.getElementById("copy3").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy3").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/6/recentPosts1.png"
@@ -233,50 +146,6 @@ const RecentPosts = ({ blogs }) => {
 export default RecentPosts;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Link from "next/link";
-import React from "react";
-const RecentPosts = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  return (
-    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
-      <div className="w-full flex justify-between">
-        <h2 className="inline-block font-bold capitalize text-4xl">
-          Recent Posts
-        </h2>
-        <Link
-          href="/categories/all"
-          className="inline-block font-medium text-accent underline underline-offset-2 text-lg"
-        >
-          view all
-        </Link>
-      </div>
-      <div className=" grid grid-cols-3 grid-rows-2 gap-16 mt-16">
-        {sortedBlogs.slice(4, 10).map((blog, index) => {
-          return (
-            <article className=" col-span-1 row-span-1 relative">
-              blog layout 3
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-};
-
-export default RecentPosts;`);
-    document.getElementById("copy4").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy4").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/6/recentPosts2.png"
@@ -347,56 +216,6 @@ const BlogLayoutThree = ({ blog }) => {
 export default BlogLayoutThree;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { format } from "date-fns";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
-const BlogLayoutThree = ({ blog }) => {
-  return (
-    <div className="group grid grid-cols-12 gap-4 items-center text-dark">
-      <Link href={blog.url} className="col-span-4 rounded-xl overflow-hidden">
-        <Image
-          src={blog.image.filePath.replace("../public", "")}
-          placeholder="blur"
-          blurDataURL={blog.image.blurhashDataUrl}
-          alt={blog.title}
-          width={blog.image.width}
-          height={blog.image.height}
-          className=" aspect-square w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
-        />
-      </Link>
-      <div className="col-span-8 w-full">
-        <span className=" uppercase text-accent font-semibold text-sm">
-          {blog.tags[0]}
-        </span>
-        <Link href={blog.url} className="inline-block my-1">
-          <h2 className="font-semibold capitalize text-lg">
-            <span className="bg-gradient-to-r from-accent/50 to-accent/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
-              {blog.title}
-            </span>
-          </h2>
-        </Link>
-        <div className="capitalize text-dark/50 font-semibold">
-          {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default BlogLayoutThree;`);
-    document.getElementById("copy5").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy5").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
 
 코드 전체를 가져온 후 BlogLayoutThree로 이름변경 후 RecentPosts 컴포넌트에 임포트 합니다.
 
@@ -438,51 +257,6 @@ const RecentPosts = ({ blogs }) => {
 export default RecentPosts;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { sortBlogs } from "@/src/utils";
-import Link from "next/link";
-import React from "react";
-import BlogLayoutThree from "../Blog/BlogLayoutThree";
-const RecentPosts = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  return (
-    <section className="w-full mt-32 px-32 flex flex-col items-center justify-center">
-      <div className="w-full flex justify-between">
-        <h2 className="inline-block font-bold capitalize text-4xl">
-          Recent Posts
-        </h2>
-        <Link
-          href="/categories/all"
-          className="inline-block font-medium text-accent underline underline-offset-2 text-lg"
-        >
-          view all
-        </Link>
-      </div>
-      <div className=" grid grid-cols-3 grid-rows-2 gap-16 mt-16">
-        {sortedBlogs.slice(4, 10).map((blog, index) => {
-          return (
-            <article className=" col-span-1 row-span-1 relative">
-              <BlogLayoutThree blog={blog} />
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
-};
-
-export default RecentPosts;`);
-    document.getElementById("copy6").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy6").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
 
 이제 아래와 같이 스타일을 수정해봅시다!
 
@@ -529,56 +303,6 @@ const BlogLayoutThree = ({ blog }) => {
 export default BlogLayoutThree;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { format } from "date-fns";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
-const BlogLayoutThree = ({ blog }) => {
-  return (
-    <div className="group flex flex-col items-center text-dark">
-      <Link href={blog.url} className="rounded-xl overflow-hidden">
-        <Image
-          src={blog.image.filePath.replace("../public", "")}
-          placeholder="blur"
-          blurDataURL={blog.image.blurhashDataUrl}
-          alt={blog.title}
-          width={blog.image.width}
-          height={blog.image.height}
-          className=" aspect-[4/3] w-full h-full object-cover object-center group-hover:scale-105 transition-all ease duration-300"
-        />
-      </Link>
-      <div className=" flex flex-col mt-4 w-full">
-        <span className=" uppercase text-accent font-semibold text-sm">
-          {blog.tags[0]}
-        </span>
-        <Link href={blog.url} className="inline-block my-1">
-          <h2 className="font-semibold capitalize text-lg">
-            <span className="bg-gradient-to-r from-accent/50 to-accent/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
-              {blog.title}
-            </span>
-          </h2>
-        </Link>
-        <div className="capitalize text-dark/50 font-semibold">
-          {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default BlogLayoutThree;`);
-    document.getElementById("copy7").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy7").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy7" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/6/recentPosts3.png"
@@ -614,34 +338,6 @@ const Footer = () => {
 export default Footer;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import React from "react";
-const Footer = () => {
-  return (
-    <footer>
-      <h3>Explore the Future of Web & Blockchain</h3>
-      <p>
-        Dive into the latest trends in front-end and blockchain technologies.
-        <br />
-        Subscribe for cutting-edge guides, insightful analyses, and engaging
-        stories from the forefront of digital innovation.
-      </p>
-    </footer>
-  );
-};
-
-export default Footer;`);
-    document.getElementById("copy8").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy8").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy8" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ```javascript title="src/app/layout.js"
 import { Inter, Manrope } from "next/font/google";
@@ -681,52 +377,6 @@ export default function RootLayout({ children }) {
 }
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { Inter, Manrope } from "next/font/google";
-import "./globals.css";
-import { cx } from "@/src/utils";
-import Header from "@/src/components/Header";
-import Footer from "../components/Footer";
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-in",
-});
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mr",
-});
-
-export const metadata = {
-  title: "Create Next App",
-  description: "Generated by create next app",
-};
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="en">
-      <body
-        className={cx(inter.variable, manrope.variable, "font-mr bg-light")}
-      >
-        <Header />
-        {children}
-        <Footer />
-      </body>
-    </html>
-  );
-}`);
-    document.getElementById("copy9").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy9").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy9" style={{ marginLeft: "10px", color: "green" }}></span>
 
 이제 footer 스타일링과 header에서 사용한 social link도 작성해봅시다.
 
@@ -764,48 +414,6 @@ const Footer = () => {
 export default Footer;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import React from "react";
-import { GithubIcon, LinkedinIcon, TwitterIcon } from "../icons";
-const Footer = () => {
-  return (
-    <footer className="mt-16 rounded-2xl bg-dark m-10 flex flex-col items-center text-light">
-      <h3 className="mt-16 font-medium text-center capitalize text-4xl px-4">
-        Explore the Future of Web & Blockchain
-      </h3>
-      <p className="mt-5 px-4 text-center w-3/4 font-light">
-        Dive into the latest trends in front-end and blockchain technologies.
-        <br />
-        Subscribe for cutting-edge guides, insightful analyses, and engaging
-        stories from the forefront of digital innovation.
-      </p>
-      <div className="flex items-center mt-8">
-        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
-          <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
-        </a>
-        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
-          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
-        </a>
-        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
-          <GithubIcon className="hover:scale-125 transition-all ease duration-200 fill-light" />
-        </a>
-      </div>
-    </footer>
-  );
-};
-
-export default Footer;`);
-    document.getElementById("copy10").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy10").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy10" style={{ marginLeft: "10px", color: "green" }}></span>
 
 <Image
   src="/blogs/nextjs-blog-contentlayer/6/footer1.png"
@@ -869,63 +477,6 @@ const Footer = () => {
 export default Footer;
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import React from "react";
-import { GithubIcon, LinkedinIcon, TwitterIcon } from "../icons";
-import Link from "next/link";
-const Footer = () => {
-  return (
-    <footer className="mt-16 rounded-2xl bg-dark m-10 flex flex-col items-center text-light">
-      <h3 className="mt-16 font-medium text-center capitalize text-4xl px-4">
-        Explore the Future of Web & Blockchain
-      </h3>
-      <p className="mt-5 px-4 text-center w-3/4 font-light">
-        Dive into the latest trends in front-end and blockchain technologies.
-        <br />
-        Subscribe for cutting-edge guides, insightful analyses, and engaging
-        stories from the forefront of digital innovation.
-      </p>
-      <div className="flex items-center mt-8">
-        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
-          <LinkedinIcon className="hover:scale-125 transition-all ease duration-200" />
-        </a>
-        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
-          <TwitterIcon className="hover:scale-125 transition-all ease duration-200" />
-        </a>
-        <a href="http://example.com" className="inline-block w-6 h-6 mr-4">
-          <GithubIcon className="hover:scale-125 transition-all ease duration-200 fill-light" />
-        </a>
-      </div>
-      <div className="w-full mt-24 relative font-medium border-t border-solid border-light py-6 px-8 flex items-center justify-between">
-        <span className="text-center">
-          &copy; 2024 Baekki. All rights reserved.{" "}
-        </span>
-        <Link href="/sitemap.xml" className="text-center underline">
-          sitemap.xml
-        </Link>
-        <div className="text-center">
-          Made by{" "}
-          <a href="http://localhost:3000/" className="underline">
-            Baekki
-          </a>
-        </div>
-      </div>
-    </footer>
-  );
-};
-
-export default Footer;`);
-    document.getElementById("copy11").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy11").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy11" style={{ marginLeft: "10px", color: "green" }}></span>
 
 - copyright : `&copy;`로 표현할 수 있습니다.
 - sitemap.xml : sitemap.xml은 웹사이트의 구조를 설명하는 XML 파일로, 검색 엔진이 웹사이트를 더 효과적으로 크롤링하고 인덱싱할 수 있도록 도와줍니다. 추후 SEO포스팅에서 업데이트 예정입니다.
@@ -936,3 +487,20 @@ export default Footer;`);
 <a href="https://baekki-dev-blog.vercel.app/blogs/Next.js-blog-with-contentlayer-7">
   7. Blog Page
 </a>
+
+## Quick Quiz
+
+<MultipleChoiceQuiz
+  question="Python에서 리스트를 만들 때 사용하는 문법으로 올바른 것은 무엇인가요?"
+  options={["(1, 2, 3)", "[1, 2, 3]", "{1, 2, 3}", "<1, 2, 3>"]}
+  correctIndex={1}
+  explanation="Python 리스트는 대괄호([])로 선언합니다."
+/>
+
+<ShortAnswerQuiz
+  question="Python에서 함수를 정의할 때 사용하는 키워드는 무엇인가요?"
+  answers={["def"]}
+  placeholder="예: def"
+  explanation="함수 선언은 def 키워드로 시작합니다."
+/>
+
