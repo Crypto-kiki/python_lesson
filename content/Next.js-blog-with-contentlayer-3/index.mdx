@@ -51,24 +51,6 @@ const nextConfig = {};
 export default withContentlayer({ nextConfig });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-/** @type {import('next').NextConfig} */
-import { withContentlayer } from "next-contentlayer";
-
-const nextConfig = {};
-
-export default withContentlayer({ nextConfig });`);
-    document.getElementById("copy1").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy1").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy1" style={{ marginLeft: "10px", color: "green" }}></span>
 
 변경된 부분을 살펴보면, next-contentlayer 패키지로부터 withContentlayer 함수를 임포트했습니다.
 
@@ -101,21 +83,6 @@ const nextConfig = {};
 module.exports = withContentlayer({ ...nextConfig });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-"/** @type {import('next').NextConfig} */
-const { withContentlayer } = require(\"next-contentlayer\");
-const nextConfig = {};\n\nmodule.exports = withContentlayer({ ...nextConfig });"`);
-    document.getElementById("copy2").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy2").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy2" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ### contentlayer/source-files
 
@@ -147,24 +114,6 @@ export default makeSource({
 });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { makeSource } from "contentlayer/source-files";
-
-export default makeSource({
-  /* options */
-});
-`);
-    document.getElementById("copy3").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy3").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy3" style={{ marginLeft: "10px", color: "green" }}></span>
 
 첫 번째 필수 옵션인 contentDirPath 를 작성합니다.
 
@@ -177,24 +126,6 @@ export default makeSource({
 });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { makeSource } from "contentlayer/source-files";
-
-export default makeSource({
-  /* options */
-  contentDirPath: "content",
-});`);
-    document.getElementById("copy4").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy4").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy4" style={{ marginLeft: "10px", color: "green" }}></span>
 
 루트 디렉토리에 content 라는 폴더를 만들고 content 폴더 하위에 blog-one 폴더도 생성해줍니다. content 폴더는 contentDirPath 이고, blog-one은 포스트의 타이틀이 됩니다.
 
@@ -229,34 +160,6 @@ export default makeSource({
 });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { makeSource, defineDocumentType } from "contentlayer/source-files";
-const Blog = defineDocumentType(() => ({
-  name: "Blog",
-  filePathPattern: "**/**/*.mdx",
-  fields: {
-    title: {
-      type: "string",
-    },
-  },
-}));
-
-export default makeSource({
-  /* options */
-  contentDirPath: "content",
-});
-`);
-    document.getElementById("copy5").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy5").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy5" style={{ marginLeft: "10px", color: "green" }}></span>
 
 공식문서 예제에서는 filePathPattern: `**/*.md`이지만, 현재 content 경로가 content/blog-one/index.mdx이고, .mdx 확장자를 사용하기 때문에 위 코드처럼 변경합니다.
 
@@ -312,63 +215,6 @@ export default makeSource({
 });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { makeSource, defineDocumentType } from "contentlayer/source-files";
-const Blog = defineDocumentType(() => ({
-  name: "Blog",
-  filePathPattern: "**/**/*.mdx",
-  fields: {
-    title: {
-      type: "string",
-      required: true,
-    },
-    publishedAt: {
-      type: "date",
-      required: true,
-    },
-    updatedAt: {
-      type: "date",
-      required: true,
-    },
-    description: {
-      type: "string",
-      required: true,
-    },
-    image: {
-      type: "string",
-      required: true,
-    },
-    isPublished: {
-      type: "boolean",
-      default: true,
-    },
-    author: {
-      type: "string",
-      required: true,
-    },
-    tags: {
-      type: "list",
-      of: { type: "string" },
-    },
-  },
-}));
-
-export default makeSource({
-  /* options */
-  contentDirPath: "content",
-});
-`);
-    document.getElementById("copy6").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy6").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy6" style={{ marginLeft: "10px", color: "green" }}></span>
 
 위 필드를 하나씩 알아볼까요?
 
@@ -451,68 +297,6 @@ export default makeSource({
 });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { makeSource, defineDocumentType } from "contentlayer/source-files";
-const Blog = defineDocumentType(() => ({
-  name: "Blog",
-  filePathPattern: "**/**/*.mdx",
-  fields: {
-    title: {
-      type: "string",
-      required: true,
-    },
-    publishedAt: {
-      type: "date",
-      required: true,
-    },
-    updatedAt: {
-      type: "date",
-      required: true,
-    },
-    description: {
-      type: "string",
-      required: true,
-    },
-    image: {
-      type: "string",
-      required: true,
-    },
-    isPublished: {
-      type: "boolean",
-      default: true,
-    },
-    author: {
-      type: "string",
-      required: true,
-    },
-    tags: {
-      type: "list",
-      of: { type: "string" },
-    },
-  },
-  computedFields: {
-    url: {
-      type: "string",
-      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
-    },
-  },
-}));
-
-export default makeSource({
-  /* options */
-  contentDirPath: "content",
-});`);
-    document.getElementById("copy7").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy7").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy7" style={{ marginLeft: "10px", color: "green" }}></span>
 
 공식문서의 예저에서 위 처럼 수정한 내용은 아래와 같습니다.
 
@@ -576,70 +360,6 @@ export default makeSource({
 });
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { makeSource, defineDocumentType } from "contentlayer/source-files";
-const Blog = defineDocumentType(() => ({
-  name: "Blog",
-  filePathPattern: "**/**/*.mdx",
-  fields: {
-    title: {
-      type: "string",
-      required: true,
-    },
-    publishedAt: {
-      type: "date",
-      required: true,
-    },
-    updatedAt: {
-      type: "date",
-      required: true,
-    },
-    description: {
-      type: "string",
-      required: true,
-    },
-    image: {
-      type: "string",
-      required: true,
-    },
-    isPublished: {
-      type: "boolean",
-      default: true,
-    },
-    author: {
-      type: "string",
-      required: true,
-    },
-    tags: {
-      type: "list",
-      of: { type: "string" },
-    },
-  },
-  computedFields: {
-    url: {
-      type: "string",
-      resolve: (doc) => \`/blogs/\${doc._raw.flattenedPath}\`,
-    },
-  },
-}));
-
-export default makeSource({
-  /* options */
-  contentDirPath: "content",
-  documentTypes: [Blog],
-});
-`);
-    document.getElementById("copy8").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy8").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy8" style={{ marginLeft: "10px", color: "green" }}></span>
 
 documentTypes는 makeSource 함수의 옵션 중 하나로, 프로젝트에서 사용할 모든 문서 유형을 배열 형태로 지정합니다. 각 문서 유형은 defineDocumentType 함수를 통해 생성되며, 이를 통해 특정 형태의 문서에 대한 구조, 필드, 및 computedFields 등 정의할 수 있습니다.
 
@@ -676,20 +396,6 @@ tags:
 (# this is h1 tags ## this is h2 tags)
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(
-      '---\ntitle: "Blog One Title"\ndescription: "This is the description for blog one"\nimage: "../../public/blogs/blog1.png"\npublishedAt: "2024-03-25"\nupdatedAt: "2024-03-25"\nisPublished: true\nauthor: "baekki"\ntags:\n  - web development\n  - nextjs\n---\n\n(# this is h1 tags ## this is h2 tags)\n'
-    );
-    document.getElementById("copy9").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy9").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy9" style={{ marginLeft: "10px", color: "green" }}></span>
 
 위 처럼 작성 후 다시 실행하면 Generated 1 documents in .contentlayer를 확인 할 수 있습니다.
 
@@ -727,25 +433,6 @@ export { allBlogs };
 export const allDocuments = [...allBlogs];
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-export { isType } from "contentlayer/client";
-
-import { allBlogs } from "./Blog/_index.mjs";
-
-export { allBlogs };
-
-export const allDocuments = [...allBlogs];`);
-    document.getElementById("copy10").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy10").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy10" style={{ marginLeft: "10px", color: "green" }}></span>
 
 위 코드는 contentlayer에 의해 자동생성된 파일입니다. Contentlayer는 프로젝트의 콘텐츠 파일(예: MDX 파일)을 분석하고, 이를 기반으로 데이터를 생성하여 프로젝트의 다른 부분에서 쉽게 사용할 수 있도록 만듭니다. 생성된 index.mjs 파일은 이러한 데이터를 모듈로 내보내는 역할을 합니다.
 
@@ -770,27 +457,6 @@ export default function Home() {
 }
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { allBlogs } from "../../.contentlayer/generated";
-export default function Home() {
-  console.log(allBlogs);
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between">
-      블로그를 만들어 봅시다!
-    </main>
-  );
-}`);
-    document.getElementById("copy11").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy11").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy11" style={{ marginLeft: "10px", color: "green" }}></span>
 
 위 코드를 실행하면 아래와 같은 결과를 확인 할 수 있습니다.
 
@@ -815,26 +481,6 @@ page.js에서 allBlogs를 임포트해오는 경로를 jsconfig.json에서 간�
 }
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-{
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./*"],
-      "contentlayer/generated": ["./.contentlayer/generated"]
-    }
-  }
-}`);
-    document.getElementById("copy12").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy12").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy12" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ```javascript title="src/app/page.js"
 import { allBlogs } from "contentlayer/generated";
@@ -850,27 +496,6 @@ export default function Home() {
 }
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`
-import { allBlogs } from "contentlayer/generated";
-export default function Home() {
-  console.log(allBlogs);
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between">
-      블로그를 만들어 봅시다!
-    </main>
-  );
-}`);
-    document.getElementById("copy13").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy13").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy13" style={{ marginLeft: "10px", color: "green" }}></span>
 
 ## sharp library
 

@@ -1,23 +1,13 @@
 export default function manifest() {
   return {
-    name: "Baekki Developer Blog",
-    short_name: "Baekki dev Blog",
-    description: "Baekki dev blog. web development and blockchain.",
+    name: "Python Lesson Lab",
+    short_name: "Python Lab",
+    description: "파이썬 강의 교안과 실습 중심 학습 자료를 제공하는 웹사이트",
     start_url: "/",
     display: "standalone",
-    // background_color: '#fff',
-    // theme_color: '#fff',
+    background_color: "#f8fafc",
+    theme_color: "#2563eb",
     icons: [
-      {
-        src: "/favicon-32x32.png",
-        sizes: "32x32",
-        type: "image/png",
-      },
-      {
-        src: "/favicon-16x16.png",
-        sizes: "16x16",
-        type: "image/png",
-      },
       {
         src: "/android-chrome-192x192.png",
         sizes: "192x192",
