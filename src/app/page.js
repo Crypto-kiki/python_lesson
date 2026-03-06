@@ -6,13 +6,13 @@ import FeaturedPosts from "../components/Home/FeaturedPosts";
 import RecentPosts from "../components/Home/RecentPosts";
 
 export default function Home() {
-  console.log(allBlogs);
+  const publishedLessons = allBlogs.filter((blog) => blog.isPublished);
 
   return (
     <main className="flex flex-col items-center justify-center">
-      <HomeCoverSection blogs={allBlogs} />
-      <FeaturedPosts blogs={allBlogs} />
-      <RecentPosts blogs={allBlogs} />
+      <HomeCoverSection blogs={publishedLessons} />
+      <FeaturedPosts blogs={publishedLessons} />
+      <RecentPosts blogs={publishedLessons} />
     </main>
   );
 }
