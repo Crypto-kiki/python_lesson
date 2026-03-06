@@ -50,19 +50,19 @@ const RenderMdx = ({ blog }) => {
       button.setAttribute("data-copy-code-btn", "true");
       button.className = "code-copy-btn";
       button.setAttribute("aria-label", "Copy code");
-      button.textContent = "Copy";
+      button.innerHTML = "📋 <span>Copy</span>";
 
       button.onclick = async () => {
         try {
           await navigator.clipboard.writeText(code.textContent || "");
-          button.textContent = "Copied";
+          button.innerHTML = "✅ <span>Copied</span>";
           setTimeout(() => {
-            button.textContent = "Copy";
+            button.innerHTML = "📋 <span>Copy</span>";
           }, 1500);
         } catch {
-          button.textContent = "Failed";
+          button.innerHTML = "⚠️ <span>Retry</span>";
           setTimeout(() => {
-            button.textContent = "Copy";
+            button.innerHTML = "📋 <span>Copy</span>";
           }, 1500);
         }
       };
