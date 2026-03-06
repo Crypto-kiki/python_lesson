@@ -100,3 +100,8 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before {
   background: #ffdb4d;
   color: #1b1b1b;
 }
+
+.dark .code-copy-btn {
+  background: #ffdb4d;
+  color: #1b1b1b;
+}
