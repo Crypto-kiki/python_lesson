@@ -35,21 +35,3 @@ module.exports = {
 };
 ```
 
-<button
-  onClick={() => {
-    navigator.clipboard.writeText(`export default function Home() {
-      return (
-        <main className="flex min-h-screen flex-col items-center justify-between">
-          블로그를 만들어 봅시다!dasdasdasd
-        </main>
-      );
-    }`);
-    document.getElementById("copy-feedback").textContent = "✔️ copied";
-    setTimeout(() => {
-      document.getElementById("copy-feedback").textContent = "";
-    }, 2000);
-  }}
->
-  <div>📄 Code Copy</div>
-</button>
-<span id="copy-feedback" style={{ marginLeft: "10px", color: "green" }}></span>
