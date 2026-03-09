@@ -2,7 +2,7 @@
 
 import drf_excuse__indexMdx from './DRF_excuse__index.mdx.json' assert { type: 'json' }
 import drf_excuse_test__indexMdx from './DRF_excuse_test__index.mdx.json' assert { type: 'json' }
-import jupyterNotebook__indexMdx from './Jupyter-Notebook__index.mdx.json' assert { type: 'json' }
 import nextJsBlogWithContentlayer_3__indexMdx from './Next.js-blog-with-contentlayer-3__index.mdx.json' assert { type: 'json' }
+import jupyterNotebook__indexMdx from './Jupyter-Notebook__index.mdx.json' assert { type: 'json' }
 
-export const allBlogs = [drf_excuse__indexMdx, drf_excuse_test__indexMdx, jupyterNotebook__indexMdx, nextJsBlogWithContentlayer_3__indexMdx]
+export const allBlogs = [drf_excuse__indexMdx, drf_excuse_test__indexMdx, nextJsBlogWithContentlayer_3__indexMdx, jupyterNotebook__indexMdx]
