@@ -66,30 +66,6 @@ export async function generateMetadata({ params }) {
 }
 
 
-function buildTocItems(toc = []) {
-  let oneIndex = 0;
-  let twoIndex = 0;
-
-  return toc
-    .filter((heading) => heading.level === "one" || heading.level === "two")
-    .map((heading) => {
-      if (heading.level === "one") {
-        oneIndex += 1;
-        twoIndex = 0;
-      } else {
-        if (oneIndex === 0) {
-          oneIndex = 1;
-        }
-        twoIndex += 1;
-      }
-
-      return {
-        ...heading,
-        number: heading.level === "one" ? `${oneIndex}` : `${oneIndex}.${twoIndex}`,
-      };
-    });
-}
-
 export default function BlogPage({ params }) {
   const blog = allBlogs.find(
     (item) => item._raw.flattenedPath === params.slug && item.isPublished
@@ -107,7 +83,9 @@ export default function BlogPage({ params }) {
         : blog.image;
   }
 
-  const tocItems = buildTocItems(blog.toc);
+  const tocItems = blog.toc.filter(
+    (heading) => heading.level === "one" || heading.level === "two"
+  );
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -173,10 +151,9 @@ export default function BlogPage({ params }) {
                   <a
                     href={`#${heading.slug}`}
                     data-level={heading.level}
-                    className="data-[level=one]:pt-2 data-[level=one]:border-b border-dark/20 data-[level=two]:pl-3 sm:data-[level=two]:pl-6
+                    className="data-[level=one]:pt-2 data-[level=one]:border-b border-dark/20 data-[level=two]:pl-5 sm:data-[level=two]:pl-7
                 flex items-center rounded-md px-2 py-1 hover:bg-dark/5 dark:hover:bg-light/10 transition-colors"
                   >
-                    <span className="inline-flex min-w-[2.5rem] text-sm font-semibold text-dark/70 dark:text-light/70">{heading.number}</span>
                     <span className="hover:underline">{heading.text}</span>
                   </a>
                 </li>
@@ -200,10 +177,9 @@ export default function BlogPage({ params }) {
                       <a
                         href={`#${heading.slug}`}
                         data-level={heading.level}
-                        className="data-[level=one]:pt-2 data-[level=one]:border-b border-dark/20 data-[level=two]:pl-3 sm:data-[level=two]:pl-6
+                        className="data-[level=one]:pt-2 data-[level=one]:border-b border-dark/20 data-[level=two]:pl-5 sm:data-[level=two]:pl-7
                     flex items-center rounded-md px-2 py-1 hover:bg-dark/5 dark:hover:bg-light/10 transition-colors"
                       >
-                        <span className="inline-flex min-w-[2.5rem] text-sm font-semibold text-dark/70 dark:text-light/70">{heading.number}</span>
                         <span className="hover:underline">{heading.text}</span>
                       </a>
                     </li>
