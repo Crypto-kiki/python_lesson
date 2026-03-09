@@ -57,16 +57,15 @@ const Blog = defineDocumentType(() => ({
     toc: {
       type: "json",
       resolve: async (doc) => {
-        const regulrExp = /\n(?<flag>#{1,6})\s+(?<content>.+)/g;
+        const headingRegExp = /^(?<flag>#{1,2})\s+(?<content>.+)$/gm;
         const slugger = new GithubSlugger();
-        const headings = Array.from(doc.body.raw.matchAll(regulrExp)).map(
+        const headings = Array.from(doc.body.raw.matchAll(headingRegExp)).map(
           ({ groups }) => {
             const flag = groups?.flag;
             const content = groups?.content;
 
             return {
-              level:
-                flag?.length == 1 ? "one" : flag?.length == 2 ? "two" : "three",
+              level: flag?.length === 1 ? "one" : "two",
               text: content,
               slug: content ? slugger.slug(content) : undefined,
             };

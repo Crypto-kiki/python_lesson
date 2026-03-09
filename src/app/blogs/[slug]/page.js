@@ -65,6 +65,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
+
 export default function BlogPage({ params }) {
   const blog = allBlogs.find(
     (item) => item._raw.flattenedPath === params.slug && item.isPublished
@@ -81,6 +82,10 @@ export default function BlogPage({ params }) {
         ? [siteMetadata.siteUrl + blog.image.filePath.replace("../public", "")]
         : blog.image;
   }
+
+  const tocItems = blog.toc.filter(
+    (heading) => heading.level === "one" || heading.level === "two"
+  );
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -140,21 +145,15 @@ export default function BlogPage({ params }) {
         >
           <summary className="text-base font-bold tracking-wide cursor-pointer list-none flex items-center justify-between">📚 Table of Contents</summary>
           <ul className="mt-4 font-in space-y-1">
-            {blog.toc.map((heading) => {
+            {tocItems.map((heading) => {
               return (
                 <li key={`mobile-#${heading.slug}`} className="py-1">
                   <a
                     href={`#${heading.slug}`}
                     data-level={heading.level}
-                    className="data-[level=two]:pl-0 data-[level=two]:pt-2
-                data-[level=two]:border-b border-dark/20 data-[level=three]:pl-3 sm:data-[level=three]:pl-6
+                    className="data-[level=one]:pt-2 data-[level=one]:border-b border-dark/20 data-[level=two]:pl-5 sm:data-[level=two]:pl-7
                 flex items-center rounded-md px-2 py-1 hover:bg-dark/5 dark:hover:bg-light/10 transition-colors"
                   >
-                    {heading.level === "three" ? (
-                      <span className="flex w-1 h-1 rounded-full bg-dark mr-2 ">
-                        &nbsp;
-                      </span>
-                    ) : null}
                     <span className="hover:underline">{heading.text}</span>
                   </a>
                 </li>
@@ -172,21 +171,15 @@ export default function BlogPage({ params }) {
                 📚 Table of Contents
               </summary>
               <ul className="mt-4 font-in space-y-1">
-                {blog.toc.map((heading) => {
+                {tocItems.map((heading) => {
                   return (
                     <li key={`#${heading.slug}`} className="py-1">
                       <a
                         href={`#${heading.slug}`}
                         data-level={heading.level}
-                        className="data-[level=two]:pl-0 data-[level=two]:pt-2
-                    data-[level=two]:border-b border-dark/20 data-[level=three]:pl-3 sm:data-[level=three]:pl-6
+                        className="data-[level=one]:pt-2 data-[level=one]:border-b border-dark/20 data-[level=two]:pl-5 sm:data-[level=two]:pl-7
                     flex items-center rounded-md px-2 py-1 hover:bg-dark/5 dark:hover:bg-light/10 transition-colors"
                       >
-                        {heading.level === "three" ? (
-                          <span className="flex w-1 h-1 rounded-full bg-dark mr-2 ">
-                            &nbsp;
-                          </span>
-                        ) : null}
                         <span className="hover:underline">{heading.text}</span>
                       </a>
                     </li>
