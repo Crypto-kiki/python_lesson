@@ -1,15 +1,15 @@
 // src/components/Home/HomeCoverSection.js
 
-import { sortBlogs } from "@/src/utils";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import Tag from "../Elements/Tag";
 import { slug } from "github-slugger";
 
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
+const HomeCoverSection = ({ blog }) => {
+  if (!blog) {
+    return null;
+  }
 
   return (
     <div className="w-full inline-block">

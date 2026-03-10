@@ -1,9 +1,7 @@
 import { allBlogs } from "contentlayer/generated";
 import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
 import Categories from "@/src/components/Blog/Categories";
-import GithubSlugger, { slug } from "github-slugger";
-
-const slugger = new GithubSlugger();
+import { slug } from "github-slugger";
 
 export async function generateStaticParams() {
   const categories = [];
@@ -15,7 +13,7 @@ export async function generateStaticParams() {
 
   sortedBlogs.forEach((blog) => {
     blog.tags.forEach((tag) => {
-      const slugified = slugger.slug(tag);
+      const slugified = slug(tag);
       if (!categories.includes(slugified)) {
         categories.push(slugified);
         paths.push({ slug: slugified });
@@ -64,8 +62,8 @@ const CategoryPage = ({ params }) => {
       <Categories categories={allCategories} currentSlug={params.slug} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-rows-2 gap-16 mt-5 sm:mt-10 md:mt-24 sxl:mt-32 px-5 sm:px-10 md:px-24 sxl:px-32">
-        {blogs.map((blog, index) => (
-          <article key={index} className="col-span-1 row-span-1 relative">
+        {blogs.map((blog) => (
+          <article key={blog._id} className="col-span-1 row-span-1 relative">
             <BlogLayoutThree blog={blog} />
           </article>
         ))}

@@ -1,13 +1,11 @@
-import { sortBlogs } from "@/src/utils";
 import React from "react";
 import BlogLayoutOne from "../Blog/BlogLayoutOne";
 import BlogLayoutTwo from "../Blog/BlogLayoutTwo";
 
-const FeaturedPosts = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const featuredBlogs = sortedBlogs.slice(1, 4);
-  const primaryFeaturedBlog = featuredBlogs[0] || sortedBlogs[0];
-  const secondaryFeaturedBlogs = featuredBlogs.slice(1);
+const FeaturedPosts = ({ blogs, fallbackBlog = null }) => {
+  // 기준: 홈 커버에 노출된 최신 발행 글을 제외한 이후 글들 중 최대 3개
+  const primaryFeaturedBlog = blogs[0] || fallbackBlog;
+  const secondaryFeaturedBlogs = blogs.slice(1);
 
   if (!primaryFeaturedBlog) {
     return null;

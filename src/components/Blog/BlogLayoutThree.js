@@ -5,7 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
-const BlogLayoutThree = ({ blog }) => {
+const BlogLayoutThree = ({ blog, dateType = "published" }) => {
+  const dateToShow =
+    dateType === "updated"
+      ? new Date(blog.updatedAt || blog.publishedAt)
+      : new Date(blog.publishedAt);
+
   return (
     <div className="group flex flex-col items-center text-dark dark:text-light">
       <Link href={blog.url} className="rounded-xl overflow-hidden">
@@ -43,7 +48,7 @@ const BlogLayoutThree = ({ blog }) => {
         </p>
 
         <div className="capitalize text-dark/50 dark:text-light/50 text-sm sm:text-base font-semibold">
-          {format(new Date(blog.publishedAt), "MMMM dd, yyyy")}
+          {format(dateToShow, "MMMM dd, yyyy")}
         </div>
       </div>
     </div>
