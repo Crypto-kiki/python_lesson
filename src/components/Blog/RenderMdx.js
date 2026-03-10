@@ -8,8 +8,17 @@ import Image from "next/image";
 import MultipleChoiceQuiz from "@/src/components/Quiz/MultipleChoiceQuiz";
 import ShortAnswerQuiz from "@/src/components/Quiz/ShortAnswerQuiz";
 
+const MdxImage = ({ width, height, alt = "", ...props }) => {
+  const parsedWidth = typeof width === "string" ? Number(width) : width;
+  const parsedHeight = typeof height === "string" ? Number(height) : height;
+  const safeWidth = Number.isFinite(parsedWidth) ? parsedWidth : 1200;
+  const safeHeight = Number.isFinite(parsedHeight) ? parsedHeight : 675;
+
+  return <Image {...props} alt={alt} width={safeWidth} height={safeHeight} />;
+};
+
 const mdxComponents = {
-  Image,
+  Image: MdxImage,
   MultipleChoiceQuiz,
   ShortAnswerQuiz,
 };
