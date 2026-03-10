@@ -34,21 +34,21 @@ export async function generateMetadata({ params }) {
 }
 
 const CategoryPage = ({ params }) => {
-  const allCategories = ["all"];
-  let blogs = allBlogs.filter((blog) => {
-    return blog.tags.some((tag) => {
-      const slugified = slug(tag);
+  const publishedBlogs = allBlogs.filter((blog) => blog.isPublished);
 
-      if (!allCategories.includes(slugified)) {
-        allCategories.push(slugified);
-      }
+  const allCategories = [
+    "all",
+    ...new Set(
+      publishedBlogs.flatMap((blog) => blog.tags.map((tag) => slug(tag)))
+    ),
+  ];
 
-      if (params.slug === "all") {
-        return true;
-      }
+  let blogs = publishedBlogs.filter((blog) => {
+    if (params.slug === "all") {
+      return true;
+    }
 
-      return slugified === params.slug;
-    });
+    return blog.tags.some((tag) => slug(tag) === params.slug);
   });
 
   blogs = blogs.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
