@@ -1,7 +1,7 @@
 ---
-title: "DRF + Local LLM 실습 : AI 핑계 생성기 만들기"
+title: "DRF + Local LLM 실습 : AI 핑계 생성기 만들기(1)"
 description: "Django REST Framework와 로컬 LLM(Qwen)을 활용하여 AI 핑계 생성 API와 웹 페이지를 함께 만드는 전체 실습 프로젝트입니다."
-image: "../../public/blogs/DRF_excuse/1.png"
+image: "../../public/blogs/DRF_excuse/cover.png"
 publishedAt: "2026-03-10"
 updatedAt: "2026-03-10"
 author: "Baekki"
@@ -11,7 +11,7 @@ tags:
   - LLM
 ---
 
-# DRF + 로컬 LLM으로 AI 핑계 생성기 만들기
+# DRF + 로컬 LLM으로 AI 핑계 생성기 만들기(1)
 
 이번 교안에서는 **Django REST Framework(DRF)** 와 **로컬 LLM**을 함께 사용하여,
 **AI 핑계 생성 서비스**를 만들어 봅니다.
@@ -1640,13 +1640,13 @@ GET http://127.0.0.1:8000/api/excuses/
   sizes="100vw"
 />
 
-만약 데이터가 빈 배열([])이 나옵니다.
+> 만약 데이터가 없다면 빈 배열([])이 나옵니다.
 
 21-4 생성 부분에서 생성 후 다시 요청보내보세요!
 
 ### 예시 응답
 
-```json
+```
 [
   {
     "id": 2,
@@ -1693,17 +1693,25 @@ GET http://127.0.0.1:8000/api/excuses/
 
 ### 어떻게 요청하나요?
 
-예를 들어 id가 1인 핑계를 보고 싶다면 아래처럼 요청합니다.
+예를 들어 id가 7인 핑계를 보고 싶다면 아래처럼 요청합니다.
 
 ```text
-GET http://127.0.0.1:8000/api/excuses/1/
+GET http://127.0.0.1:8000/api/excuses/7/
 ```
+
+<Image
+  src="/blogs/DRF_excuse/2.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
 
 또는 목록 페이지에서 상세 링크를 눌러 확인할 수 있습니다.
 
 ### 예시 응답
 
-```json
+```
 {
   "id": 1,
   "situation": "지각",
@@ -1743,9 +1751,17 @@ GET http://127.0.0.1:8000/api/excuses/1/
 GET http://127.0.0.1:8000/api/excuses/random/
 ```
 
+<Image
+  src="/blogs/DRF_excuse/3.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
 ### 데이터가 있을 때 예시 응답
 
-```json
+```
 {
   "id": 2,
   "situation": "연락 늦음",
@@ -1758,7 +1774,7 @@ GET http://127.0.0.1:8000/api/excuses/random/
 
 ### 데이터가 없을 때 예시 응답
 
-```json
+```
 {
   "message": "데이터가 없습니다"
 }
@@ -1795,6 +1811,14 @@ Insomnia / Postman에서 JSON body를 넣어 요청할 수 있습니다.
 POST http://127.0.0.1:8000/api/excuses/generate/
 ```
 
+<Image
+  src="/blogs/DRF_excuse/4.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
 ### 요청 Body 예시
 
 ```json
@@ -1811,7 +1835,7 @@ POST http://127.0.0.1:8000/api/excuses/generate/
 
 ### 예시 응답
 
-```json
+```
 {
   "id": 3,
   "situation": "지각",
@@ -1837,23 +1861,6 @@ POST http://127.0.0.1:8000/api/excuses/generate/
 * 프롬프트 문장이 그대로 섞여 나오지 않는지
 * 영어가 섞이지 않고 한국어 한 문장으로 나오는지
 
-### 추천 테스트 입력
-
-```json
-{
-  "situation": "결석",
-  "tone": "죄송함"
-}
-```
-
-예상 예시 결과
-
-```json
-{
-  "content": "몸 상태가 좋지 않아 오늘은 참석하지 못할 것 같습니다."
-}
-```
-
 ---
 
 ## 21-5. 핑계 수정
@@ -1870,19 +1877,38 @@ Insomnia 또는 Postman 사용을 권장합니다.
 
 하지만 이번 교안에서는 **상세 페이지의 수정 버튼**으로도 PUT 요청을 테스트할 수 있습니다.
 
-예를 들어 id가 1인 핑계를 수정하려면 아래처럼 요청합니다.
+예를 들어 id가 8인 핑계를 수정하려면 아래처럼 요청합니다.
 
 ```text
-PUT http://127.0.0.1:8000/api/excuses/1/
+PUT http://127.0.0.1:8000/api/excuses/8/
 ```
+
+<Image
+  src="/blogs/DRF_excuse/5.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+<Image
+  src="/blogs/DRF_excuse/6.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
 
 ### 요청 Body 예시
 
 ```json
 {
-  "situation": "지각",
-  "tone": "진지함",
-  "content": "예상보다 이동 시간이 길어져 도착이 조금 늦어졌습니다."
+    "id": 8,
+    "situation" : "결석"',
+    "tone": "유머",
+    "content": "아니, 오늘은 집에서 휴식을 취했어요. 어쩌고요!",
+    "created_at": "2020-03-10T01:54:57.429124709:00",
+    "updated_at": "2026-03-10T01:56:33.328519+09:00"
 }
 ```
 
@@ -1893,14 +1919,14 @@ PUT은 **전체 수정** 개념입니다.
 
 ### 예시 응답
 
-```json
+```
 {
-  "id": 1,
-  "situation": "지각",
-  "tone": "진지함",
-  "content": "예상보다 이동 시간이 길어져 도착이 조금 늦어졌습니다.",
-  "created_at": "2026-03-09T09:30:00Z",
-  "updated_at": "2026-03-09T11:00:00Z"
+    "id": 8,
+    "situation" : "결석"',
+    "tone": "유머",
+    "content": "아니, 오늘은 집에서 휴식을 취했어요. 어쩌고요!",
+    "created_at": "2020-03-10T01:54:57.429124709:00",
+    "updated_at": "2026-03-10T01:56:33.328519+09:00"
 }
 ```
 
@@ -1994,12 +2020,19 @@ API만 확인하면 JSON만 보게 되므로,
 원인:
 
 * DRF 설치가 안 되었거나
-* 가상환경이 꺼져 있음
 
 해결:
 
 ```bash
 pip install djangorestframework
+```
+
+* 가상환경이 꺼져 있음
+
+해결:
+
+```bash
+source .venv/bin/activate
 ```
 
 ---
@@ -2027,7 +2060,7 @@ pip install transformers
 설명:
 
 * 첫 요청은 오래 걸릴 수 있음
-* 이번에는 1.5B 모델이라 처음 로딩이 더 오래 걸릴 수 있음
+* 모델 크기에 따라 처음 로딩이 더 오래 걸릴 수 있음
 * 두 번째부터는 비교적 빨라질 수 있음
 
 ---

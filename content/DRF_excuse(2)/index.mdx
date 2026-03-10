@@ -1,0 +1,1937 @@
+---
+title: "DRF + Local LLM 실습 : AI 핑계 생성기 만들기(2)"
+description: "기존 AI 핑계 생성기 교안을 기반으로 Generic CRUD 정리, ViewSet 전환, .env 환경설정, 페이지네이션, 이미지 업로드까지 단계별로 확장하는 실습입니다. 기존 코드에서 무엇이 왜 바뀌는지까지 자세히 설명합니다."
+image: "../../public/blogs/DRF_excuse/cover.png"
+publishedAt: "2026-03-10"
+updatedAt: "2026-03-10"
+author: "Baekki"
+isPublished: true
+tags:
+    - DRF
+    - LLM
+    - ViewSet
+    - Pagination
+---
+
+# DRF + 로컬 LLM으로 AI 핑계 생성기 만들기(1) : AI 핑계 생성기를 커뮤니티형 서비스로 확장하기
+
+이번 교안은 **기존에 만든 `AI 핑계 생성기(1)` 교안의 확장편**입니다.
+즉, 완전히 새로운 프로젝트를 처음부터 만드는 것이 아니라,
+이미 만들어 둔 **LLM 기반 핑계 생성 서비스**를 실제 서비스처럼 보이도록 점진적으로 업그레이드합니다.
+
+이번 확장편의 핵심은 아래 5가지입니다.
+
+1. 기존 CRUD를 다시 정리하면서 **Generic 기반 구조를 더 명확하게 이해하기**
+2. 여러 APIView / GenericAPIView 구조를 **ViewSet + Router 구조로 전환하기**
+3. 설정값을 코드에 하드코딩하지 않고 **`.env` 기반 환경설정으로 분리하기**
+4. 목록 API가 많아질 것을 고려해 **페이지네이션 추가하기**
+5. 생성된 핑계에 썸네일이나 상황 이미지를 붙일 수 있도록 **이미지 업로드 기능 추가하기**
+
+이번 교안은 특히 아래와 같은 사람에게 좋습니다.
+
+* 1편에서 DRF + Local LLM 기본 흐름을 이미 한 번 실습한 사람 (<a href="https://website-git-new-landing-page-schick.vercel.app/docs/reference/source-files/define-document-type" target="_blank">이전 교안 보러가기</a>)
+
+* CRUD는 이해했지만 `ViewSet`이 왜 필요한지 아직 감이 덜 오는 사람
+* 실제 서비스처럼 설정을 분리하고 싶은 사람
+* 단순 텍스트 API를 넘어 이미지 업로드까지 붙여 보고 싶은 사람
+
+---
+
+# 0. 이번 교안의 위치와 목표
+
+기존 1편에서는 아래 흐름을 만들었습니다.
+
+```
+사용자 입력 (situation, tone)
+→ DRF API 요청
+→ 로컬 LLM(Qwen) 호출
+→ DB 저장
+→ 목록 / 상세 / 랜덤 조회
+→ HTML 페이지에서 확인
+```
+
+이번 2편 확장 1에서는 이 구조를 아래처럼 발전시킵니다.
+
+```
+사용자 입력 (situation, tone, image)
+→ Serializer 검증
+→ ViewSet 라우팅
+→ LLM 핑계 생성
+→ DB 저장
+→ 페이지네이션 목록 조회
+→ 이미지 포함 HTML / API 응답 확인
+→ .env 기반 설정 분리
+```
+
+즉, 핵심은 단순히 기능을 더 추가하는 것이 아니라,
+**기존 코드를 더 서비스다운 구조로 재정비하는 것**입니다.
+
+---
+
+# 1. 이번 실습에서 배우는 것
+
+이번 확장 실습을 마치면 아래 내용을 이해할 수 있습니다.
+
+* 기존 `ListAPIView`, `RetrieveUpdateDestroyAPIView`, `GenericAPIView` 구조를 어떻게 `ViewSet`으로 묶는지
+* `router.register()`가 왜 편한지
+* API가 많아질 때 URL을 어떻게 더 깔끔하게 관리하는지
+* `.env` 파일로 설정을 분리하는 이유
+* 목록 API에 페이지네이션이 왜 필요한지
+* `ImageField`를 사용할 때 `MEDIA_URL`, `MEDIA_ROOT`가 왜 필요한지
+* 기존 HTML 테스트 페이지를 이미지 포함 구조로 어떻게 확장하는지
+
+이번 확장 실습의 큰 키워드는 아래 3개입니다.
+
+```
+정리
+확장
+서비스화
+```
+
+즉, 이번 교안은 **"코드가 돌아간다"에서 끝나는 것이 아니라**
+**"코드 구조가 왜 이렇게 정리되는지"**까지 이해하는 것이 중요합니다.
+
+---
+
+# 2. 이번 교안에서 무엇이 달라지나요?
+
+기존 1편에서는 아래와 같은 구조였습니다.
+
+| 구분       | 기존 구조                          |
+| -------- | ------------------------------ |
+| 목록 조회    | `ListAPIView`                  |
+| 상세/수정/삭제 | `RetrieveUpdateDestroyAPIView` |
+| 랜덤 조회    | `GenericAPIView`               |
+| AI 생성    | `GenericAPIView`               |
+| 설정       | `settings.py`에 직접 작성           |
+| 목록 응답    | 전체 목록 한 번에 반환                  |
+| 이미지      | 없음                             |
+
+이번 2편 확장 1에서는 아래처럼 바뀝니다.
+
+| 구분          | 확장 구조                   |
+| ----------- | ----------------------- |
+| 목록/상세/수정/삭제 | `ModelViewSet`으로 통합     |
+| 랜덤 조회       | ViewSet의 `@action`으로 이동 |
+| AI 생성       | ViewSet의 `@action`으로 이동 |
+| 설정          | `.env` 파일 사용            |
+| 목록 응답       | 페이지네이션 적용               |
+| 이미지         | `ImageField` 추가         |
+
+이 말은 곧,
+기존의 기능은 사라지는 것이 아니라 **더 정리된 구조로 재배치되는 것**입니다.
+
+---
+
+# 3. 최종 기능
+
+이번 확장편에서 구현할 기능은 아래와 같습니다.
+
+| 기능           | 설명                    |
+| ------------ | --------------------- |
+| 핑계 목록 조회     | 페이지네이션이 적용된 목록 조회     |
+| 핑계 상세 조회     | 특정 핑계 상세 조회           |
+| 핑계 생성        | AI가 새 핑계를 생성하고 저장     |
+| 핑계 수정        | 기존 핑계 수정              |
+| 핑계 삭제        | 특정 핑계 삭제              |
+| 랜덤 핑계 조회     | 저장된 핑계 중 1개 랜덤 조회     |
+| 이미지 업로드      | 핑계에 상황 이미지 첨부         |
+| HTML 확인 페이지  | 이미지 포함 목록/상세/생성 화면 확인 |
+| `.env` 설정 분리 | 민감값과 환경설정 분리          |
+
+---
+
+# 4. 전체 프로젝트 구조
+
+이번 확장 이후 프로젝트 구조는 아래처럼 정리합니다.
+
+```
+project/
+├─ .env
+├─ .venv/
+├─ media/
+│  └─ excuses/
+├─ config/
+│  ├─ __init__.py
+│  ├─ asgi.py
+│  ├─ settings.py
+│  ├─ urls.py
+│  └─ wsgi.py
+├─ excuses/
+│  ├─ migrations/
+│  │  └─ __init__.py
+│  ├─ templates/
+│  │  └─ excuses/
+│  │     ├─ base.html
+│  │     ├─ home.html
+│  │     ├─ excuse_list.html
+│  │     ├─ excuse_detail.html
+│  │     └─ excuse_generate.html
+│  ├─ static/
+│  │  └─ excuses/
+│  │     └─ style.css
+│  ├─ __init__.py
+│  ├─ admin.py
+│  ├─ apps.py
+│  ├─ models.py
+│  ├─ serializers.py
+│  ├─ services.py
+│  ├─ urls.py
+│  └─ views.py
+├─ manage.py
+└─ requirements.txt
+```
+
+## 기존 구조와 비교해서 추가된 것
+
+### 1. `.env`
+
+기존에는 `settings.py` 안에 직접 넣던 설정값을 분리합니다.
+
+### 2. `media/`
+
+이미지 업로드 파일이 저장될 폴더입니다.
+
+### 3. `requirements.txt`
+
+나중에 배포하거나 다른 컴퓨터에서 재현하기 쉬워집니다.
+
+---
+
+# 5. 기존 코드에서 무엇을 수정하는가?
+
+이번 교안은 기존 코드를 기반으로 확장하므로,
+어떤 파일이 어떻게 바뀌는지 먼저 정리하고 시작하겠습니다.
+
+| 파일                       | 변경 내용                           |
+| ------------------------ | ------------------------------- |
+| `config/settings.py`     | `.env`, media, pagination 설정 추가 |
+| `config/urls.py`         | media 파일 서빙 설정 추가               |
+| `excuses/models.py`      | `image` 필드 추가                   |
+| `excuses/serializers.py` | 이미지 필드 반영, 생성용 serializer 유지    |
+| `excuses/views.py`       | 기존 여러 뷰를 `ViewSet` 중심 구조로 재작성   |
+| `excuses/urls.py`        | router 기반 URL로 변경               |
+| 템플릿 파일                   | 이미지 미리보기와 페이지네이션 UI 반영          |
+| `requirements.txt`       | 추가 패키지 기록                       |
+
+이제부터는 단순히 “새 코드”만 보여주는 것이 아니라,
+**기존 코드에서 왜 이런 수정이 필요한지**를 같이 설명합니다.
+
+---
+
+# 6. 개발 환경 준비
+
+## Python 버전
+
+권장 버전은 기존과 동일하게 아래를 추천합니다.
+
+```
+Python 3.11 또는 3.12
+```
+
+기존 프로젝트 폴더 안에서 그대로 이어서 작업하면 됩니다.
+
+---
+
+# 7. 추가 패키지 설치
+
+기존 설치 패키지에 아래 2개를 추가합니다.
+
+## macOS / Linux
+
+```bash
+pip install python-decouple Pillow
+```
+
+## Windows
+
+```powershell
+pip install python-decouple Pillow
+```
+
+## 패키지 설명
+
+| 패키지               | 역할                                        |
+| ----------------- | ----------------------------------------- |
+| `python-decouple` | `.env` 파일에서 설정값 읽기                        |
+| `Pillow`          | Django `ImageField` 사용 시 필요한 이미지 처리 라이브러리 |
+
+> `ImageField`를 쓰는데 `Pillow`가 없으면 오류가 납니다.
+> 따라서 이미지 기능을 추가하는 순간 거의 필수라고 생각하면 됩니다.
+
+## requirements.txt 저장
+
+```bash
+pip freeze > requirements.txt
+```
+---
+
+# 8. `.env` 환경설정 추가
+
+`settings.py`에 중요한 값은 항상 직접 작성하지 않고 .env에 작성하도록 합니다.
+
+만약 프로젝트가 커지고 별도의 .env를 작성하지 않는다면 아래와 같은 문제가 생깁니다.
+
+* 민감한 값이 코드에 그대로 남는다.
+* 개발/배포 환경을 나누기 어렵다.
+* 협업 시 개인 환경값이 충돌한다.
+
+그래서 이제 `.env`를 사용합니다.
+
+## 8-1. 프로젝트 루트에 `.env` 파일 생성
+
+```env title=".env"
+SECRET_KEY=django-insecure-change-this-secret-key
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost
+LLM_MODEL=Qwen/Qwen2.5-1.5B-Instruct
+PAGE_SIZE=5
+```
+
+## 값 설명
+
+| 키               | 설명              |
+| --------------- | --------------- |
+| `SECRET_KEY`    | Django 보안 키     |
+| `DEBUG`         | 개발 환경 여부        |
+| `ALLOWED_HOSTS` | 허용할 호스트 목록      |
+| `LLM_MODEL`     | 사용할 허깅페이스 모델 이름 |
+| `PAGE_SIZE`     | 목록 한 페이지당 개수    |
+
+---
+
+# 9. settings.py 수정
+
+이제 기존 `settings.py`를 확장합니다.
+
+## 9-1. 전체 코드
+
+```python title="config/settings.py"
+from pathlib import Path
+from decouple import config, Csv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-default-key')
+DEBUG = config('DEBUG', default=True, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'excuses',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'config.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'config.wsgi.application'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+LANGUAGE_CODE = 'ko-kr'
+TIME_ZONE = 'Asia/Seoul'
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = 'static/'
+STATICFILES_DIRS = []
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': config('PAGE_SIZE', default=5, cast=int),
+}
+
+LLM_MODEL = config('LLM_MODEL', default='Qwen/Qwen2.5-1.5B-Instruct')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+```
+
+---
+
+## 9-2. 기존 코드에서 달라진 점
+
+### 1. `from decouple import config, Csv`
+
+이 부분이 새로 들어갑니다.
+`.env` 값을 읽기 위해 필요합니다.
+
+### 2. `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`
+
+예전에는 문자열이나 리스트를 직접 적었지만,
+이제 `.env`에서 읽습니다.
+
+### 3. `MEDIA_URL`, `MEDIA_ROOT`
+
+이미지 업로드 기능 때문에 추가합니다.
+
+### 4. `REST_FRAMEWORK`
+
+여기서 페이지네이션 기본값을 설정합니다.
+그러면 목록 API마다 페이지네이션 클래스를 반복 작성하지 않아도 됩니다.
+
+### 5. `LLM_MODEL`
+
+서비스 로직 안에서 모델명을 직접 적지 않고,
+설정값을 읽게 만들 준비입니다.
+
+---
+
+# 10. models.py 수정 : 이미지 필드 추가
+
+기존 1편의 `Excuse` 모델은 텍스트 중심이었습니다.
+이번에는 상황 이미지를 첨부할 수 있도록 `image` 필드를 추가합니다.
+
+## 10-1. 수정 후 전체 코드
+
+```python title="excuses/models.py"
+from django.db import models
+
+
+class Excuse(models.Model):
+    situation = models.CharField(max_length=100)
+    tone = models.CharField(max_length=50)
+    content = models.TextField()
+    image = models.ImageField(upload_to='excuses/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"[{self.tone}] {self.situation}"
+```
+
+## 10-2. 기존 코드에서 어떻게 바뀌었나?
+
+기존에는 아래 필드만 있었습니다.
+
+```
+situation
+tone
+content
+created_at
+updated_at
+```
+
+이번에는 여기에 아래가 추가됩니다.
+
+```python
+image = models.ImageField(upload_to='excuses/', blank=True, null=True)
+```
+
+## 10-3. 왜 `blank=True, null=True`를 쓰나요?
+
+이번 프로젝트는 **이미지가 선택 기능**이기 때문입니다.
+즉,
+
+* 이미지 없이도 핑계 생성 가능
+* 필요할 때만 이미지 업로드 가능
+
+이 구조가 더 유연합니다.
+
+## 10-4. `upload_to='excuses/'`
+
+업로드된 파일은 `media/excuses/` 경로 아래 저장됩니다.
+
+예를 들어 `meeting.png`를 업로드하면 대략 이런 식으로 저장됩니다.
+
+```text
+media/excuses/meeting.png
+```
+
+---
+
+# 11. migrations 적용
+
+모델을 바꿨으므로 마이그레이션이 필요합니다.
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+## 설명
+
+* `makemigrations`: 모델 변경사항을 migration 파일로 생성
+* `migrate`: 실제 DB 테이블에 반영
+
+이미지를 추가했는데 migrate를 하지 않으면,
+Django는 여전히 이미지가 추가되지 않은 이전 테이블 구조라고 생각하기 때문에 오류가 납니다.
+
+---
+
+# 12. serializers.py 수정
+
+기존 1편에서는 `ExcuseSerializer`, `ExcuseGenerateSerializer` 두 개를 나눠서 사용했습니다.
+이 구조는 이번에도 유지하는 것이 좋습니다.
+
+왜냐하면,
+
+* 목록/상세/수정 응답은 전체 모델 필드를 다뤄야 하고
+* AI 생성 입력은 `situation`, `tone`, `image`만 받는 용도로 분리하는 편이 더 명확하기 때문입니다.
+
+## 12-1. 전체 코드
+
+```python title="excuses/serializers.py"
+from rest_framework import serializers
+from .models import Excuse
+
+
+class ExcuseSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Excuse
+        fields = [
+            'id',
+            'situation',
+            'tone',
+            'content',
+            'image',
+            'image_url',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        if obj.image:
+            return obj.image.url
+        return None
+
+
+class ExcuseGenerateSerializer(serializers.Serializer):
+    situation = serializers.CharField(max_length=100)
+    tone = serializers.CharField(max_length=50)
+    image = serializers.ImageField(required=False, allow_null=True)
+```
+
+---
+
+## 12-2. 왜 `image_url`을 따로 만드나요?
+
+`ImageField`는 기본적으로 파일 자체 정보 또는 상대 경로를 반환합니다.
+그런데 프론트나 JS에서 바로 쓰려면 **절대 URL 형태가 더 편한 경우가 많습니다.**
+
+예:
+
+```
+http://127.0.0.1:8000/media/excuses/test.png
+```
+
+그래서 `SerializerMethodField()`를 써서 프론트에서 바로 사용하기 쉽게 가공합니다.
+
+---
+
+## 12-3. 기존 코드 대비 변경 포인트
+
+### 기존
+
+* `image` 없음
+* `image_url` 없음
+
+### 수정 후
+
+* `image` 필드 포함
+* `image_url` 필드 추가
+* 생성용 serializer도 `image` 입력 허용
+
+---
+
+# 13. services.py 수정
+
+기존 1편에서는 서비스 로직 안에 모델명을 직접 적었을 가능성이 큽니다.
+이번에는 `settings.LLM_MODEL`을 참조하도록 바꿉니다.
+
+이렇게 하면 나중에 모델 이름을 바꾸고 싶을 때
+서비스 함수 코드를 직접 수정하지 않아도 됩니다.
+
+## 13-1. 전체 코드
+
+```python title="excuses/services.py"
+from django.conf import settings
+from transformers import pipeline
+import re
+
+_generator = None
+
+
+def get_generator():
+    global _generator
+    if _generator is None:
+        _generator = pipeline(
+            "text-generation",
+            model=settings.LLM_MODEL,
+        )
+    return _generator
+
+
+def clean_excuse_text(text: str) -> str:
+    text = text.strip().strip('"').strip("'")
+
+    # 첫 줄만 사용
+    text = text.split("\n")[0].strip()
+
+    # 해시태그 제거
+    text = re.sub(r"#\S+", "", text)
+
+    # 불필요한 말머리 제거
+    text = text.replace("결과:", "").replace("핑계:", "").strip()
+
+    # 2문장까지만 유지
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    text = " ".join(sentences[:2]).strip()
+
+    # 이상한 꼬리 제거
+    garbage_keywords = ["너무 긴 얘기", "설명", "해시태그", "출력", "작성", "예시"]
+    for keyword in garbage_keywords:
+        if keyword in text:
+            text = text.split(keyword)[0].strip()
+
+    # 너무 짧거나 비정상이면 fallback
+    if len(text) < 8:
+        return ""
+
+    return text
+
+
+def generate_excuse(situation: str, tone: str) -> str:
+    generator = get_generator()
+
+    prompt = f"""
+너는 한국어 핑계를 만들어주는 도우미다.
+반드시 아래 예시처럼 짧고 자연스럽게만 답해라.
+설명, 해시태그, 따옴표, 말머리 없이 핑계 문장만 출력해라.
+
+예시 1
+상황: 지각
+톤: 정중한
+결과: 죄송합니다. 출근길 교통이 예상보다 많이 막혀서 조금 늦었습니다.
+
+예시 2
+상황: 과제 제출 지연
+톤: 유머
+결과: 거의 다 끝냈는데 마지막 정리 단계에서 자료가 생각보다 말을 안 듣네요. 조금만 더 다듬어서 바로 공유드릴게요.
+
+상황: {situation}
+톤: {tone}
+결과:
+""".strip()
+
+    result = generator(
+        prompt,
+        max_new_tokens=40,
+        do_sample=True,
+        temperature=0.6,
+        top_p=0.85,
+        repetition_penalty=1.2,
+        return_full_text=False,
+    )
+
+    content = result[0]["generated_text"].strip()
+    content = clean_excuse_text(content)
+
+    if not content:
+        if tone == "유머":
+            content = "거의 다 끝냈는데 마지막 정리 단계에서 자료가 저랑 밀당 중입니다. 조금만 더 다듬어서 바로 보여드릴게요."
+        elif tone == "정중한":
+            content = "죄송합니다. 발표 자료 마무리가 예상보다 길어져서 조금만 더 정리한 뒤 공유드리겠습니다."
+        else:
+            content = "발표 자료 마무리가 조금 지연되고 있어 잠시만 더 시간이 필요합니다."
+
+    return content
+```
+
+---
+
+## 13-2. 기존 코드에서 달라진 점
+
+### 기존 구조
+
+서비스 코드 안에 모델명을 직접 적었을 가능성이 큽니다.
+
+예:
+
+```
+model='Qwen/Qwen2.5-1.5B-Instruct'
+```
+
+### 수정 후 구조
+
+```
+model=settings.LLM_MODEL
+```
+
+이렇게 바꾸면 `.env`에서 모델명을 바꾸는 것만으로 교체할 수 있습니다.
+
+## 13-3. get_generator()
+
+# 여기서부터 수정 검토하기
+
+---
+
+# 14. 핵심 변경 : 기존 View들을 ViewSet으로 전환
+
+이제 이번 교안의 핵심입니다.
+기존에는 기능별로 뷰를 나눴습니다.
+
+예를 들면 대략 이런 구조였을 것입니다.
+
+```
+ExcuseListView
+ExcuseDetailView
+ExcuseRandomView
+ExcuseGenerateView
+```
+
+이 방식은 입문용으로는 매우 좋습니다.
+하지만 기능이 늘어나면 뷰 클래스 수가 많아지고,
+URL도 점점 복잡해질 수 있습니다.
+
+그래서 이번에는 **하나의 자원(resource) = 하나의 ViewSet** 구조로 정리합니다.
+
+즉,
+
+```
+Excuse 관련 기능
+→ ExcuseViewSet 하나에 모으기
+```
+
+---
+
+# 15. views.py 전체 작성
+
+## 15-1. 전체 코드
+
+```python title="excuses/views.py"
+import random
+
+from django.shortcuts import render
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.response import Response
+
+from .models import Excuse
+from .serializers import ExcuseSerializer, ExcuseGenerateSerializer
+from .services import generate_excuse
+
+
+# HTML PAGE VIEWS
+
+def home(request):
+    return render(request, 'excuses/home.html')
+
+
+def excuse_list_page(request):
+    return render(request, 'excuses/excuse_list.html')
+
+
+def excuse_detail_page(request, excuse_id):
+    return render(request, 'excuses/excuse_detail.html', {'excuse_id': excuse_id})
+
+
+def excuse_generate_page(request):
+    return render(request, 'excuses/excuse_generate.html')
+
+
+# API VIEWSET
+class ExcuseViewSet(viewsets.ModelViewSet):
+    queryset = Excuse.objects.all().order_by('-id')
+    serializer_class = ExcuseSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    @action(detail=False, methods=['get'], url_path='random')
+    def random_excuse(self, request):
+        excuses = list(self.get_queryset())
+
+        if not excuses:
+            return Response(
+                {'message': '저장된 핑계가 없습니다.'},
+                status=status.HTTP_200_OK,
+            )
+
+        excuse = random.choice(excuses)
+        serializer = self.get_serializer(excuse)
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='generate',
+        parser_classes=[MultiPartParser, FormParser, JSONParser],
+    )
+    def generate(self, request):
+        serializer = ExcuseGenerateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        situation = serializer.validated_data['situation']
+        tone = serializer.validated_data['tone']
+        image = serializer.validated_data.get('image')
+
+        content = generate_excuse(situation, tone)
+
+        excuse = Excuse.objects.create(
+            situation=situation,
+            tone=tone,
+            content=content,
+            image=image,
+        )
+
+        result = self.get_serializer(excuse)
+        return Response(result.data, status=status.HTTP_201_CREATED)
+```
+
+---
+
+# 16. 왜 `ModelViewSet`을 쓰나요?
+
+`ModelViewSet`은 아래 동작을 한 번에 묶어줍니다.
+
+* 목록 조회 (`list`)
+* 상세 조회 (`retrieve`)
+* 생성 (`create`)
+* 수정 (`update`, `partial_update`)
+* 삭제 (`destroy`)
+
+즉, 기존에 여러 개의 CRUD 뷰로 나누어 두었던 것을
+**하나의 클래스에 일관성 있게 모아둘 수 있습니다.**
+
+## 기존 방식과 비교
+
+### 기존 방식
+
+```
+목록용 뷰
+상세용 뷰
+랜덤용 뷰
+생성용 뷰
+```
+
+### ViewSet 방식
+
+```
+ExcuseViewSet
+├─ list
+├─ retrieve
+├─ create
+├─ update
+├─ destroy
+├─ random_excuse (@action)
+└─ generate (@action)
+```
+
+이렇게 구조가 더 명확해집니다.
+
+---
+
+# 17. `@action`이 왜 중요한가요?
+
+ViewSet의 기본 CRUD 외에 **추가 기능**이 필요할 때 사용합니다.
+이번 프로젝트에서는 아래 2개가 대표적입니다.
+
+* 랜덤 핑계 조회
+* AI 핑계 생성
+
+이 둘은 일반적인 CRUD 동작이 아닙니다.
+그래서 `@action`을 사용합니다.
+
+## 예시
+
+```python
+@action(detail=False, methods=['get'], url_path='random')
+def random_excuse(self, request):
+    ...
+```
+
+이렇게 작성하면 Router가 아래 URL을 자동으로 만들어 줍니다.
+
+```
+/api/excuses/random/
+```
+
+---
+
+# 18. urls.py 수정 : router 적용
+
+이제 ViewSet을 등록하기 위해 router를 사용합니다.
+
+## 18-1. excuses/urls.py 전체 코드
+
+```python title="excuses/urls.py"
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+
+from .views import (
+    home,
+    excuse_list_page,
+    excuse_detail_page,
+    excuse_generate_page,
+    ExcuseViewSet,
+)
+
+router = DefaultRouter()
+router.register(r'excuses', ExcuseViewSet, basename='excuse')
+
+urlpatterns = [
+    path('', home, name='home'),
+    path('excuses/', excuse_list_page, name='excuse-list-page'),
+    path('excuses/<int:excuse_id>/page/', excuse_detail_page, name='excuse-detail-page'),
+    path('excuses/generate-page/', excuse_generate_page, name='excuse-generate-page'),
+    path('api/', include(router.urls)),
+]
+```
+
+---
+
+## 18-2. 기존 URL 구조와 비교
+
+### 기존 구조
+
+대략 아래와 같이 직접 연결했습니다.
+
+```
+path('api/excuses/', ...)
+path('api/excuses/<int:pk>/', ...)
+path('api/excuses/random/', ...)
+path('api/excuses/generate/', ...)
+```
+
+### 수정 후 구조
+
+```
+path('api/', include(router.urls))
+```
+
+즉,
+이제 개별 CRUD URL은 router가 자동으로 생성합니다.
+
+## 생성되는 주요 API 예시
+
+| 메서드    | URL                      | 설명    |
+| ------ | ------------------------ | ----- |
+| GET    | `/api/excuses/`          | 목록 조회 |
+| POST   | `/api/excuses/`          | 직접 생성 |
+| GET    | `/api/excuses/<id>/`     | 상세 조회 |
+| PUT    | `/api/excuses/<id>/`     | 전체 수정 |
+| PATCH  | `/api/excuses/<id>/`     | 부분 수정 |
+| DELETE | `/api/excuses/<id>/`     | 삭제    |
+| GET    | `/api/excuses/random/`   | 랜덤 조회 |
+| POST   | `/api/excuses/generate/` | AI 생성 |
+
+---
+
+# 19. config/urls.py 수정 : media 서빙 추가
+
+개발 환경에서는 업로드한 이미지 파일을 Django가 직접 서빙하도록 설정해야 합니다.
+
+## 전체 코드
+
+```python title="config/urls.py"
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('excuses.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+```
+
+## 왜 필요한가요?
+
+이미지 파일은 DB에 바이너리 자체로 저장되는 것이 아니라,
+대부분 **파일 경로**가 저장됩니다.
+
+따라서 브라우저가 `/media/...` 경로로 접근했을 때
+개발 서버가 파일을 열어 줄 수 있어야 합니다.
+
+이 코드가 없으면,
+업로드는 되었는데 이미지가 브라우저에 보이지 않을 수 있습니다.
+
+---
+
+# 20. Admin 등록 개선
+
+이미지까지 확인해야 하므로 Admin 화면에서 더 잘 보이도록 약간 정리합니다.
+
+## 전체 코드
+
+```python title="excuses/admin.py"
+from django.contrib import admin
+from .models import Excuse
+
+
+@admin.register(Excuse)
+class ExcuseAdmin(admin.ModelAdmin):
+    list_display = ('id', 'situation', 'tone', 'created_at', 'updated_at')
+    search_fields = ('situation', 'tone', 'content')
+    list_filter = ('tone', 'created_at')
+```
+
+## 기존 코드 대비 차이
+
+```
+admin.site.register(Excuse)
+```
+
+이 방식도 동작은 하지만,
+데이터가 많아지면 관리자 화면에서 찾기 불편합니다.
+
+그래서 검색/필터/목록 컬럼을 추가합니다.
+
+---
+
+# 21. HTML 템플릿 정리
+
+이번 확장편에서는 템플릿도 조금 더 서비스답게 정리합니다.
+
+## 이번에 유지할 템플릿
+
+```
+templates/excuses/
+├─ base.html
+├─ home.html
+├─ excuse_list.html
+├─ excuse_detail.html
+└─ excuse_generate.html
+```
+
+기존 `excuse_random.html`은 API 테스트 용도로 분리할 수도 있지만,
+이번에는 **목록/상세/생성 화면 중심**으로 정리합니다.
+랜덤 기능은 목록 페이지 버튼으로 넣어도 됩니다.
+
+---
+
+# 22. base.html 작성
+
+## 전체 코드
+
+```html title="excuses/templates/excuses/base.html"
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}AI 핑계 생성기{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'excuses/style.css' %}" />
+</head>
+<body>
+  <header class="site-header">
+    <h1><a href="/">AI 핑계 생성기</a></h1>
+    <nav>
+      <a href="/excuses/">목록</a>
+      <a href="/excuses/generate-page/">AI 생성</a>
+      <a href="/admin/">관리자</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
+```
+
+## 설명
+
+기존과 큰 차이는 없지만,
+상단 메뉴를 더 분명하게 두어 실습 흐름이 잘 보이게 합니다.
+
+---
+
+# 23. home.html 작성
+
+```html title="excuses/templates/excuses/home.html"
+{% extends 'excuses/base.html' %}
+
+{% block title %}홈 | AI 핑계 생성기{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <h2>DRF + Local LLM 기반 AI 핑계 생성기</h2>
+  <p>이제는 단순 텍스트 생성이 아니라 이미지와 목록 관리까지 가능한 확장 버전입니다.</p>
+  <div class="button-group">
+    <a class="button-link" href="/excuses/">핑계 목록 보기</a>
+    <a class="button-link primary" href="/excuses/generate-page/">AI로 핑계 생성하기</a>
+  </div>
+</section>
+{% endblock %}
+```
+
+---
+
+# 24. excuse_list.html 작성
+
+이 페이지는 페이지네이션 결과를 확인하기에 가장 중요합니다.
+
+## 전체 코드
+
+```html title="excuses/templates/excuses/excuse_list.html"
+{% extends 'excuses/base.html' %}
+
+{% block title %}핑계 목록 | AI 핑계 생성기{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h2>핑계 목록</h2>
+  <p>페이지네이션이 적용된 핑계 목록입니다.</p>
+</section>
+
+<div class="button-group">
+  <button id="load-random-btn">랜덤 핑계 가져오기</button>
+</div>
+
+<div id="random-result" class="card hidden"></div>
+<div id="excuse-list" class="card-list"></div>
+<div id="pagination" class="pagination"></div>
+
+<script>
+  async function loadExcuses(page = 1) {
+    const response = await fetch(`/api/excuses/?page=${page}`);
+    const data = await response.json();
+
+    const listEl = document.getElementById('excuse-list');
+    const paginationEl = document.getElementById('pagination');
+
+    listEl.innerHTML = '';
+    paginationEl.innerHTML = '';
+
+    data.results.forEach((item) => {
+      const article = document.createElement('article');
+      article.className = 'card';
+      article.innerHTML = `
+        <h3>${item.situation}</h3>
+        <p><strong>톤:</strong> ${item.tone}</p>
+        <p>${item.content}</p>
+        ${item.image_url ? `<img src="${item.image_url}" alt="핑계 이미지" class="preview-image" />` : ''}
+        <a class="button-link" href="/excuses/${item.id}/page/">상세 보기</a>
+      `;
+      listEl.appendChild(article);
+    });
+
+    const pageInfo = document.createElement('p');
+    pageInfo.textContent = `총 ${data.count}개 데이터`;
+    paginationEl.appendChild(pageInfo);
+
+    const currentPage = page;
+
+    if (data.previous) {
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = '이전 페이지';
+      prevBtn.onclick = () => loadExcuses(currentPage - 1);
+      paginationEl.appendChild(prevBtn);
+    }
+
+    if (data.next) {
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = '다음 페이지';
+      nextBtn.onclick = () => loadExcuses(currentPage + 1);
+      paginationEl.appendChild(nextBtn);
+    }
+  }
+
+  async function loadRandomExcuse() {
+    const response = await fetch('/api/excuses/random/');
+    const data = await response.json();
+
+    const box = document.getElementById('random-result');
+    box.classList.remove('hidden');
+
+    if (data.message) {
+      box.innerHTML = `<p>${data.message}</p>`;
+      return;
+    }
+
+    box.innerHTML = `
+      <h3>랜덤 핑계</h3>
+      <p><strong>상황:</strong> ${data.situation}</p>
+      <p><strong>톤:</strong> ${data.tone}</p>
+      <p>${data.content}</p>
+      ${data.image_url ? `<img src="${data.image_url}" alt="랜덤 핑계 이미지" class="preview-image" />` : ''}
+    `;
+  }
+
+  document.getElementById('load-random-btn').addEventListener('click', loadRandomExcuse);
+  loadExcuses();
+</script>
+{% endblock %}
+```
+
+---
+
+## 왜 기존 목록 페이지를 이렇게 수정하나요?
+
+### 기존 방식
+
+```
+fetch('/api/excuses/')
+```
+
+그리고 받은 배열을 바로 `forEach`로 돌렸을 가능성이 큽니다.
+
+### 페이지네이션 적용 후
+
+이제 응답 구조가 이렇게 바뀝니다.
+
+```
+{
+  "count": 13,
+  "next": "http://127.0.0.1:8000/api/excuses/?page=2",
+  "previous": null,
+  "results": [
+    ...
+  ]
+}
+```
+
+즉,
+이제는 `data`가 배열이 아니라 **페이지 정보 객체**이므로,
+반드시 `data.results`를 순회해야 합니다.
+
+이 부분이 이번 확장에서 가장 많이 헷갈리는 포인트 중 하나입니다.
+
+---
+
+# 25. excuse_detail.html 작성
+
+## 전체 코드
+
+```html title="excuses/templates/excuses/excuse_detail.html"
+{% extends 'excuses/base.html' %}
+
+{% block title %}핑계 상세 | AI 핑계 생성기{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h2>핑계 상세</h2>
+  <p>단일 핑계를 조회하고 수정하거나 삭제할 수 있습니다.</p>
+</section>
+
+<div id="detail-box" class="card"></div>
+
+<section class="card">
+  <h3>핑계 수정</h3>
+  <form id="update-form">
+    <label>상황</label>
+    <input type="text" id="situation" />
+
+    <label>톤</label>
+    <input type="text" id="tone" />
+
+    <label>내용</label>
+    <textarea id="content" rows="6"></textarea>
+
+    <button type="submit">수정하기</button>
+    <button type="button" id="delete-btn" class="danger">삭제하기</button>
+  </form>
+</section>
+
+<script>
+  const excuseId = {{ excuse_id }};
+
+  async function loadDetail() {
+    const response = await fetch(`/api/excuses/${excuseId}/`);
+    const data = await response.json();
+
+    document.getElementById('detail-box').innerHTML = `
+      <h3>${data.situation}</h3>
+      <p><strong>톤:</strong> ${data.tone}</p>
+      <p>${data.content}</p>
+      ${data.image_url ? `<img src="${data.image_url}" alt="상세 이미지" class="preview-image" />` : ''}
+    `;
+
+    document.getElementById('situation').value = data.situation;
+    document.getElementById('tone').value = data.tone;
+    document.getElementById('content').value = data.content;
+  }
+
+  document.getElementById('update-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const payload = {
+      situation: document.getElementById('situation').value,
+      tone: document.getElementById('tone').value,
+      content: document.getElementById('content').value,
+    };
+
+    const response = await fetch(`/api/excuses/${excuseId}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      alert('수정되었습니다.');
+      loadDetail();
+    } else {
+      alert('수정에 실패했습니다.');
+    }
+  });
+
+  document.getElementById('delete-btn').addEventListener('click', async () => {
+    const response = await fetch(`/api/excuses/${excuseId}/`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      alert('삭제되었습니다.');
+      window.location.href = '/excuses/';
+    } else {
+      alert('삭제에 실패했습니다.');
+    }
+  });
+
+  loadDetail();
+</script>
+{% endblock %}
+```
+
+---
+
+# 26. excuse_generate.html 작성
+
+이번 페이지는 이미지 업로드 때문에 기존보다 가장 많이 달라집니다.
+기존에는 JSON POST만 보내면 되었지만,
+이제는 파일까지 보내야 할 수 있으므로 `FormData`를 사용합니다.
+
+## 전체 코드
+
+```html title="excuses/templates/excuses/excuse_generate.html"
+{% extends 'excuses/base.html' %}
+
+{% block title %}AI 핑계 생성 | AI 핑계 생성기{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h2>AI 핑계 생성</h2>
+  <p>상황과 톤을 입력하면 AI가 핑계를 생성하고 DB에 저장합니다. 이미지를 같이 올릴 수도 있습니다.</p>
+</section>
+
+<section class="card">
+  <form id="generate-form" enctype="multipart/form-data">
+    <label>상황</label>
+    <input type="text" id="situation" required />
+
+    <label>톤</label>
+    <input type="text" id="tone" required />
+
+    <label>상황 이미지 (선택)</label>
+    <input type="file" id="image" accept="image/*" />
+
+    <button type="submit">AI 핑계 생성하기</button>
+  </form>
+</section>
+
+<div id="result-box" class="card hidden"></div>
+
+<script>
+  document.getElementById('generate-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData();
+    formData.append('situation', document.getElementById('situation').value);
+    formData.append('tone', document.getElementById('tone').value);
+
+    const imageFile = document.getElementById('image').files[0];
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+
+    const response = await fetch('/api/excuses/generate/', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+    const box = document.getElementById('result-box');
+    box.classList.remove('hidden');
+
+    if (!response.ok) {
+      box.innerHTML = `<p>생성 실패: ${JSON.stringify(data)}</p>`;
+      return;
+    }
+
+    box.innerHTML = `
+      <h3>생성 결과</h3>
+      <p><strong>상황:</strong> ${data.situation}</p>
+      <p><strong>톤:</strong> ${data.tone}</p>
+      <p>${data.content}</p>
+      ${data.image_url ? `<img src="${data.image_url}" alt="생성 이미지" class="preview-image" />` : ''}
+      <p><a class="button-link" href="/excuses/${data.id}/page/">상세 페이지로 이동</a></p>
+    `;
+  });
+</script>
+{% endblock %}
+```
+
+---
+
+## 왜 `FormData`를 써야 하나요?
+
+기존 1편에서는 아래처럼 JSON 요청만 보내도 됐습니다.
+
+```javascript
+headers: { 'Content-Type': 'application/json' }
+body: JSON.stringify({ situation, tone })
+```
+
+하지만 파일 업로드가 들어가면 JSON이 아니라 보통 `multipart/form-data` 형식이 필요합니다.
+이때 브라우저에서 가장 간단히 쓰는 방법이 `FormData`입니다.
+
+즉,
+
+### 기존
+
+텍스트만 전송
+
+### 수정 후
+
+텍스트 + 파일 함께 전송
+
+이 차이 때문에 프론트 코드가 바뀝니다.
+
+---
+
+# 27. CSS 작성
+
+## 전체 코드
+
+```css title="excuses/static/excuses/style.css"
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f6f7fb;
+  color: #222;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  background: #1f2937;
+  color: white;
+}
+
+.site-header a {
+  color: white;
+  text-decoration: none;
+  margin-left: 16px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.hero-card,
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}
+
+.card-list {
+  display: grid;
+  gap: 16px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+input,
+textarea,
+button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  box-sizing: border-box;
+}
+
+button,
+.button-link {
+  display: inline-block;
+  width: auto;
+  background: #2563eb;
+  color: white;
+  border: none;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+
+.button-link.primary {
+  background: #111827;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.danger {
+  background: #dc2626;
+}
+
+.preview-image {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 12px;
+  margin-top: 12px;
+}
+
+.pagination {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.hidden {
+  display: none;
+}
+```
+
+---
+
+# 28. 서버 실행
+
+## macOS / Linux
+
+```bash
+python manage.py runserver
+```
+
+## Windows
+
+```powershell
+python manage.py runserver
+```
+
+브라우저에서 아래 주소를 순서대로 확인합니다.
+
+```text
+/
+/excuses/
+/excuses/generate-page/
+/admin/
+```
+
+---
+
+# 29. API 실습 체크리스트
+
+이제 실제로 요청이 어떻게 바뀌었는지 확인해 보겠습니다.
+
+## 29-1. 전체 목록 조회
+
+### 요청 정보
+
+```text
+GET http://127.0.0.1:8000/api/excuses/
+```
+
+### 예시 응답
+
+```
+{
+	"count": 2,
+	"next": null,
+	"previous": null,
+	"results": [
+		{
+			"id": 8,
+			"situation": "결석",
+			"tone": "유머",
+			"content": "아니, 오늘은 집에서 휴식을 취했어요. 어쩌고요!",
+			"image": null,
+			"image_url": null,
+			"created_at": "2026-03-10T01:54:57.429124+09:00",
+			"updated_at": "2026-03-10T01:56:33.328519+09:00"
+		},
+		{
+			"id": 6,
+			"situation": "지각",
+			"tone": "진지함",
+			"content": "국내에서 전화가 잘 안되서 지각했습니다. ",
+			"image": null,
+			"image_url": null,
+			"created_at": "2026-03-10T01:52:49.397913+09:00",
+			"updated_at": "2026-03-10T01:52:49.397926+09:00"
+		}
+	]
+}
+
+```
+- 저는 실습 예제에서 생성 및 삭제 등 테스트를 한 상태라 id값과 count값은 다를 수 있습니다! 참고해주세용
+
+### 여기서 확인할 것
+
+* 더 이상 배열만 오지 않는다.
+* `count`, `next`, `previous`, `results` 구조를 가진다.
+* 프론트에서는 `results`를 사용해야 한다.
+
+---
+
+## 29-2. 랜덤 조회
+
+### 요청 정보
+
+```text
+GET /api/excuses/random/
+```
+
+### 설명
+
+이 URL은 `@action`으로 생성된 커스텀 엔드포인트입니다.
+즉, ViewSet의 기본 CRUD가 아닌 **추가 기능**입니다.
+
+---
+
+## 29-3. AI 생성
+
+### 요청 정보
+
+```text
+POST /api/excuses/generate/
+```
+
+### 텍스트만 보낼 경우
+
+form-data 또는 Postman에서 아래처럼 보낼 수 있습니다.
+
+| key         | value            |
+| ----------- | ---------------- |
+| `situation` | 발표 자료를 아직 못 끝냈어요 |
+| `tone`      | 정중한              |
+
+### 이미지까지 함께 보낼 경우
+
+| key         | value            |
+| ----------- | ---------------- |
+| `situation` | 발표 자료를 아직 못 끝냈어요 |
+| `tone`      | 정중한              |
+| `image`     | 업로드 파일 선택        |
+
+### 여기서 확인할 것
+
+* JSON만 고집하지 않고 `multipart/form-data`도 받을 수 있다.
+* 이미지가 있으면 DB와 media 폴더에 함께 반영된다.
+* 결과 응답에서 `image_url`이 보인다.
+
+---
+
+## 29-4. 수정
+
+### 요청 정보
+
+```text
+PUT /api/excuses/<id>/
+```
+
+### 설명
+
+`ModelViewSet`을 쓰더라도 수정 방식 자체는 크게 달라지지 않습니다.
+다만 URL과 메서드 연결이 router에 의해 자동 관리된다는 점이 다릅니다.
+
+---
+
+## 29-5. 삭제
+
+### 요청 정보
+
+```text
+DELETE /api/excuses/<id>/
+```
+
+### 설명
+
+삭제도 `destroy` 액션으로 자동 연결됩니다.
+
+---
+
+# 30. 브라우저 실습 체크리스트
+
+## 1. 홈 페이지 `/`
+
+확인할 것
+
+* 상단 네비게이션이 보이는가
+* 목록 / 생성 페이지로 이동되는가
+
+## 2. 목록 페이지 `/excuses/`
+
+확인할 것
+
+* 핑계 카드가 목록으로 보이는가
+* 이미지가 있으면 함께 보이는가
+* 다음 페이지 버튼이 정상 동작하는가
+* 랜덤 핑계 버튼이 동작하는가
+
+## 3. 상세 페이지 `/excuses/<id>/page/`
+
+확인할 것
+
+* 단일 핑계가 보이는가
+* 수정 후 다시 불러오면 내용이 바뀌는가
+* 삭제 후 목록 페이지로 이동하는가
+
+## 4. 생성 페이지 `/excuses/generate-page/`
+
+확인할 것
+
+* 상황, 톤 입력이 되는가
+* 이미지 선택이 되는가
+* 생성 후 결과가 보이는가
+* 상세 페이지로 이동 가능한가
+
+---
+
+# 31. 이번 확장에서 자주 틀리는 포인트
+
+## 1. `data.forEach is not a function`
+
+### 원인
+
+페이지네이션 적용 후에도 예전처럼 `data.forEach(...)`를 사용한 경우입니다.
+
+### 해결
+
+```javascript
+data.results.forEach(...)
+```
+
+---
+
+## 2. 이미지 업로드는 되었는데 화면에 안 보임
+
+### 원인 후보
+
+* `MEDIA_URL`, `MEDIA_ROOT` 누락
+* `config/urls.py`의 `static()` 설정 누락
+* serializer에서 `image_url` 처리 누락
+
+---
+
+## 3. `Cannot assign "<InMemoryUploadedFile...>": ...`
+
+### 원인
+
+업로드 파일은 받았는데 serializer/모델/파서 설정이 맞지 않는 경우입니다.
+
+### 확인할 것
+
+* 모델에 `ImageField`가 있는가
+* `parser_classes`에 `MultiPartParser`, `FormParser`가 있는가
+* 요청이 `FormData`로 가는가
+
+---
+
+## 4. 생성 페이지에서 400 오류가 남
+
+### 원인
+
+`FormData`를 보내면서 프론트에서 `Content-Type: application/json`을 수동 지정한 경우가 많습니다.
+
+### 해결
+
+`FormData`를 쓸 때는 보통 `headers`를 직접 지정하지 않습니다.
+브라우저가 알아서 multipart boundary를 설정하게 두는 것이 좋습니다.
+
+---
+
+## 5. `.env`가 반영되지 않음
+
+### 원인 후보
+
+* 프로젝트 루트가 아닌 다른 위치에 `.env`를 둠
+* `python-decouple` 미설치
+* 서버 재시작 안 함
+
+### 해결
+
+* `.env` 위치 확인
+* 패키지 설치 확인
+* 서버 재실행
+
+---
+
+# 32. 왜 이번 구조가 더 좋은가?
+
+이번 확장편의 핵심은 단순히 기능을 늘리는 것이 아닙니다.
+
+## 1. ViewSet으로 구조 정리
+
+자원 중심 구조가 되어서 코드가 더 보기 좋아집니다.
+
+## 2. Router로 URL 관리 단순화
+
+CRUD URL을 일일이 다 적지 않아도 됩니다.
+
+## 3. `.env`로 설정 분리
+
+실제 서비스에 가까운 구조가 됩니다.
+
+## 4. 페이지네이션 적용
+
+데이터가 많아져도 API가 더 안정적입니다.
+
+## 5. 이미지 업로드 확장
+
+이제 단순 텍스트 앱이 아니라 결과물이 더 시각적으로 보입니다.
+
+---
+
+# 33. 최종 체크리스트
+
+아래 항목이 모두 되면 이번 교안은 성공입니다.
+
+* [ ] `.env` 파일을 만들고 settings.py에서 값을 읽는다.
+* [ ] `Excuse` 모델에 `image` 필드를 추가했다.
+* [ ] 마이그레이션을 적용했다.
+* [ ] serializer에 `image_url` 필드를 추가했다.
+* [ ] 서비스 로직이 `settings.LLM_MODEL`을 사용한다.
+* [ ] 기존 여러 API 뷰를 `ExcuseViewSet`으로 정리했다.
+* [ ] `@action`으로 `random`, `generate` 엔드포인트를 만들었다.
+* [ ] router를 사용해 `/api/excuses/` 경로를 연결했다.
+* [ ] 목록 API 응답이 페이지네이션 구조로 바뀐 것을 확인했다.
+* [ ] 생성 페이지에서 이미지와 함께 핑계 생성이 가능하다.
+* [ ] 업로드한 이미지가 목록/상세 페이지에서 보인다.
+
+---
+
+# 34. 오늘 배운 핵심 정리
+
+## 1. 입문용 구조와 확장용 구조는 다를 수 있다.
+
+기존 Generic 기반 구조는 학습용으로 매우 좋았습니다.
+하지만 기능이 늘어나면 `ViewSet` 구조가 더 정리된 느낌을 줍니다.
+
+## 2. `.env` 분리는 선택이 아니라 습관이다.
+
+처음엔 귀찮아 보여도, 프로젝트가 커질수록 차이가 커집니다.
+
+## 3. 페이지네이션을 넣으면 프론트 코드도 함께 바뀐다.
+
+이 점을 꼭 기억해야 합니다.
+
+## 4. 이미지 업로드는 모델, serializer, parser, urls, 템플릿이 모두 함께 맞아야 한다.
+
+한 군데만 바꾸면 되는 기능이 아닙니다.
+
+## 5. 기존 교안을 기반으로 확장하면 DRF 구조가 더 선명하게 보인다.
+
+처음부터 복잡하게 만드는 것보다,
+기존 프로젝트를 점진적으로 확장하는 방식이 훨씬 학습 효과가 좋습니다.
+
+---
+
+# 35. 마무리
+
+이번 교안에서는 기존 **DRF + Local LLM AI 핑계 생성기**를 기반으로,
+아래 5가지를 확장했습니다.
+
+* Generic CRUD 구조 재정리
+* ViewSet 전환
+* `.env` 환경설정 분리
+* 페이지네이션 추가
+* 이미지 업로드 기능 추가
+
+즉,
+기존 1편이 **"기본 기능이 돌아가는 서비스"**였다면,
+이번 2편 확장 1은 **"조금 더 서비스다운 구조로 정리된 버전"**이라고 볼 수 있습니다.
+
+다음 확장편에서는 아래 내용을 이어서 붙일 수 있습니다.
+
+* 회원가입 생성
+* 템플릿 추가 정리
+* JWT 인증
+* 사용자별 핑계 관리
+* 좋아요 / 복사 / 북마크 같은 인터랙티브 기능
+
+이제 여기까지 실습해 보고,
+실제로 이미지가 올라가고 페이지네이션이 적용되며 `ViewSet` 구조가 잘 이해되는지 꼭 확인해 보세요.
