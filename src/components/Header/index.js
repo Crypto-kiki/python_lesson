@@ -4,6 +4,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Logo from "./logo";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SunIcon, MoonIcon } from "../icons";
 import { useThemeSwitch } from "../Hooks/useThemeSwitch";
 import { cx } from "@/src/utils";

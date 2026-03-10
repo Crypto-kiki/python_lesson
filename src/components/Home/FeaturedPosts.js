@@ -1,11 +1,13 @@
 import React from "react";
 import BlogLayoutOne from "../Blog/BlogLayoutOne";
 import BlogLayoutTwo from "../Blog/BlogLayoutTwo";
+import { uiFlags } from "@/src/utils/uiFlags";
 
 const FeaturedPosts = ({ blogs, fallbackBlog = null }) => {
   // 기준: 홈 커버에 노출된 최신 발행 글을 제외한 이후 글들 중 최대 3개
   const primaryFeaturedBlog = blogs[0] || fallbackBlog;
   const secondaryFeaturedBlogs = blogs.slice(1);
+  const refined = uiFlags.enableHomeUiRefinements;
 
   if (!primaryFeaturedBlog) {
     return null;
@@ -28,7 +30,11 @@ const FeaturedPosts = ({ blogs, fallbackBlog = null }) => {
         {secondaryFeaturedBlogs.map((blog) => (
           <article
             key={blog._id}
-            className="col-span-2 sm:col-span-1 row-span-1 relative rounded-2xl border border-gray/20 p-3 bg-white/70 dark:bg-dark/60"
+            className={`col-span-2 sm:col-span-1 row-span-1 relative rounded-2xl border p-3 ${
+              refined
+                ? "border-gray/30 shadow-sm hover:shadow-md transition-shadow bg-white/80 dark:bg-dark/65"
+                : "border-gray/20 bg-white/70 dark:bg-dark/60"
+            }`}
           >
             <BlogLayoutTwo blog={blog} />
           </article>
