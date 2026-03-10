@@ -1,12 +1,12 @@
 // src/components/Home/RecentPosts.js
 
-import { sortBlogs } from "@/src/utils";
+import { sortBlogsByUpdatedAt } from "@/src/utils";
 import Link from "next/link";
 import React from "react";
 import BlogLayoutThree from "../Blog/BlogLayoutThree";
 
 const RecentPosts = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
+  const latestBlogs = sortBlogsByUpdatedAt(blogs).slice(0, 6);
 
   return (
     <section className="mt-16 sm:mt-24 md:mt-32 px-5 sm:px-10 md:px-24 sxl:px-32 w-full flex flex-col items-center justify-center">
@@ -25,7 +25,7 @@ const RecentPosts = ({ blogs }) => {
         </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-rows-2 gap-16 mt-16">
-        {sortedBlogs.slice(4, 10).map((blog, index) => {
+        {latestBlogs.map((blog, index) => {
           return (
             <article key={index} className="col-span-1 row-span-1 relative">
               <BlogLayoutThree blog={blog} />

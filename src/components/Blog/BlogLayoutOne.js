@@ -19,11 +19,16 @@ const BlogLayoutOne = ({ blog }) => {
         sizes="(max-width: 1180px) 100vw, 50vw"
       />
       <div className="w-full absolute bottom-0 p-4 xs:p-6 sm:p-10 z-20">
-        <Tag
-          link={`/categories/${slug(blog.tags[0])}`}
-          name={blog.tags[0]}
-          className="px-6 text-xs  sm:text-sm py-1 sm:py-2 !border "
-        />
+        <div className="flex flex-wrap gap-2">
+          {blog.tags.map((tag) => (
+            <Tag
+              key={tag}
+              link={`/categories/${slug(tag)}`}
+              name={tag}
+              className="px-6 text-xs sm:text-sm py-1 sm:py-2 !border"
+            />
+          ))}
+        </div>
         <Link href={blog.url} className="mt-6">
           <h2 className="font-bold capitalize text-sm xs:text-base sm:text-xl md:text-2xl text-light mt-2 sm:mt-4">
             <span className="bg-gradient-to-r from-accent to-accent dark:from-accentDark/50 dark:to-accentDark/50 bg-[length:0px_6px] group-hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-500">
