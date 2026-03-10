@@ -14,7 +14,6 @@ const Header = () => {
   const [click, setClick] = useState(false);
   const mobileNavRef = useRef(null);
   const menuButtonRef = useRef(null);
-  const pathname = usePathname();
 
   const toggle = () => {
     setClick((prev) => !prev);
@@ -47,18 +46,6 @@ const Header = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [click]);
-
-  useEffect(() => {
-    setClick(false);
-  }, [pathname]);
-
-  const linkClass = (href) =>
-    cx(
-      "mx-2 relative inline-block transition-transform duration-300 ease-out px-2 py-1 rounded",
-      pathname === href
-        ? "font-bold bg-dark/10 dark:bg-light/20"
-        : "hover:font-bold hover:scale-105"
-    );
 
   return (
     <header className="w-full p-4 px-5 sm:px-10 flex items-center justify-between">
@@ -106,10 +93,13 @@ const Header = () => {
         style={{ top: click ? "1rem" : "-5rem" }}
       >
         <div className={mode === "light" ? "text-dark" : "text-light"}>
-          <Link href="/" className={linkClass("/")}>
+          <Link href="/" className="mx-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded">
             홈
           </Link>
-          <Link href="/categories/all" className={linkClass("/categories/all")}>
+          <Link
+            href="/categories/all"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
             강의
           </Link>
         </div>
@@ -127,10 +117,13 @@ const Header = () => {
 
       <nav className="w-max py-3 px-8 font-medium capitalize hidden sm:flex items-center fixed top-6 right-1/2 translate-x-1/2 backdrop-blur-md bg-light/70 dark:bg-dark/80 border border-gray/20 z-50 rounded-full">
         <div className={mode === "light" ? "text-dark" : "text-light"}>
-          <Link href="/" className={linkClass("/")}>
+          <Link href="/" className="mr-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded">
             홈
           </Link>
-          <Link href="/categories/all" className={linkClass("/categories/all")}>
+          <Link
+            href="/categories/all"
+            className="mx-2 relative inline-block hover:font-bold hover:scale-105 transition-transform duration-300 ease-out px-2 py-1 rounded"
+          >
             강의
           </Link>
         </div>
