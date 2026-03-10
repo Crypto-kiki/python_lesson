@@ -11,3 +11,14 @@ export const sortBlogs = (blogs) => {
       compareDesc(parseISO(a.publishedAt), parseISO(b.publishedAt))
     );
 };
+
+export const sortBlogsByUpdatedAt = (blogs) => {
+  return blogs
+    .slice()
+    .sort((a, b) =>
+      compareDesc(
+        parseISO(a.updatedAt || a.publishedAt),
+        parseISO(b.updatedAt || b.publishedAt)
+      )
+    );
+};

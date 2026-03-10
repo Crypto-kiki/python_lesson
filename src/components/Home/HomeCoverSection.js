@@ -1,15 +1,15 @@
 // src/components/Home/HomeCoverSection.js
 
-import { sortBlogs } from "@/src/utils";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import Tag from "../Elements/Tag";
 import { slug } from "github-slugger";
 
-const HomeCoverSection = ({ blogs }) => {
-  const sortedBlogs = sortBlogs(blogs);
-  const blog = sortedBlogs[0];
+const HomeCoverSection = ({ blog }) => {
+  if (!blog) {
+    return null;
+  }
 
   return (
     <div className="w-full inline-block">
@@ -27,7 +27,11 @@ const HomeCoverSection = ({ blogs }) => {
         />
 
         <div className="w-full lg:w-3/4 p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col items-start justify-center z-0 text-light">
-          <Tag link={`/categories/${slug(blog.tags[0])}`} name={blog.tags[0]} className="mt-2" />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {blog.tags.map((tag) => (
+              <Tag key={tag} link={`/categories/${slug(tag)}`} name={tag} />
+            ))}
+          </div>
           <Link href={blog.url} className="mt-3">
             <h1 className="font-bold capitalize text-base sm:text-xl md:text-2xl lg:text-3xl leading-tight">
               <span className="bg-gradient-to-r from-accentDark/70 to-accentDark/70 bg-[length:0px_6px] hover:bg-[length:100%_6px] bg-left-bottom bg-no-repeat transition-[background-size] duration-700">

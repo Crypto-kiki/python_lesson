@@ -12,12 +12,17 @@ const BlogDetails = ({ blog }) => {
       <div className="inline-flex items-center rounded-full bg-light/15 px-4 py-2 border border-light/20">
         ⏱️ Reading time: {blog.readingTime.text}
       </div>
-      <Link
-        href={`/categories/${slug(blog.tags[0])}`}
-        className="inline-flex items-center rounded-full bg-accent/80 px-4 py-2 border border-light/20 hover:scale-105 transition-transform"
-      >
-        🏷️ {blog.tags[0]}
-      </Link>
+      <div className="inline-flex items-center gap-2 flex-wrap">
+        {blog.tags.map((tag) => (
+          <Link
+            key={tag}
+            href={`/categories/${slug(tag)}`}
+            className="inline-flex items-center rounded-full bg-accent/80 px-4 py-2 border border-light/20 hover:scale-105 transition-transform"
+          >
+            🏷️ {tag}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 };
