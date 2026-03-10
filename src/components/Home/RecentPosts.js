@@ -10,15 +10,15 @@ const RecentPosts = ({ blogs }) => {
       <div className="w-full flex justify-between items-end gap-4">
         <div>
           <h2 className="w-fill inline-block font-bold capitalize text-2xl md:text-4xl text-dark dark:text-light">
-            Latest Updates
+            최신 업데이트
           </h2>
-          <p className="mt-2 text-gray dark:text-light/70">Recently updated lesson materials.</p>
+          <p className="mt-2 text-gray dark:text-light/70">최근 수정된 강의 자료를 빠르게 확인하세요.</p>
         </div>
         <Link
           href="/categories/all"
           className="inline-block font-medium text-accent dark:text-accentDark underline underline-offset-4 text-base md:text-lg"
         >
-          View all lessons
+          모든 강의 보기
         </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-rows-2 gap-16 mt-16">
