@@ -1,0 +1,1833 @@
+---
+title: "Django 기초 - 공부시간 기록기 만들기(1) : 프로젝트 시작과 목록 페이지"
+description: "Django가 아직 익숙하지 않은 분들을 위한 반복훈련 교안 1편입니다. 가상환경 설정부터 프로젝트 생성, 앱 등록, 모델 작성, 마이그레이션, admin 확인, URL 연결, 템플릿과 CSS 적용, 함수형 View를 이용한 목록 페이지 구현까지 아주 자세히 실습합니다."
+image: "../../public/blogs/DRF_excuse/cover.png"
+publishedAt: "2026-03-12"
+updatedAt: "2026-03-12"
+author: "Baekki"
+isPublished: true
+tags:
+  - Django 기초
+  - CRUD
+---
+
+# Django 기초 - 공부시간 기록기 만들기(1) : 프로젝트 시작과 목록 페이지
+
+이번 교안의 목표는 단순히 화면 하나를 띄우는 것이 아닙니다.
+
+진짜 목표는 아래 흐름을 **처음부터 끝까지 손으로 직접 반복하면서** Django의 가장 기본 구조를 몸에 익히는 것입니다.
+
+```
+가상환경 생성
+→ Django 설치
+→ 프로젝트 생성
+→ 앱 생성
+→ settings.py 등록
+→ 모델 작성
+→ 마이그레이션
+→ admin 등록
+→ 관리자 페이지 확인
+→ URL 연결
+→ Template 작성
+→ CSS 적용
+→ 함수형 View로 목록 페이지 출력
+```
+
+Django를 처음 배우는 분들은 보통 아래 지점에서 많이 막힙니다.
+
+* 프로젝트와 앱의 차이가 헷갈림
+* settings.py는 언제 왜 수정해야 하는지 모름
+* 모델을 만들고도 왜 DB에 안 생기는지 모름
+* admin은 왜 쓰는지 체감이 안 됨
+* URL, View, Template 관계가 머릿속에 안 잡힘
+
+이번 교안은 이런 막힘을 줄이기 위해, **실습 순서를 실제 개발 흐름 기준으로 아주 천천히 재구성**했습니다.
+즉 아직 만들지 않은 것을 먼저 쓰지 않고, 지금 단계에서 필요한 것만 차례대로 진행합니다.
+
+---
+
+# 0. 이번 교안의 진짜 목표
+
+이번 교안은 "공부시간 기록기 서비스"를 만드는 교안이지만,
+실제로 더 중요한 목표는 아래 3가지입니다.
+
+| 목표            | 설명                                           |
+| ------------- | -------------------------------------------- |
+| Django 구조 익히기 | 프로젝트, 앱, 설정, 모델, URL, View, Template의 관계를 이해 |
+| 데이터 흐름 익히기    | 모델을 만들고 DB에 반영하고 admin으로 확인하는 흐름 이해          |
+| 화면 출력 익히기     | View에서 데이터를 조회하고 Template로 출력하는 흐름 이해        |
+
+즉 이번 편에서는 아래 지점까지 가는 것이 핵심입니다.
+
+```
+DB에 저장된 공부 기록 데이터
+→ Django View에서 조회
+→ HTML Template로 전달
+→ 예쁜 목록 페이지로 브라우저에 출력
+```
+
+이 흐름이 이해되면 다음 교안에서 만드는 Form / CRUD / Pagination / DRF도 훨씬 덜 어렵게 느껴집니다.
+
+---
+
+# 1. 이번 교안에서 만들 최종 결과 먼저 보기
+
+이번 1편에서 만들 최종 결과는 아래와 같습니다.
+
+## 이번 편에서 완성할 것
+
+* Django 프로젝트 시작
+* `study` 앱 생성
+* `Study` 모델 생성
+* 마이그레이션으로 DB 반영
+* 관리자 페이지에서 데이터 입력 확인
+* 예쁜 `base.html` 레이아웃 구성
+* CSS 디자인 적용
+* 함수형 View로 공부기록 목록 페이지 만들기
+
+## 브라우저에서 보게 될 화면
+
+이번 편 끝에는 아래 느낌의 화면이 보이게 됩니다.
+
+* 상단 네비게이션 헤더
+* 큰 히어로 영역
+* 누적 공부 기록 요약 카드
+* 공부 기록 카드 목록
+* 부드럽고 보기 좋은 카드형 UI
+
+즉 단순히 텍스트만 보이는 실습이 아니라,
+**초보자도 결과물을 보고 만족감을 느낄 수 있는 깔끔한 UI**를 목표로 합니다.
+
+---
+
+# 2. 전체 실습 흐름 먼저 보기
+
+이번 교안은 아래 순서로 진행합니다.
+
+```
+1. Python 설치 확인
+2. 프로젝트 폴더 만들기
+3. 가상환경 생성
+4. Django 설치
+5. Django 프로젝트 생성
+6. 서버 실행 확인
+7. study 앱 생성
+8. settings.py 등록
+9. templates / static 폴더 준비
+10. Study 모델 작성
+11. 마이그레이션
+12. admin 등록
+13. 관리자 계정 생성
+14. 관리자 페이지에서 데이터 확인
+15. URL 구조 설계
+16. 프로젝트 urls.py 연결
+17. 앱 urls.py 연결
+18. 임시 View로 URL 연결 확인
+19. base.html 작성
+20. CSS 작성
+21. 함수형 View로 목록 페이지 구현
+22. 브라우저에서 최종 목록 페이지 확인
+```
+
+## 왜 이 순서인가?
+
+이 순서는 그냥 보기 좋게 배열한 것이 아닙니다.
+
+예를 들어:
+
+* 모델이 있어야 DB 테이블을 만들 수 있습니다.
+* DB 테이블이 있어야 admin에서 데이터를 넣어볼 수 있습니다.
+* 데이터가 있어야 목록 페이지에서 의미 있는 화면을 볼 수 있습니다.
+* URL이 연결되어야 View가 동작합니다.
+* View가 있어야 Template에 데이터를 넘길 수 있습니다.
+
+즉 이번 교안은 **앞 단계가 다음 단계의 준비가 되도록 설계된 순서**입니다.
+
+---
+
+# 3. 실습 전 준비
+
+이번 실습은 **Django가 아직 익숙하지 않은 수강생** 기준으로 작성합니다.
+
+## Python 설치 확인
+
+먼저 Python이 설치되어 있는지 확인합니다.
+
+```bash title="terminal"
+python --version
+```
+
+환경에 따라 아래 명령어가 맞을 수도 있습니다.
+
+```bash title="terminal"
+python3 --version
+```
+
+예를 들어 아래처럼 보이면 정상입니다.
+
+```
+Python 3.12.2
+```
+
+## 왜 이걸 먼저 할까?
+
+Django는 Python 위에서 동작합니다.
+즉 Python이 정상적으로 설치되어 있지 않으면 이후 단계는 전부 막힙니다.
+
+그래서 프로젝트 시작 전에는 항상 아래 흐름으로 확인하는 습관을 들이는 것이 좋습니다.
+
+```
+Python 확인
+→ 가상환경 생성
+→ 패키지 설치
+→ 프로젝트 시작
+```
+
+---
+
+# 4. 프로젝트 폴더 만들기
+
+이제 이번 실습을 위한 새 폴더를 만듭니다.
+
+```bash title="terminal"
+mkdir study_time_tracker
+cd study_time_tracker
+```
+
+## 왜 폴더를 먼저 만들까?
+
+실습 초반부터 폴더 구조를 정리하지 않으면,
+나중에 여러 프로젝트 파일이 섞이거나 경로를 헷갈릴 수 있습니다.
+
+이번 실습은 이 `study_time_tracker` 폴더 안에서 아래 요소들을 함께 관리하게 됩니다.
+
+* Django 프로젝트 파일
+* 앱 파일
+* 템플릿 파일
+* CSS 파일
+* DB 파일
+* 가상환경 폴더
+
+즉 이 폴더 하나가 이번 프로젝트의 작업 공간이 됩니다.
+
+---
+
+# 5. 가상환경 만들기
+
+Python 프로젝트에서는 **가상환경(virtual environment)** 을 사용하는 것이 매우 중요합니다.
+
+## 가상환경이란?
+
+가상환경은 현재 프로젝트만을 위한 독립된 Python 패키지 공간입니다.
+
+쉽게 말하면,
+
+```text
+내 컴퓨터 전체 Python 환경과 분리된
+이 프로젝트 전용 Python 공간
+```
+
+이라고 이해하면 됩니다.
+
+## 왜 필요한가?
+
+초보자는 처음에 이렇게 생각하기 쉽습니다.
+
+> 그냥 pip install django 하면 되는 거 아닌가요?
+
+물론 설치는 됩니다.
+하지만 그렇게 하면 Django가 내 컴퓨터 전체 Python 환경에 들어갑니다.
+그러면 다른 프로젝트와 버전이 섞이거나, 나중에 패키지 충돌이 생길 수 있습니다.
+
+가상환경을 쓰면 아래처럼 프로젝트별로 독립적으로 관리할 수 있습니다.
+
+```text
+프로젝트 A
+└─ Django 5.x
+
+프로젝트 B
+└─ FastAPI
+
+프로젝트 C
+└─ 데이터 분석용 패키지
+```
+
+즉 패키지가 섞이지 않습니다.
+
+## 가상환경 생성
+
+```bash title="terminal"
+python -m venv .venv
+```
+
+환경에 따라 `python3`를 사용해야 할 수도 있습니다.
+
+```bash title="terminal"
+python3 -m venv .venv
+```
+
+## 가상환경 활성화
+
+### Windows
+
+```bash title="terminal"
+.venv\Scripts\activate
+```
+
+### macOS / Linux
+
+```bash title="terminal"
+source .venv/bin/activate
+```
+
+활성화되면 보통 터미널 앞부분에 아래처럼 표시됩니다.
+
+```text
+(.venv)
+```
+
+## 지금 꼭 확인할 것
+
+* `.venv` 폴더가 생성되었는지
+* 터미널 앞에 `(.venv)`가 붙었는지
+
+이 두 가지가 확인되면 정상입니다.
+
+---
+
+# 6. Django 설치
+
+이제 가상환경 안에 Django를 설치합니다.
+
+```bash title="terminal"
+pip install django
+```
+
+설치가 끝나면 버전을 확인합니다.
+
+```bash title="terminal"
+django-admin --version
+```
+
+예시:
+
+```text
+5.2.1
+```
+
+## 왜 버전까지 확인할까?
+
+패키지를 설치한 뒤에는 항상 아래를 확인하는 습관이 중요합니다.
+
+* 정말 설치가 되었는지
+* 지금 어떤 버전이 설치되었는지
+* 가상환경 안에 잘 설치되었는지
+
+실제로 초보자는 가상환경을 켜지 않은 상태에서 설치하거나,
+아예 다른 Python 환경에 설치해서 혼란을 겪는 경우가 많습니다.
+
+그래서 설치 후 버전 확인은 아주 좋은 습관입니다.
+
+---
+
+# 7. Django 프로젝트 생성
+
+이제 Django 프로젝트 자체를 생성합니다.
+
+```bash title="terminal"
+django-admin startproject config .
+```
+
+## 이 명령어의 의미
+
+초보자 입장에서는 이 명령어가 조금 낯설 수 있습니다.
+
+```text
+startproject config .
+```
+
+여기서:
+
+* `config` 는 Django 설정 패키지 이름
+* 마지막 `.` 은 “현재 폴더에 바로 생성하라”는 뜻
+
+입니다.
+
+즉 지금 작업 중인 `study_time_tracker` 폴더 안에 Django 프로젝트를 바로 생성하겠다는 의미입니다.
+
+## 생성 후 구조
+
+```text
+study_time_tracker/
+├── .venv/
+├── config/
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+└── manage.py
+```
+
+## 각 파일 설명
+
+| 파일                 | 역할               |
+| ------------------ | ---------------- |
+| manage.py          | Django 명령 실행 진입점 |
+| config/settings.py | 프로젝트 전체 설정 파일    |
+| config/urls.py     | 최상위 URL 연결 파일    |
+| config/wsgi.py     | 배포용 서버 연결        |
+| config/asgi.py     | 비동기 서버 연결        |
+
+이번 교안에서는 특히 아래 두 파일이 가장 중요합니다.
+
+* `config/settings.py`
+* `config/urls.py`
+
+---
+
+# 8. 서버가 켜지는지 먼저 확인하기
+
+이제 아무 기능도 만들기 전에,
+기본 Django 프로젝트가 정상적으로 실행되는지 먼저 확인합니다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+브라우저에서 아래 주소로 접속합니다.
+
+```text
+http://127.0.0.1:8000
+```
+
+Django 로켓 화면이 보이면 성공입니다.
+
+## 왜 지금 바로 서버를 확인할까?
+
+아직 아무 기능도 없지만, 여기서 먼저 확인하는 이유가 있습니다.
+
+만약 지금 서버가 안 켜지면 아래 중 하나를 의심해야 합니다.
+
+* Python 설치 문제
+* Django 설치 문제
+* 현재 폴더 위치 문제
+* 가상환경 문제
+
+즉, 본격 실습 전에 **최소 실행 환경 검증**을 하는 것입니다.
+
+---
+
+# 9. 앱 생성
+
+Django에서는 기능 단위를 **앱(App)** 으로 나누어 관리합니다.
+
+이번 실습에서는 공부 기록 기능을 담당할 `study` 앱을 생성합니다.
+
+```bash title="terminal"
+python manage.py startapp study
+```
+
+생성 후 구조는 아래와 비슷합니다.
+
+```text
+study/
+├── __init__.py
+├── admin.py
+├── apps.py
+├── migrations/
+├── models.py
+├── tests.py
+└── views.py
+```
+
+## 프로젝트와 앱의 차이
+
+이 부분은 초보자가 많이 헷갈립니다.
+
+### 프로젝트
+
+프로젝트는 전체 웹서비스의 큰 틀입니다.
+
+### 앱
+
+앱은 프로젝트 안에서 특정 기능을 맡는 단위입니다.
+
+예를 들어 큰 서비스라면:
+
+* 사용자 앱
+* 게시판 앱
+* 주문 앱
+* 결제 앱
+
+처럼 나눌 수 있습니다.
+
+이번 실습은 단순하므로 `study` 앱 하나만 사용하지만,
+Django는 기본적으로 이렇게 **기능별 분리**를 지향합니다.
+
+---
+
+# 10. settings.py에 앱 등록
+
+앱을 만들었다고 해서 Django가 자동으로 사용해주지는 않습니다.
+반드시 `INSTALLED_APPS`에 등록해야 합니다.
+
+그리고 이번 실습에서는 템플릿과 CSS도 사용할 것이므로,
+해당 설정도 함께 넣어주겠습니다.
+
+```python title="config/settings.py"
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = 'django-insecure-change-this-key'
+
+DEBUG = True
+
+ALLOWED_HOSTS = []
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    'study',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'config.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'config.wsgi.application'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+LANGUAGE_CODE = 'ko-kr'
+TIME_ZONE = 'Asia/Seoul'
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+```
+
+## 코드 설명
+
+### 1) `INSTALLED_APPS`
+
+여기에 등록된 앱만 Django가 프로젝트의 일부로 인식합니다.
+
+우리가 만든 `study` 앱을 여기에 넣어야:
+
+* 모델을 마이그레이션할 수 있고
+* admin에 등록할 수 있고
+* 앱 구조를 Django가 추적할 수 있습니다.
+
+### 2) `TEMPLATES['DIRS']`
+
+```python
+'DIRS': [BASE_DIR / 'templates']
+```
+
+이 설정은 프로젝트 루트의 `templates` 폴더를 템플릿 탐색 경로로 추가합니다.
+즉 나중에 `templates/base.html` 같은 공용 레이아웃을 쉽게 사용할 수 있게 됩니다.
+
+### 3) `STATICFILES_DIRS`
+
+```python
+STATICFILES_DIRS = [BASE_DIR / 'static']
+```
+
+이 설정은 CSS, JS, 이미지 같은 정적 파일을 프로젝트 루트의 `static` 폴더에서 찾도록 합니다.
+이번 교안에서는 CSS 디자인이 들어가므로 반드시 필요합니다.
+
+### 4) `LANGUAGE_CODE`, `TIME_ZONE`
+
+한국어 기준 실습이므로:
+
+* 언어: `ko-kr`
+* 시간대: `Asia/Seoul`
+
+로 설정했습니다.
+
+## 지금 확인할 것
+
+* `study` 앱이 `INSTALLED_APPS`에 등록되었는지
+* `templates`와 `static` 설정이 추가되었는지
+
+---
+
+# 11. templates / static 폴더 먼저 만들기
+
+이제 앞으로 사용할 폴더 구조를 미리 준비합니다.
+
+```bash title="terminal"
+mkdir templates
+mkdir static
+mkdir static/css
+```
+
+`mkdir` 명령은 Windows, macOS, Linux에서 모두 사용할 수 있습니다.
+
+## 왜 미리 만들까?
+
+초보자는 파일이 필요할 때마다 그때그때 만들다가 경로를 헷갈리는 경우가 많습니다.
+그래서 이번 교안에서는 처음부터 아래 구조를 기준으로 잡습니다.
+
+```text
+study_time_tracker/
+├── config/
+├── study/
+├── templates/
+├── static/
+│   └── css/
+├── db.sqlite3
+└── manage.py
+```
+
+이렇게 구조를 먼저 잡아두면 뒤에서:
+
+* `templates/base.html`
+* `static/css/style.css`
+
+를 만들 때 훨씬 덜 헷갈립니다.
+
+---
+
+# 12. 먼저 데이터 구조를 생각해보기
+
+이제 화면을 만들기 전에 먼저 생각해야 하는 것이 있습니다.
+
+> 우리가 무엇을 저장할 것인가?
+
+Django는 데이터 중심 프레임워크이기 때문에,
+페이지보다 먼저 **모델 설계**를 생각하는 습관이 중요합니다.
+
+이번 공부시간 기록기에서는 아래 정보를 저장해보겠습니다.
+
+| 필드명        | 의미    | 예시                   |
+| ---------- | ----- | -------------------- |
+| title      | 공부 제목 | Django ORM 복습        |
+| category   | 카테고리  | Python, Django, 알고리즘 |
+| study_date | 공부 날짜 | 2026-03-12           |
+| hours      | 시간    | 2                    |
+| minutes    | 분     | 30                   |
+| memo       | 메모    | 오늘은 모델과 뷰의 차이를 복습했다  |
+| created_at | 생성 시각 | 자동 저장                |
+| updated_at | 수정 시각 | 자동 갱신                |
+
+## 왜 모델을 먼저 생각해야 할까?
+
+모델이 정해지면:
+
+* DB 구조가 정해지고
+* admin 화면 구조가 정해지고
+* Form 구조가 정해지고
+* 나중에 Serializer 구조도 정해집니다.
+
+즉 Django에서는 아래 사고 흐름이 중요합니다.
+
+```text
+무슨 화면을 만들까?
+보다
+무슨 데이터를 저장할까?
+```
+
+---
+
+# 13. Study 모델 작성
+
+이제 실제 모델을 작성합니다.
+
+```python title="study/models.py"
+from django.db import models
+
+
+class Study(models.Model):
+    CATEGORY_CHOICES = [
+        ('python', 'Python'),
+        ('django', 'Django'),
+        ('algorithm', '알고리즘'),
+        ('database', 'Database'),
+        ('etc', '기타'),
+    ]
+
+    title = models.CharField(max_length=200, verbose_name='공부 제목')
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='django', verbose_name='카테고리')
+    study_date = models.DateField(verbose_name='공부 날짜')
+    hours = models.PositiveIntegerField(default=0, verbose_name='시간')
+    minutes = models.PositiveIntegerField(default=0, verbose_name='분')
+    memo = models.TextField(blank=True, verbose_name='메모')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-study_date', '-created_at']
+        verbose_name = '공부 기록'
+        verbose_name_plural = '공부 기록들'
+
+    def __str__(self):
+        return f'{self.title} ({self.study_date})'
+
+    @property
+    def total_minutes(self):
+        return self.hours * 60 + self.minutes
+```
+
+## 코드 설명
+
+### 1) `title = models.CharField(...)`
+
+공부 제목을 저장하는 문자열 필드입니다.
+예:
+
+* Django ORM 복습
+* Python 기초 문법 정리
+* SQL JOIN 학습
+
+`max_length=200`은 최대 글자 수입니다.
+
+### 2) `category = models.CharField(..., choices=...)`
+
+카테고리는 자유 입력이 아니라 정해진 선택지 안에서 고르게 했습니다.
+이렇게 하면:
+
+* 오타를 줄일 수 있고
+* admin과 폼에서 선택 UI가 자동으로 나오고
+* 데이터가 더 깔끔해집니다.
+
+### 3) `study_date = models.DateField(...)`
+
+공부한 날짜를 저장합니다.
+언제 공부했는지 기록하는 데 필요합니다.
+
+### 4) `hours`, `minutes`
+
+공부 시간을 한 필드에 넣지 않고,
+
+* 시간
+* 분
+
+으로 분리했습니다.
+
+이 방식은 초보자가 이해하기 쉽고, 나중에 입력 폼도 직관적으로 만들 수 있습니다.
+
+### 5) `memo = models.TextField(blank=True)`
+
+메모는 길게 작성할 수 있으므로 `TextField`를 사용했습니다.
+`blank=True`는 비워둘 수 있다는 의미입니다.
+
+### 6) `created_at`, `updated_at`
+
+* `auto_now_add=True`: 처음 생성될 때 자동 저장
+* `auto_now=True`: 수정될 때마다 자동 갱신
+
+이 두 필드는 나중에 정렬이나 데이터 추적에 자주 쓰입니다.
+
+### 7) `class Meta`
+
+모델의 부가 설정입니다.
+
+* `ordering`: 최신 날짜 순 정렬
+* `verbose_name`: admin에서 보이는 이름
+
+### 8) `__str__`
+
+관리자 페이지나 Django shell에서 객체를 사람이 보기 좋은 문자열로 보여주기 위해 사용합니다.
+이게 없으면 `Study object (1)`처럼 보일 수 있습니다.
+
+### 9) `total_minutes`
+
+공부 시간을 총 분으로 계산하는 속성입니다.
+예를 들어 2시간 30분이면 150을 반환합니다.
+
+이처럼 **모델 안에 데이터 관련 계산 로직**을 넣는 패턴도 자주 사용됩니다.
+
+---
+
+# 14. 마이그레이션: 모델을 DB에 반영하기
+
+모델을 만들었다고 해서 DB에 테이블이 바로 생기는 것은 아닙니다.
+반드시 마이그레이션을 실행해야 합니다.
+
+## 1) migration 파일 생성
+
+```bash title="terminal"
+python manage.py makemigrations
+```
+
+## 2) 실제 DB 반영
+
+```bash title="terminal"
+python manage.py migrate
+```
+
+## 이 작업이 의미하는 것
+
+```text
+models.py에 모델 작성
+→ Django가 변경사항 감지
+→ migration 파일 생성
+→ 실제 DB(SQLite)에 테이블 반영
+```
+
+## 초보자가 가장 많이 하는 오해
+
+> 모델만 만들면 DB에 자동으로 들어간다
+
+아닙니다.
+Django는 안전하게 DB를 관리하기 위해 아래 단계를 분리합니다.
+
+* `makemigrations`: 설계서 만들기
+* `migrate`: 실제 DB에 적용하기
+
+둘 다 해야 합니다.
+
+## 실행 후 꼭 확인할 것
+
+* 프로젝트 루트에 `db.sqlite3` 파일이 생겼는지
+* `study/migrations/` 폴더에 migration 파일이 생겼는지
+
+---
+
+# 15. admin 등록하기
+
+이제 관리자 페이지에서 `Study` 데이터를 직접 확인하고 관리할 수 있도록 등록합니다.
+
+```python title="study/admin.py"
+from django.contrib import admin
+from .models import Study
+
+
+@admin.register(Study)
+class StudyAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'title',
+        'category',
+        'study_date',
+        'hours',
+        'minutes',
+        'created_at',
+    )
+    list_filter = ('category', 'study_date')
+    search_fields = ('title', 'memo')
+    ordering = ('-study_date', '-created_at')
+```
+
+## 코드 설명
+
+### `list_display`
+
+admin 목록 화면에서 어떤 컬럼을 보여줄지 정합니다.
+
+### `list_filter`
+
+오른쪽 필터 영역에서 카테고리나 날짜 기준으로 데이터를 좁혀볼 수 있습니다.
+
+### `search_fields`
+
+검색창에서 제목이나 메모 내용을 검색할 수 있게 합니다.
+
+### `ordering`
+
+최신 공부 기록이 위로 오도록 정렬했습니다.
+
+즉 admin도 단순 등록만 하지 않고,
+**조금 더 보기 좋고 실무적으로 쓰기 편하게** 설정한 것입니다.
+
+---
+
+# 16. 관리자 계정 생성
+
+admin 페이지에 로그인하려면 슈퍼유저 계정이 필요합니다.
+
+```bash title="terminal"
+python manage.py createsuperuser
+```
+
+사용자명, 이메일, 비밀번호를 순서대로 입력합니다.
+
+## 왜 admin을 먼저 보는가?
+
+사용자 화면을 만들기 전,
+모델과 DB가 정상적으로 동작하는지 가장 빠르게 확인하는 방법이 admin입니다.
+
+즉 Django 기본 훈련에서 매우 중요한 흐름은 아래입니다.
+
+```text
+모델 작성
+→ 마이그레이션
+→ admin 등록
+→ 관리자 페이지에서 실제 데이터 확인
+```
+
+---
+
+# 17. 관리자 페이지에서 데이터 직접 확인하기
+
+서버를 실행합니다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+브라우저에서 아래 주소에 접속합니다.
+
+```text
+http://127.0.0.1:8000/admin
+```
+
+로그인 후 `공부 기록` 모델이 보이면 성공입니다.
+
+## 여기서 꼭 해볼 것
+
+1. Study 객체를 3개 정도 직접 추가해보기
+2. 목록에서 잘 보이는지 확인하기
+3. 필터가 보이는지 확인하기
+4. 검색이 되는지 확인하기
+
+예시 데이터:
+
+* Django ORM 복습 / Django / 오늘 / 2시간 30분
+* Python 문법 정리 / Python / 오늘 / 1시간 20분
+* 알고리즘 문제 풀이 / 알고리즘 / 오늘 / 3시간 0분
+
+## 왜 이 단계가 중요한가?
+
+나중에 목록 페이지에서 데이터를 출력할 때,
+DB에 아무 데이터가 없으면 화면이 비어 있어서 흐름이 잘 체감되지 않을 수 있습니다.
+
+그래서 먼저 admin에서 데이터를 넣어두면,
+뒤에서 View와 Template를 만들 때 **눈으로 바로 결과를 확인할 수 있습니다.**
+
+---
+
+# 18. 사용자 화면을 만들기 전에 URL 구조 먼저 설계하기
+
+이제 관리자 페이지가 아니라,
+사용자가 직접 보는 화면을 만들 차례입니다.
+
+그 전에 먼저 URL 구조를 생각해보겠습니다.
+
+이번 1편에서는 아래 URL만 사용합니다.
+
+| URL | 역할          |
+| --- | ----------- |
+| `/` | 공부기록 목록 페이지 |
+
+지금은 목록 페이지만 먼저 만들 것입니다.
+생성 / 수정 / 삭제는 다음 교안에서 이어집니다.
+
+## 왜 URL을 먼저 생각할까?
+
+브라우저 요청은 결국 URL로 들어옵니다.
+그리고 Django는 아래 흐름으로 동작합니다.
+
+```text
+URL
+→ View
+→ Template
+→ 브라우저 화면
+```
+
+즉 URL은 사용자의 요청이 들어오는 입구입니다.
+
+---
+
+# 19. 프로젝트 최상위 urls.py 작성
+
+먼저 프로젝트 최상위 URL에서 `study` 앱의 URL을 연결합니다.
+
+```python title="config/urls.py"
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('study.urls')),
+]
+```
+
+## 코드 설명
+
+### `path('admin/', admin.site.urls)`
+
+기존 관리자 페이지 URL입니다.
+
+### `path('', include('study.urls'))`
+
+루트 주소(`/`)로 들어온 요청을 `study.urls`에게 넘깁니다.
+즉 일반 사용자 페이지는 이제 `study` 앱이 처리하게 됩니다.
+
+## 왜 URL을 분리할까?
+
+프로젝트가 커지면 모든 URL을 `config/urls.py` 한 파일에 다 넣는 것은 관리가 어렵습니다.
+그래서 보통:
+
+* 최상위 urls.py는 큰 분기만 담당
+* 각 앱이 자기 URL을 따로 가짐
+
+구조로 갑니다.
+
+---
+
+# 20. 앱 전용 urls.py 작성
+
+이제 `study` 앱 전용 URL 파일을 만듭니다.
+
+```python title="study/urls.py"
+from django.urls import path
+from . import views
+
+app_name = 'study'
+
+urlpatterns = [
+    path('', views.study_list, name='list'),
+]
+```
+
+## 코드 설명
+
+### `app_name = 'study'`
+
+URL 네임스페이스 역할을 합니다.
+나중에 템플릿에서 아래처럼 사용할 수 있습니다.
+
+```django
+{% url 'study:list' %}
+```
+
+### `name='list'`
+
+URL에 이름을 붙이는 습관은 매우 중요합니다.
+나중에 경로 문자열을 직접 하드코딩하지 않고 이름으로 연결할 수 있기 때문입니다.
+
+즉 Django에서는 가능하면 아래처럼 생각하는 습관이 좋습니다.
+
+```text
+URL 문자열 직접 쓰기
+보다
+URL 이름으로 연결하기
+```
+
+---
+
+# 21. 아직 템플릿이 없어도 View 먼저 골격 만들기
+
+지금은 URL을 연결했으므로,
+그 URL을 처리할 View가 필요합니다.
+
+처음부터 템플릿까지 한 번에 만들지 않고,
+먼저 임시 응답으로 URL 연결이 정상인지 확인하겠습니다.
+
+```python title="study/views.py"
+from django.http import HttpResponse
+
+
+def study_list(request):
+    return HttpResponse('공부기록 목록 페이지')
+```
+
+## 왜 이렇게 임시 응답부터 만들까?
+
+초보자에게 중요한 훈련 중 하나가 바로 이것입니다.
+
+```text
+URL 연결
+→ 최소 응답 확인
+→ 이후 템플릿과 DB 연결
+```
+
+즉, 처음부터 모든 걸 한 번에 만들지 말고,
+먼저 **요청이 잘 들어오는지부터 확인**하는 습관을 들이는 것입니다.
+
+## 지금 꼭 확인할 것
+
+서버를 실행한 뒤 아래 주소에 접속해보세요.
+
+```text
+http://127.0.0.1:8000/
+```
+
+`공부기록 목록 페이지`라는 글자가 보이면 URL과 View 연결은 성공입니다.
+
+---
+
+# 22. 템플릿 폴더 구조 만들기
+
+이제 진짜 HTML 화면을 만들 차례입니다.
+
+이번 1편에서는 아래 두 파일을 먼저 만듭니다.
+
+```text
+templates/
+├── base.html
+└── study/
+    └── study_list.html
+```
+
+`templates/study` 폴더를 만들어주세요.
+
+## 왜 이렇게 나눌까?
+
+* `base.html` : 모든 페이지가 공통으로 사용하는 레이아웃
+* `study/study_list.html` : study 앱 전용 목록 페이지
+
+이 구조는 나중에 생성/상세/수정/삭제 페이지를 추가할 때도 계속 확장하기 좋습니다.
+
+---
+
+# 23. 공용 레이아웃 base.html 만들기
+
+이제 모든 페이지가 공통으로 사용할 기본 레이아웃을 만듭니다.
+
+```html title="templates/base.html"
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}공부시간 기록기{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="site-header">
+      <div class="header-inner container">
+        <a href="{% url 'study:list' %}" class="brand">Study Tracker</a>
+        <nav class="main-nav">
+          <a href="{% url 'study:list' %}">홈</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="site-main">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>꾸준한 기록이 결국 큰 성장을 만듭니다.</p>
+        <p class="footer-sub">Django 반복훈련 1 - 공부시간 기록기</p>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
+```
+
+## 코드 설명
+
+### `{% load static %}`
+
+정적 파일 태그를 사용하기 위해 필요합니다.
+이게 있어야 CSS 파일을 Django 문법으로 불러올 수 있습니다.
+
+### `{% block title %}`, `{% block content %}`
+
+하위 페이지에서 내용을 갈아끼울 수 있는 영역입니다.
+
+즉 `base.html`은 공통 틀이고,
+각 페이지는 이 틀을 상속해서 자신만의 내용을 넣게 됩니다.
+
+## 왜 base.html을 먼저 만들까?
+
+초보자가 페이지마다 HTML 전체를 매번 쓰면 아래 문제가 생깁니다.
+
+* header 중복
+* footer 중복
+* CSS 연결 중복
+* 레이아웃 수정 어려움
+
+그래서 Django 템플릿에서는 보통 아래 구조를 많이 사용합니다.
+
+```text
+base.html 공통 틀
+→ 각 페이지가 extends로 상속
+```
+
+---
+
+# 24. CSS 디자인 적용
+
+이제 템플릿이 너무 밋밋하지 않도록,
+전체 디자인을 담당할 CSS를 만듭니다.
+
+```css title="static/css/style.css"
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Pretendard', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(180deg, #f5f7ff 0%, #eef2ff 45%, #f8fafc 100%);
+  color: #1f2937;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+}
+
+.brand {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.main-nav a {
+  font-weight: 600;
+  color: #475569;
+}
+
+.site-main {
+  flex: 1;
+  padding: 48px 0 72px;
+}
+
+.hero-card {
+  background: linear-gradient(135deg, #111827, #312e81 60%, #4f46e5);
+  color: white;
+  border-radius: 28px;
+  padding: 42px;
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.22);
+  margin-bottom: 28px;
+}
+
+.hero-eyebrow {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.hero-desc {
+  margin-top: 14px;
+  max-width: 720px;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.summary-card,
+.content-card,
+.record-card,
+.empty-card {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  box-shadow: 0 18px 40px rgba(148, 163, 184, 0.12);
+}
+
+.summary-card {
+  padding: 24px;
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.summary-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.content-card {
+  padding: 26px;
+}
+
+.section-title {
+  margin: 0 0 18px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.record-list {
+  display: grid;
+  gap: 18px;
+}
+
+.record-card {
+  padding: 22px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.record-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 50px rgba(99, 102, 241, 0.16);
+}
+
+.record-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.record-meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.badge.gray {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.record-memo {
+  margin: 16px 0 0;
+  line-height: 1.7;
+  color: #475569;
+}
+
+.empty-card {
+  padding: 28px;
+}
+
+.site-footer {
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.footer-inner {
+  padding: 28px 0 40px;
+  text-align: center;
+  color: #475569;
+}
+
+.footer-sub {
+  font-size: 0.92rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 920px) {
+  .page-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-card {
+    padding: 28px;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+```
+
+## CSS 설명
+
+이번 CSS는 단순히 “보이기만 하면 되는 수준”이 아니라,
+초보자도 결과 화면을 보고 만족감을 느낄 수 있도록 구성했습니다.
+
+### 핵심 포인트
+
+* 부드러운 배경 그라디언트
+* sticky 헤더
+* 히어로 카드
+* 카드형 목록 UI
+* 보기 좋은 여백과 정렬
+* 반응형 레이아웃
+
+## 왜 실습인데도 디자인을 신경 써야 할까?
+
+초보자일수록 결과물이 눈에 예쁘게 보이면 학습 동기가 크게 올라갑니다.
+또한 실제 서비스처럼 구조를 잡아보는 연습도 됩니다.
+
+---
+
+# 25. 함수형 View로 목록 페이지 만들기
+
+이제 진짜 데이터를 가져와 HTML로 보여줍니다.
+
+이번 편에서는 가장 기본인 **함수형 View(FBV)** 로 목록 페이지를 구현합니다.
+
+```python title="study/views.py"
+from django.shortcuts import render
+from .models import Study
+
+
+def study_list(request):
+    studies = Study.objects.all()
+
+    total_count = studies.count()
+    total_minutes = sum(study.total_minutes for study in studies)
+    total_hours = total_minutes // 60
+    remain_minutes = total_minutes % 60
+
+    context = {
+        'studies': studies,
+        'total_count': total_count,
+        'total_hours': total_hours,
+        'remain_minutes': remain_minutes,
+    }
+    return render(request, 'study/study_list.html', context)
+```
+
+## 코드 설명
+
+### `studies = Study.objects.all()`
+
+DB에 저장된 모든 공부 기록을 조회합니다.
+
+### 요약 데이터 계산
+
+단순 목록만 보여주는 것이 아니라,
+아래 정보도 함께 계산합니다.
+
+* 전체 기록 개수
+* 전체 공부 시간을 분 단위로 합산
+* 다시 시간과 분으로 나누기
+
+즉 View는 단순히 DB 조회만 하는 곳이 아니라,
+**템플릿에 전달할 화면용 데이터를 준비하는 곳**이기도 합니다.
+
+### `context`
+
+템플릿에 전달할 데이터를 딕셔너리로 모아둔 것입니다.
+
+### `render(request, 'study/study_list.html', context)`
+
+Django에서 HTML 화면을 반환하는 기본 패턴입니다.
+
+즉 아래 흐름을 꼭 기억하세요.
+
+```text
+데이터 조회
+→ 화면용 데이터 준비
+→ context에 담기
+→ render로 템플릿에 전달
+```
+
+---
+
+# 26. 목록 템플릿 작성
+
+이제 데이터를 보기 좋은 UI로 출력합니다.
+
+```html title="templates/study/study_list.html"
+{% extends 'base.html' %}
+
+{% block title %}공부 기록 목록 | 공부시간 기록기{% endblock %}
+
+{% block content %}
+<div class="container">
+  <section class="hero-card">
+    <span class="hero-eyebrow">Django 반복훈련 1</span>
+    <h1 class="hero-title">공부 기록을 쌓아가며<br>꾸준함을 눈으로 확인해보세요.</h1>
+    <p class="hero-desc">
+      단순히 오늘 무엇을 공부했는지 적는 것을 넘어,
+      얼마나 꾸준히 학습하고 있는지 한눈에 확인할 수 있는 공부시간 기록기입니다.
+    </p>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-label">전체 기록 수</div>
+        <div class="summary-value">{{ total_count }}개</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">누적 공부 시간</div>
+        <div class="summary-value">{{ total_hours }}시간 {{ remain_minutes }}분</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">이번 편 목표</div>
+        <div class="summary-value">목록 페이지 완성</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-grid">
+    <section class="content-card">
+      <h2 class="section-title">최근 공부 기록</h2>
+
+      {% if studies %}
+        <div class="record-list">
+          {% for study in studies %}
+            <article class="record-card">
+              <h3 class="record-title">{{ study.title }}</h3>
+
+              <div class="record-meta">
+                <span class="badge">{{ study.get_category_display }}</span>
+                <span class="badge gray">{{ study.study_date }}</span>
+                <span class="badge gray">{{ study.hours }}시간 {{ study.minutes }}분</span>
+              </div>
+
+              <p class="record-memo">
+                {% if study.memo %}
+                  {{ study.memo|truncatechars:120 }}
+                {% else %}
+                  작성된 메모가 없습니다.
+                {% endif %}
+              </p>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-card">
+          <h3 class="section-title">아직 등록된 공부 기록이 없습니다.</h3>
+          <p class="record-memo">
+            먼저 관리자 페이지에서 데이터를 추가해보세요.
+            다음 교안에서는 브라우저 화면에서 직접 생성하는 기능까지 만들게 됩니다.
+          </p>
+        </div>
+      {% endif %}
+    </section>
+
+    <aside class="content-card">
+      <h2 class="section-title">이번 편에서 익히는 것</h2>
+      <p class="record-memo">이번 교안에서는 Django의 가장 기본적인 구조와 데이터가 화면에 보이는 흐름을 익히는 데 집중합니다.</p>
+      <div class="record-meta">
+        <span class="badge">Model</span>
+        <span class="badge gray">Admin</span>
+        <span class="badge gray">Template</span>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+```
+
+## 템플릿 설명
+
+### `{% extends 'base.html' %}`
+
+공용 레이아웃을 상속합니다.
+
+### `{{ total_count }}`, `{{ total_hours }}`
+
+View에서 전달한 요약 데이터를 출력합니다.
+
+### `{% if studies %}`
+
+데이터가 있을 때와 없을 때를 나눠서 처리합니다.
+
+### `{% for study in studies %}`
+
+DB에서 조회한 공부기록 목록을 반복 출력합니다.
+
+### `{{ study.get_category_display }}`
+
+`choices` 필드의 사람이 읽기 좋은 표시값을 가져옵니다.
+
+### `truncatechars`
+
+메모가 너무 길 경우 일정 길이까지만 잘라서 보여줍니다.
+
+즉 템플릿은 단순한 HTML 파일이 아니라,
+**View에서 받은 데이터를 화면 구조에 맞게 출력하는 파일**입니다.
+
+---
+
+# 27. 브라우저에서 최종 결과 확인하기
+
+이제 서버를 실행하고 브라우저에서 확인해봅니다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+브라우저에서 아래 주소로 접속합니다.
+
+```text
+http://127.0.0.1:8000/
+```
+
+## 지금 화면에서 꼭 확인할 것
+
+* 상단 헤더가 보이는지
+* 큰 히어로 카드가 보이는지
+* 전체 기록 수가 보이는지
+* 누적 공부 시간이 계산되어 보이는지
+* admin에서 입력한 데이터가 카드 목록으로 보이는지
+* 메모가 자연스럽게 잘리는지
+
+## 만약 데이터가 안 보인다면?
+
+아래를 확인하세요.
+
+1. admin에서 Study 데이터를 실제로 넣었는지
+2. `study_list` View에서 `Study.objects.all()`을 했는지
+3. 템플릿에서 `studies`를 반복하고 있는지
+4. URL이 `study_list` View로 연결되어 있는지
+
+---
+
+# 28. 이번 편에서 반드시 머리에 남겨야 할 핵심 흐름
+
+이번 교안에서 가장 중요한 흐름은 아래입니다.
+
+```text
+프로젝트 생성
+→ 앱 생성
+→ settings 등록
+→ 모델 작성
+→ 마이그레이션
+→ admin으로 데이터 확인
+→ URL 연결
+→ 함수형 View에서 DB 조회
+→ Template로 화면 출력
+```
+
+이 흐름이 Django 기본기의 핵심입니다.
+
+여기까지 이해되면 다음 교안에서 만들 기능들:
+
+* 생성(Create)
+* 상세(Detail)
+* 수정(Update)
+* 삭제(Delete)
+* Form / ModelForm
+* Pagination
+
+도 훨씬 자연스럽게 이어집니다.
+
+---
+
+# 29. 자주 하는 실수 정리
+
+## 1) `study` 앱을 `INSTALLED_APPS`에 등록하지 않음
+
+이 경우 마이그레이션이나 admin 등록이 정상적으로 되지 않을 수 있습니다.
+
+## 2) 모델 작성 후 `makemigrations`, `migrate`를 안 함
+
+코드만 바뀌고 실제 DB는 그대로라서 혼란이 생깁니다.
+
+## 3) admin 등록을 안 함
+
+관리자 페이지에서 데이터 확인이 되지 않습니다.
+
+## 4) `templates` / `static` 설정을 안 넣음
+
+Template나 CSS 연결이 꼬일 수 있습니다.
+
+## 5) `study/urls.py`를 만들었지만 `config/urls.py`에서 include하지 않음
+
+브라우저에서 해당 View가 열리지 않습니다.
+
+## 6) View에서 context로 넘긴 이름과 템플릿에서 쓰는 이름이 다름
+
+예를 들어 View는 `studies`로 넘겼는데 템플릿에서 `study_list`라고 쓰면 데이터가 안 보입니다.
+
+---
+
+# 30. 체크리스트
+
+아래 항목을 직접 체크해보세요.
+
+* [ ] Python 설치를 확인했다.
+* [ ] 프로젝트 폴더를 만들었다.
+* [ ] 가상환경을 생성하고 활성화했다.
+* [ ] Django를 설치했다.
+* [ ] Django 프로젝트를 생성했다.
+* [ ] `runserver`로 기본 Django 화면을 확인했다.
+* [ ] `study` 앱을 생성했다.
+* [ ] `settings.py`에 앱을 등록했다.
+* [ ] `templates` / `static` 폴더를 만들었다.
+* [ ] `Study` 모델을 작성했다.
+* [ ] `makemigrations`, `migrate`를 완료했다.
+* [ ] admin에 모델을 등록했다.
+* [ ] 관리자 계정을 만들었다.
+* [ ] admin에서 데이터를 직접 추가했다.
+* [ ] 프로젝트 / 앱 URL을 연결했다.
+* [ ] 함수형 View를 작성했다.
+* [ ] `study_list.html` 템플릿을 만들었다.
+* [ ] CSS 디자인이 적용된 목록 페이지를 브라우저에서 확인했다.
+
+---
+
+# 31. 결론
+
+이번 교안에서 만든 것은 단순한 목록 페이지이지만,
+실제로 더 중요하게 익힌 것은 **Django의 가장 기본적인 시작 흐름**입니다.
+
+이번 실습에서 여러분은 이미 아래를 경험했습니다.
+
+* Django 프로젝트 시작
+* 앱 생성
+* 설정 등록
+* 모델 설계
+* DB 반영
+* 관리자 페이지 확인
+* URL 연결
+* View와 Template 연결
+* CSS 적용
+* DB 데이터를 브라우저 화면으로 출력
+
+즉, 이제 여러분은 Django에서 “데이터가 화면에 보이기까지”의 가장 기본적인 흐름을 한 번 완주한 것입니다.
+
+다음 교안에서는 이 흐름 위에 아래 기능을 올리게 됩니다.
+
+```text
+ModelForm
+→ Create
+→ Detail
+→ Update
+→ Delete
+→ Pagination
+```
+
+즉 다음 편부터는 진짜 **사용자가 직접 데이터를 다루는 웹서비스 형태**가 완성되기 시작합니다.
+
+수고 많았습니다. 이번 편은 꼭 직접 따라치면서,
+아래 흐름이 머릿속에 남도록 반복해보세요.
+
+```text
+Model
+→ Migration
+→ Admin
+→ URL
+→ View
+→ Template
+```
+
+이 흐름이 Django 기본기의 핵심입니다.
+
+---
+
+# 다음 교안 예고
+
+다음 교안에서는 아래를 다룹니다.
+
+* ModelForm 만들기
+* 공부기록 생성 기능
+* 상세 페이지
+* 수정 기능
+* 삭제 기능
+* 페이지네이션
+
+즉 이번 편이 “프로젝트 시작과 목록 출력”이었다면,
+다음 편은 **실제 CRUD 완성** 단계입니다.
