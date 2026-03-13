@@ -1,7 +1,7 @@
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import React from "react";
-import { slug } from "github-slugger";
+import { tagToSlug } from "@/src/utils/tags";
 
 const BlogDetails = ({ blog }) => {
   return (
@@ -16,7 +16,7 @@ const BlogDetails = ({ blog }) => {
         {blog.tags.map((tag) => (
           <Link
             key={tag}
-            href={`/categories/${slug(tag)}`}
+            href={`/categories/${tagToSlug(tag)}`}
             className="inline-flex items-center rounded-full bg-accent/80 px-4 py-2 border border-light/20 hover:scale-105 transition-transform"
           >
             🏷️ {tag}
