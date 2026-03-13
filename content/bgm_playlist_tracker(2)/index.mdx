@@ -1,0 +1,1520 @@
+---
+title: "Django 기초 - BGM 플레이리스트 기록기 만들기(2)"
+description: "Django ModelForm과 함수형 View를 활용하여 곡 등록, 상세보기, 수정, 삭제 기능을 만들고, 유튜브 링크를 상세페이지에서 재생하는 CRUD 실습을 진행합니다."
+image: "../../public/blogs/bgm_playlist_tracker(2)/cover.png"
+publishedAt: "2026-03-14T01:10:00+09:00"
+updatedAt: "2026-03-14T01:10:00+09:00"
+author: "Baekki"
+isPublished: true
+tags:
+    - Django basic
+    - CRUD
+    - BGM 플레이리스트 기록기 만들기
+---
+
+# Django 기초 - BGM 플레이리스트 기록기 만들기(2) : 곡 등록, 상세, 수정, 삭제, 유튜브 재생
+
+<a href="https://python-lesson-red.vercel.app/blogs/bgm_playlist_tracker(1)" target="_blank">➡️ 이전 교안 보러가기</a>
+
+이번 2편에서는 1편에서 만든 **메인 카드형 목록 페이지**를 바탕으로,
+이제 진짜 웹앱처럼 사용할 수 있도록 **CRUD 기능**을 붙여보겠습니다.
+
+즉 이번 편부터는 관리자 페이지에서만 데이터를 넣는 것이 아니라,
+**브라우저에서 직접 곡을 등록하고, 상세페이지를 보고, 수정하고, 삭제하는 흐름**을 완성하게 됩니다.
+
+이번 2편에서 추가할 기능은 아래와 같습니다.
+
+* 곡 등록 페이지
+* 곡 상세 페이지
+* 곡 수정 페이지
+* 곡 삭제 페이지
+* 유튜브 링크를 상세페이지에서 iframe으로 재생하기
+
+이번 편이 끝나면 사용자는 아래 흐름으로 앱을 사용할 수 있게 됩니다.
+
+```
+곡 등록하기
+→ 목록에서 카드 확인하기
+→ 상세페이지 들어가기
+→ 유튜브 영상 보기
+→ 수정하기
+→ 삭제하기
+```
+
+즉 1편이 **뼈대와 목록 화면**이었다면,
+이번 2편은 **실제 사용 가능한 CRUD 웹앱으로 만드는 단계**라고 보면 됩니다.
+
+---
+
+# 0. 이번 교안의 진짜 목표
+
+이번 교안의 핵심은 단순히 페이지를 몇 개 더 만드는 데 있지 않습니다.
+
+실제로는 아래 4가지를 익히는 것이 중요합니다.
+
+| 목표              | 설명                                                          |
+| --------------- | ----------------------------------------------------------- |
+| ModelForm 흐름 이해 | 모델 기반 입력 폼을 빠르게 만드는 법을 익힌다                                  |
+| 함수형 CRUD 흐름 이해  | 생성(Create), 조회(Read), 수정(Update), 삭제(Delete) 전체 흐름을 직접 구현한다 |
+| 상세페이지의 역할 이해    | 목록과 상세의 역할 차이를 분명히 이해한다                                     |
+| 조건부 렌더링 경험      | 유튜브 링크가 있을 때만 iframe을 보여주는 조건부 렌더링을 구현한다                    |
+
+이번 편에서 꼭 머릿속에 남겨야 할 흐름은 아래입니다.
+
+```
+Model 준비
+→ Form 만들기
+→ 등록 View 만들기
+→ 상세 View 만들기
+→ 수정 / 삭제 View 만들기
+→ Template에서 폼과 데이터를 출력하기
+→ 링크가 있을 때만 영상 보여주기
+```
+
+이 흐름을 익혀두면 3편에서 만들 **검색 / 필터 / 추천 기능**도 훨씬 쉽게 이해할 수 있습니다.
+
+---
+
+# 1. 이번 교안에서 만들 최종 결과 먼저 보기
+
+이번 2편이 끝나면 아래 기능들이 동작해야 합니다.
+
+<Image
+  src="/blogs/bgm_playlist_tracker(2)/3.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+## 이번 편에서 완성할 것
+
+| 영역     | 기능                            |
+| ------ | ----------------------------- |
+| 등록 페이지 | 사용자가 브라우저에서 곡을 직접 등록할 수 있음    |
+| 상세 페이지 | 카드 클릭 또는 버튼 클릭으로 곡 상세정보 확인 가능 |
+| 수정 페이지 | 기존 곡 정보를 수정할 수 있음             |
+| 삭제 페이지 | 곡을 삭제할 수 있음                   |
+| 유튜브 재생 | 유튜브 링크가 있으면 상세페이지에서 영상 재생 가능  |
+
+## 최종 사용 흐름
+
+```
+브라우저에서 곡 등록
+→ 메인 카드 목록에 새 곡 표시
+→ 상세페이지 이동
+→ 유튜브 영상 재생 확인
+→ 수정 / 삭제까지 가능
+```
+
+즉 이번 편에서는 **곡 데이터가 진짜 웹 흐름으로 살아 움직이도록 만드는 것**이 핵심입니다.
+
+---
+
+# 2. 지난 시간 복습
+
+1편에서는 아래 구조를 완성했습니다.
+
+* `Song` 모델 작성
+* migration 진행
+* admin 등록
+* 함수형 View 목록 페이지
+* 카드형 UI 메인 화면
+
+즉 1편은 아래 흐름이었습니다.
+
+```
+Song 모델 작성
+→ DB 반영
+→ 관리자 페이지에서 데이터 넣기
+→ 목록 View 조회
+→ 템플릿에서 카드 출력
+```
+
+이번 2편은 여기에 아래 흐름이 추가됩니다.
+
+```
+ModelForm 만들기
+→ 등록 페이지 만들기
+→ 상세페이지 만들기
+→ 수정 페이지 만들기
+→ 삭제 페이지 만들기
+→ 유튜브 iframe 연결하기
+```
+
+---
+
+# 3. 이번 실습 순서 먼저 보기
+
+이번 2편은 아래 순서로 진행합니다.
+
+```
+1. ModelForm 만들기
+2. 곡 등록 View 작성
+3. 등록 URL 연결
+4. 등록 템플릿 만들기
+5. 상세 View 작성
+6. 상세 URL 연결
+7. 상세 템플릿 만들기
+8. 유튜브 링크를 embed 주소로 변환하기
+9. 수정 View 작성
+10. 수정 템플릿 만들기
+11. 삭제 View 작성
+12. 삭제 확인 템플릿 만들기
+13. 메인 카드에 상세 이동 버튼 연결
+14. 전체 CRUD 흐름 테스트
+```
+
+## 왜 이 순서인가?
+
+* Form이 있어야 등록/수정 페이지를 만들 수 있습니다.
+* 등록이 있어야 상세페이지에서 새 데이터를 확인할 수 있습니다.
+* 상세페이지가 있어야 수정/삭제 진입 흐름이 자연스럽습니다.
+* 유튜브 재생은 상세페이지에 붙이는 것이 가장 자연스럽습니다.
+
+즉 이번에도 앞 단계가 준비되어야 다음 단계로 넘어갈 수 있습니다.
+
+---
+
+# 4. forms.py 만들기
+
+먼저 `Song` 모델 기반 입력 폼을 쉽게 만들기 위해 `ModelForm`을 사용하겠습니다.
+
+```python title="music/forms.py"
+from django import forms
+from .models import Song
+
+
+class SongForm(forms.ModelForm):
+    class Meta:
+        model = Song
+        fields = ["artist", "title", "rating", "comment", "youtube_url"]
+        widgets = {
+            "artist": forms.TextInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "가수명을 입력하세요",
+                }
+            ),
+            "title": forms.TextInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "곡 제목을 입력하세요",
+                }
+            ),
+            "rating": forms.NumberInput(
+                attrs={
+                    "class": "form-input",
+                    "min": 1,
+                    "max": 5,
+                    "placeholder": "1 ~ 5",
+                }
+            ),
+            "comment": forms.Textarea(
+                attrs={
+                    "class": "form-textarea",
+                    "rows": 5,
+                    "placeholder": "이 곡을 좋아하는 이유를 적어보세요",
+                }
+            ),
+            "youtube_url": forms.URLInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "https://www.youtube.com/watch?v=...",
+                }
+            ),
+        }
+```
+
+---
+
+## 왜 ModelForm을 사용할까?
+
+기존 모델이 이미 있으므로, 필드를 다시 일일이 폼으로 선언하는 대신
+모델 기반으로 자동 폼을 생성하는 것이 훨씬 효율적입니다.
+
+즉 아래처럼 생각하면 됩니다.
+
+```
+Song 모델이 이미 있음
+→ SongForm이 그 구조를 활용함
+→ HTML 입력 폼을 더 쉽게 만들 수 있음
+```
+
+---
+
+## `fields`는 무엇을 의미할까?
+
+```python title="music/forms.py"
+fields = ["artist", "title", "rating", "comment", "youtube_url"]
+```
+
+이 코드는 어떤 필드를 사용자에게 입력받을지 정하는 부분입니다.
+
+즉 사용자는 아래 항목을 브라우저에서 직접 입력하게 됩니다.
+
+* 가수
+* 곡 제목
+* 별점
+* 한줄 코멘트
+* 유튜브 링크
+
+`created_at`, `updated_at` 같은 필드는 자동 처리되므로 폼에 넣지 않습니다.
+
+---
+
+## `widgets`는 왜 사용할까?
+
+`widgets`는 폼의 HTML 모양과 속성을 조금 더 보기 좋게 다듬기 위해 사용합니다.
+
+예를 들면:
+
+* input에 CSS 클래스 넣기
+* placeholder 넣기
+* textarea 행 수 지정하기
+* rating 최소/최대 범위 힌트 주기
+
+즉 이번 프로젝트에서는 단순 기능만이 아니라,
+**폼 화면도 어느 정도 예쁘게 보여주기 위해 widgets를 같이 설정**합니다.
+
+---
+
+# 5. views.py에 CRUD View 작성하기
+
+이제 `music/views.py`를 CRUD 흐름에 맞게 확장하겠습니다.
+
+```python title="music/views.py"
+from urllib.parse import parse_qs, urlparse
+
+from django.shortcuts import get_object_or_404, redirect, render
+
+from .forms import SongForm
+from .models import Song
+
+
+
+def extract_youtube_video_id(url):
+    if not url:
+        return None
+
+    parsed_url = urlparse(url)
+
+    if "youtu.be" in parsed_url.netloc:
+        return parsed_url.path.lstrip("/")
+
+    if "youtube.com" in parsed_url.netloc:
+        query = parse_qs(parsed_url.query)
+        if "v" in query:
+            return query["v"][0]
+
+        path_parts = parsed_url.path.split("/")
+        if "embed" in path_parts:
+            embed_index = path_parts.index("embed")
+            if embed_index + 1 < len(path_parts):
+                return path_parts[embed_index + 1]
+
+    return None
+
+
+
+def song_list(request):
+    songs = Song.objects.all()
+    return render(request, "music/song_list.html", {"songs": songs})
+
+
+
+def song_create(request):
+    if request.method == "POST":
+        form = SongForm(request.POST)
+        if form.is_valid():
+            song = form.save()
+            return redirect("music:song_detail", pk=song.pk)
+    else:
+        form = SongForm()
+
+    return render(request, "music/song_form.html", {"form": form, "mode": "create"})
+
+
+
+def song_detail(request, pk):
+    song = get_object_or_404(Song, pk=pk)
+    video_id = extract_youtube_video_id(song.youtube_url)
+    embed_url = f"https://www.youtube.com/embed/{video_id}" if video_id else None
+
+    context = {
+        "song": song,
+        "embed_url": embed_url,
+    }
+    return render(request, "music/song_detail.html", context)
+
+
+
+def song_update(request, pk):
+    song = get_object_or_404(Song, pk=pk)
+
+    if request.method == "POST":
+        form = SongForm(request.POST, instance=song)
+        if form.is_valid():
+            song = form.save()
+            return redirect("music:song_detail", pk=song.pk)
+    else:
+        form = SongForm(instance=song)
+
+    return render(request, "music/song_form.html", {"form": form, "mode": "update", "song": song})
+
+
+
+def song_delete(request, pk):
+    song = get_object_or_404(Song, pk=pk)
+
+    if request.method == "POST":
+        song.delete()
+        return redirect("music:song_list")
+
+    return render(request, "music/song_confirm_delete.html", {"song": song})
+```
+
+---
+
+# 6. `extract_youtube_video_id()` 함수 이해하기
+
+이번 2편에서 가장 새롭게 들어가는 부분은 바로 **유튜브 링크 처리**입니다.
+
+우리는 상세페이지에서 영상을 재생하고 싶지만,
+사용자가 입력하는 링크는 보통 아래처럼 다양합니다.
+
+* `https://www.youtube.com/watch?v=VIDEO_ID`
+* `https://youtu.be/VIDEO_ID`
+* `https://www.youtube.com/embed/VIDEO_ID`
+
+그런데 iframe에는 보통 이런 주소가 들어가야 합니다.
+
+```text
+https://www.youtube.com/embed/VIDEO_ID
+```
+
+즉, 원본 링크에서 `VIDEO_ID`만 추출해서 embed 주소로 바꿔줘야 합니다.
+
+이번 함수는 바로 그 역할을 합니다.
+
+```python title="music/views.py"
+def extract_youtube_video_id(url):
+```
+
+이 함수는 링크를 받아서 `VIDEO_ID`만 꺼내고,
+상세 View에서 그것을 다시 `embed_url`로 조합합니다.
+
+---
+
+## 왜 별도 함수로 분리할까?
+
+그냥 `song_detail()` 안에 전부 써도 동작은 할 수 있습니다.
+하지만 그렇게 하면 코드가 길어지고, 역할이 섞입니다.
+
+그래서 아래처럼 분리하는 것이 더 좋습니다.
+
+* `song_detail()` → 곡 상세페이지를 보여주는 역할
+* `extract_youtube_video_id()` → 유튜브 링크에서 video id 추출 역할
+
+이렇게 역할을 나누면 코드가 읽기 훨씬 쉬워집니다.
+
+---
+
+# 7. 등록 / 상세 / 수정 / 삭제 View 하나씩 이해하기
+
+## 7-1. 곡 등록 View
+
+```python title="music/views.py"
+def song_create(request):
+    if request.method == "POST":
+        form = SongForm(request.POST)
+        if form.is_valid():
+            song = form.save()
+            return redirect("music:song_detail", pk=song.pk)
+    else:
+        form = SongForm()
+
+    return render(request, "music/song_form.html", {"form": form, "mode": "create"})
+```
+
+### 흐름 설명
+
+```text
+GET 요청
+→ 빈 폼 보여주기
+
+POST 요청
+→ 사용자가 입력한 데이터 받기
+→ 유효성 검사
+→ 저장
+→ 상세페이지로 이동
+```
+
+여기서 `form.save()`를 하면 `Song` 모델 객체가 실제 DB에 저장됩니다.
+
+---
+
+## 7-2. 곡 상세 View
+
+```python title="music/views.py"
+def song_detail(request, pk):
+    song = get_object_or_404(Song, pk=pk)
+```
+
+상세페이지는 **특정 곡 한 개만 조회**해야 하므로 `pk`를 사용합니다.
+
+즉 URL에서 받은 `pk`를 기준으로 해당 곡을 찾아오는 것입니다.
+
+만약 존재하지 않는 `pk`면 자동으로 404 에러 페이지가 뜹니다.
+
+---
+
+## 7-3. 곡 수정 View
+
+```python title="music/views.py"
+def song_update(request, pk):
+    song = get_object_or_404(Song, pk=pk)
+```
+
+수정도 먼저 기존 데이터를 가져와야 합니다.
+
+그리고 중요한 부분은 아래입니다.
+
+```python title="music/views.py"
+form = SongForm(request.POST, instance=song)
+```
+
+이렇게 `instance=song`을 주면,
+새 데이터를 만드는 것이 아니라 **기존 곡 정보를 수정하는 폼**이 됩니다.
+
+---
+
+## 7-4. 곡 삭제 View
+
+```python title="music/views.py"
+def song_delete(request, pk):
+    song = get_object_or_404(Song, pk=pk)
+
+    if request.method == "POST":
+        song.delete()
+        return redirect("music:song_list")
+```
+
+삭제는 GET 요청에서 바로 실행하지 않고,
+보통 한 번 확인 페이지를 보여준 다음 POST로 삭제하는 것이 더 안전합니다.
+
+즉 이번 교안에서는:
+
+* GET → 삭제 확인 페이지 보여주기
+* POST → 실제 삭제 실행
+
+으로 처리합니다.
+
+---
+
+# 8. music 앱 URL 확장하기
+
+이제 CRUD URL을 모두 연결하겠습니다.
+
+```python title="music/urls.py"
+from django.urls import path
+from . import views
+
+app_name = "music"
+
+urlpatterns = [
+    path("", views.song_list, name="song_list"),
+    path("create/", views.song_create, name="song_create"),
+    path("<int:pk>/", views.song_detail, name="song_detail"),
+    path("<int:pk>/update/", views.song_update, name="song_update"),
+    path("<int:pk>/delete/", views.song_delete, name="song_delete"),
+]
+```
+
+---
+
+## URL 흐름 해석
+
+| URL             | 의미          |
+| --------------- | ----------- |
+| `/`             | 목록 페이지      |
+| `/create/`      | 곡 등록 페이지    |
+| `/<pk>/`        | 곡 상세 페이지    |
+| `/<pk>/update/` | 곡 수정 페이지    |
+| `/<pk>/delete/` | 곡 삭제 확인 페이지 |
+
+이 구조는 Django CRUD에서 정말 자주 쓰이는 가장 기본적인 패턴입니다.
+
+---
+
+# 9. 목록 페이지에 등록 버튼 / 상세 버튼 연결하기
+
+이제 1편에서 만든 `song_list.html`을 조금 수정해서,
+등록 버튼과 상세 이동 버튼을 추가하겠습니다.
+
+```html title="templates/music/song_list.html"
+{% extends "music/base.html" %}
+
+{% block content %}
+<section class="hero-section">
+  <div class="hero-section__text">
+    <p class="eyebrow">Django Basic Project</p>
+    <h1>내 인생 BGM 플레이리스트</h1>
+    <p class="hero-description">
+      내가 좋아하는 곡들을 직접 기록하고,
+      나만의 플레이리스트 아카이브를 만들어보는 Django 프로젝트입니다.
+    </p>
+  </div>
+
+  <a href="{% url 'music:song_create' %}" class="hero-button">
+    + 새 곡 등록하기
+  </a>
+</section>
+
+<section class="songs-section">
+  <div class="section-header">
+    <div>
+      <p class="section-label">Playlist</p>
+      <h2>등록된 곡 목록</h2>
+    </div>
+    <span class="song-count">{{ songs|length }}곡</span>
+  </div>
+
+  {% if songs %}
+    <div class="song-grid">
+      {% for song in songs %}
+        <article class="song-card">
+          <div class="song-card__cover">
+            <div class="cover-placeholder">
+              <span>♪</span>
+            </div>
+          </div>
+
+          <div class="song-card__body">
+            <p class="song-card__artist">{{ song.artist }}</p>
+            <h3 class="song-card__title">{{ song.title }}</h3>
+
+            <div class="song-card__rating">
+              {% for _ in "12345" %}
+                {% if forloop.counter <= song.rating %}
+                  <span class="star filled">★</span>
+                {% else %}
+                  <span class="star">☆</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <p class="song-card__comment">
+              {{ song.comment|truncatechars:60 }}
+            </p>
+
+            <a href="{% url 'music:song_detail' song.pk %}" class="card-button">
+              상세보기
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-box">
+      <h3>아직 등록된 곡이 없습니다.</h3>
+      <p>첫 번째 곡을 직접 등록해보세요.</p>
+      <a href="{% url 'music:song_create' %}" class="hero-button empty-button">
+        곡 등록하러 가기
+      </a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+```
+
+---
+
+# 10. 등록 / 수정 공용 템플릿 만들기
+
+등록과 수정은 폼 구조가 거의 같기 때문에 템플릿 하나를 공용으로 사용하는 것이 좋습니다.
+
+```html title="templates/music/song_form.html"
+{% extends "music/base.html" %}
+
+{% block content %}
+<section class="form-page">
+  <div class="form-card">
+    <p class="eyebrow">Song Form</p>
+
+    {% if mode == "create" %}
+      <h1>새 곡 등록하기</h1>
+      <p class="form-description">좋아하는 곡 정보를 입력하고 나만의 플레이리스트에 추가해보세요.</p>
+    {% else %}
+      <h1>곡 정보 수정하기</h1>
+      <p class="form-description">등록된 곡 정보를 다시 수정할 수 있습니다.</p>
+    {% endif %}
+
+    <form method="post" class="song-form">
+      {% csrf_token %}
+
+      {% for field in form %}
+        <div class="form-group">
+          <label for="{{ field.id_for_label }}" class="form-label">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.help_text %}
+            <p class="form-help">{{ field.help_text }}</p>
+          {% endif %}
+          {% for error in field.errors %}
+            <p class="form-error">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="form-actions">
+        <button type="submit" class="primary-button">
+          {% if mode == "create" %}
+            등록하기
+          {% else %}
+            수정 완료
+          {% endif %}
+        </button>
+        <a href="{% url 'music:song_list' %}" class="secondary-button">목록으로</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+```
+
+---
+
+## 왜 등록 / 수정 템플릿을 하나로 합칠까?
+
+등록 페이지와 수정 페이지는 화면 구조가 거의 같습니다.
+
+다른 점은 보통 이 정도뿐입니다.
+
+* 제목 문구
+* 버튼 문구
+* 수정일 때는 기존 값이 미리 들어가 있음
+
+따라서 템플릿을 분리하기보다 `mode` 값으로 나누는 것이 더 효율적입니다.
+
+---
+
+# 11. 상세 페이지 템플릿 만들기
+
+이제 이번 편의 핵심인 `song_detail.html`을 만듭니다.
+
+```html title="templates/music/song_detail.html"
+{% extends "music/base.html" %}
+
+{% block content %}
+<section class="detail-page">
+  <div class="detail-top">
+    <div class="detail-main-card">
+      <p class="detail-artist">{{ song.artist }}</p>
+      <h1>{{ song.title }}</h1>
+
+      <div class="detail-rating">
+        {% for _ in "12345" %}
+          {% if forloop.counter <= song.rating %}
+            <span class="star filled">★</span>
+          {% else %}
+            <span class="star">☆</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="detail-comment-box">
+        <h3>한줄 코멘트</h3>
+        <p>{{ song.comment|linebreaksbr }}</p>
+      </div>
+
+      <div class="detail-meta">
+        <p><strong>등록일</strong> {{ song.created_at|date:"Y-m-d H:i" }}</p>
+        <p><strong>수정일</strong> {{ song.updated_at|date:"Y-m-d H:i" }}</p>
+      </div>
+
+      <div class="detail-actions">
+        <a href="{% url 'music:song_update' song.pk %}" class="primary-button">수정하기</a>
+        <a href="{% url 'music:song_delete' song.pk %}" class="danger-button">삭제하기</a>
+        <a href="{% url 'music:song_list' %}" class="secondary-button">목록으로</a>
+      </div>
+    </div>
+
+    <div class="detail-video-card">
+      <h3>유튜브 영상</h3>
+
+      {% if embed_url %}
+        <div class="video-wrapper">
+          <iframe
+            src="{{ embed_url }}"
+            title="{{ song.title }}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen>
+          </iframe>
+        </div>
+      {% else %}
+        <div class="video-empty-box">
+          <p>등록된 유튜브 링크가 없습니다.</p>
+          <p>수정 페이지에서 링크를 추가해보세요.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+```
+
+---
+
+## 상세페이지가 왜 중요한가?
+
+이번 프로젝트는 목록 페이지에서도 기본 정보가 어느 정도 보이지만,
+상세페이지에서는 아래처럼 더 많은 역할을 합니다.
+
+* 전체 코멘트 보기
+* 등록일 / 수정일 보기
+* 유튜브 영상 재생
+* 수정 / 삭제 진입
+
+즉 목록은 **요약 정보**, 상세는 **전체 정보 + 행동 버튼** 역할을 담당합니다.
+
+---
+
+# 12. 삭제 확인 페이지 만들기
+
+삭제는 바로 실행하기보다, 한 번 더 확인받는 페이지를 두는 것이 좋습니다.
+
+```html title="templates/music/song_confirm_delete.html"
+{% extends "music/base.html" %}
+
+{% block content %}
+<section class="delete-page">
+  <div class="delete-card">
+    <p class="eyebrow">Delete Song</p>
+    <h1>정말 이 곡을 삭제하시겠어요?</h1>
+    <p class="delete-description">
+      <strong>{{ song.artist }} - {{ song.title }}</strong> 곡이 삭제됩니다.
+      삭제 후에는 다시 복구되지 않습니다.
+    </p>
+
+    <form method="post" class="delete-form">
+      {% csrf_token %}
+      <button type="submit" class="danger-button">삭제하기</button>
+      <a href="{% url 'music:song_detail' song.pk %}" class="secondary-button">취소하기</a>
+    </form>
+  </div>
+</section>
+{% endblock %}
+```
+
+---
+
+# 13. CSS 확장하기
+
+이제 1편의 CSS 아래에, 이번 2편에서 필요한 스타일을 추가합니다.
+
+```css title="static/music/css/style.css"
+.hero-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.hero-button,
+.primary-button,
+.secondary-button,
+.danger-button,
+.card-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.hero-button,
+.primary-button {
+  background: linear-gradient(135deg, #a78bfa, #38bdf8);
+  color: white;
+  box-shadow: 0 12px 24px rgba(56, 189, 248, 0.22);
+}
+
+.hero-button:hover,
+.primary-button:hover {
+  transform: translateY(-2px);
+}
+
+.secondary-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.secondary-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.danger-button {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fecaca;
+  border: 1px solid rgba(239, 68, 68, 0.32);
+}
+
+.danger-button:hover {
+  background: rgba(239, 68, 68, 0.24);
+}
+
+.card-button {
+  margin-top: 18px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.empty-button {
+  margin-top: 18px;
+}
+
+.form-page,
+.delete-page {
+  display: flex;
+  justify-content: center;
+}
+
+.form-card,
+.delete-card {
+  width: 100%;
+  max-width: 760px;
+  padding: 34px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+}
+
+.form-card h1,
+.delete-card h1 {
+  margin: 0 0 10px;
+  font-size: 34px;
+}
+
+.form-description,
+.delete-description {
+  margin: 0 0 28px;
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+.song-form {
+  display: grid;
+  gap: 20px;
+}
+
+.form-group {
+  display: grid;
+  gap: 10px;
+}
+
+.form-label {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+.form-help {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.form-error {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 14px;
+}
+
+.form-actions,
+.delete-form,
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.detail-page {
+  display: grid;
+  gap: 24px;
+}
+
+.detail-top {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+}
+
+.detail-main-card,
+.detail-video-card {
+  padding: 30px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+}
+
+.detail-artist {
+  margin: 0 0 10px;
+  color: #93c5fd;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.detail-main-card h1 {
+  margin: 0 0 18px;
+  font-size: 38px;
+  line-height: 1.2;
+}
+
+.detail-rating {
+  margin-bottom: 22px;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.detail-comment-box {
+  margin-bottom: 22px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.detail-comment-box h3,
+.detail-video-card h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.detail-comment-box p,
+.video-empty-box p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.8;
+}
+
+.detail-meta {
+  margin-bottom: 24px;
+  display: grid;
+  gap: 10px;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #020617;
+}
+
+.video-wrapper iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video-empty-box {
+  padding: 28px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 960px) {
+  .hero-section,
+  .detail-top {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-card,
+  .delete-card,
+  .detail-main-card,
+  .detail-video-card {
+    padding: 24px;
+  }
+
+  .form-card h1,
+  .delete-card h1,
+  .detail-main-card h1 {
+    font-size: 28px;
+  }
+}
+```
+
+---
+
+# 14. base.html의 네비게이션도 조금 보완하기
+
+등록 버튼을 헤더에도 두고 싶다면 아래처럼 수정해도 좋습니다.
+
+```html title="templates/music/base.html"
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BGM Playlist Tracker</title>
+  <link rel="stylesheet" href="{% static 'music/css/style.css' %}" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a href="{% url 'music:song_list' %}" class="logo">
+          <span class="logo__icon">♪</span>
+          <span class="logo__text">BGM Playlist Tracker</span>
+        </a>
+
+        <nav class="site-nav">
+          <a href="{% url 'music:song_list' %}">Home</a>
+          <a href="{% url 'music:song_create' %}">Add Song</a>
+          <a href="/admin/" target="_blank" rel="noopener noreferrer">Admin</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main-content">
+      {% block content %}
+      {% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <p>나만의 인생 BGM을 기록하는 Django 플레이리스트 프로젝트</p>
+    </footer>
+  </div>
+</body>
+</html>
+```
+
+---
+
+# 15. 지금까지 만든 흐름 다시 정리하기
+
+여기까지 오면 이번 2편의 흐름은 아래처럼 연결됩니다.
+
+```
+SongForm 작성
+→ 등록 페이지에서 곡 입력
+→ 저장 후 상세페이지 이동
+→ 상세페이지에서 곡 정보 + 유튜브 영상 보기
+→ 수정 페이지에서 기존 값 수정
+→ 삭제 확인 페이지에서 삭제 실행
+→ 다시 목록으로 돌아오기
+```
+
+즉 1편의 단순 목록 출력 프로젝트가,
+이제는 **진짜 CRUD 웹앱**으로 확장된 것입니다.
+
+---
+
+# 16. 브라우저에서 실행 확인하기
+
+서버를 실행합니다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+이제 아래 순서대로 직접 테스트해보세요.
+
+## 테스트 순서
+
+1. `/` 접속
+2. **새 곡 등록하기** 버튼 클릭
+3. 곡 정보 입력 후 등록
+4. 상세페이지로 이동되는지 확인
+5. 유튜브 링크가 있으면 영상이 재생되는지 확인 (아마 영상 오류가 발생할겁니다! 아래 해결방법 확인하기) 
+6. 수정 버튼으로 정보 변경
+7. 삭제 버튼으로 삭제 확인 페이지 이동
+8. 삭제 후 목록으로 정상 이동하는지 확인
+
+# 16-1. 유튜브 영상 에러 발생 시 해결방법
+
+## 에러 1 : 오류 153 및 동영상 플레이어 구성 오류
+
+<Image
+  src="/blogs/bgm_playlist_tracker(2)/1.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+이 경우는 장고의 보안 설정 때문에 Referrer-Policy가 너무 강하게 잡혀 있습니다.
+
+예를 들어 Django에서 SecurityMiddleware가 켜져 있으면,
+기본적으로 referrer 정책이 보수적으로 동작해서
+외부 iframe인 YouTube에 필요한 referrer가 안 넘어갈 수 있습니다.
+
+settings.py 맨 아래에 설정값을 추가해주세요.
+
+```python title="config/settings.py"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+```
+
+그리고 song_detail.html 의 iframe 태그에 아래 속성값을 추가해주세요.
+
+```html title="template/music/song_detail.html"
+referrerpolicy="strict-origin-when-cross-origin"
+```
+
+song_detail.html의 전체 코드는 아래와 같습니다.
+
+```html title="template/music/song_detail.html"
+{% extends "music/base.html" %}
+ 
+{% block content %}
+<section class="detail-page">
+  <div class="detail-top">
+    <div class="detail-main-card">
+      <p class="detail-artist">{{ song.artist }}</p>
+      <h1>{{ song.title }}</h1>
+ 
+      <div class="detail-rating">
+        {% for _ in "12345" %}
+          {% if forloop.counter <= song.rating %}
+            <span class="star filled">★</span>
+          {% else %}
+            <span class="star">☆</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+ 
+      <div class="detail-comment-box">
+        <h3>한줄 코멘트</h3>
+        <p>{{ song.comment|linebreaksbr }}</p>
+      </div>
+ 
+      <div class="detail-meta">
+        <p><strong>등록일</strong> {{ song.created_at|date:"Y-m-d H:i" }}</p>
+        <p><strong>수정일</strong> {{ song.updated_at|date:"Y-m-d H:i" }}</p>
+      </div>
+ 
+      <div class="detail-actions">
+        <a href="{% url 'music:song_update' song.pk %}" class="primary-button">수정하기</a>
+        <a href="{% url 'music:song_delete' song.pk %}" class="danger-button">삭제하기</a>
+        <a href="{% url 'music:song_list' %}" class="secondary-button">목록으로</a>
+      </div>
+    </div>
+ 
+    <div class="detail-video-card">
+      <h3>유튜브 영상</h3>
+ 
+      {% if embed_url %}
+        <div class="video-wrapper">
+          <iframe
+            src="{{ embed_url }}"
+            title="{{ song.title }}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+          </iframe>
+        </div>
+      {% else %}
+        <div class="video-empty-box">
+          <p>등록된 유튜브 링크가 없습니다.</p>
+          <p>수정 페이지에서 링크를 추가해보세요.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+```
+
+## 16-2. 동영상을 재생할 수 없음.
+
+<Image
+  src="/blogs/bgm_playlist_tracker(2)/2.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+이 경우는 코드의 문제보다 유튜브 영상 정책의 문제일 가능성이 있습니다.
+
+- 소유자가 임베드를 비허용
+
+- 특정 사이트/환경에서 재생 제한
+
+- 지역/저작권/음원 정책 때문에 외부 재생 차단
+
+따라서 아예 다른 일반 영상 링크를 넣어보고 테스트 해보면 됩니다!
+
+아래 링크로 넣어보세요!
+
+```text
+https://youtu.be/bVVG9FYJOfI?si=wo09Jq_Y9bysxvrX
+```
+
+<Image
+  src="/blogs/bgm_playlist_tracker(2)/3.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+## 16-3. 임베드 링크 확인하기.
+
+링크 복사는 아래 이미지 처럼 공유 - 링크복사 기능을 이용하시면 됩니다.
+
+<Image
+  src="/blogs/bgm_playlist_tracker(2)/4.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+물론 브라우저 주소창의 주소를 복사해도 됩니다! misic/views.py 코드에서 extract_youtube_video_id()를 보시면 알 수 있습니다.
+
+그리고 새로고침 후 네트워크 탭 embed 에서 비디오 id가 맞는지 확인해보세요!
+
+<Image
+  src="/blogs/bgm_playlist_tracker(2)/5.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+```text
+https://youtu.be/bVVG9FYJOfI?si=wo09Jq_Y9bysxvrX
+```
+
+위 주소에서 video_id는 **bVVG9FYJOfI** 이 부분입니다!
+
+---
+
+# 17. 자주 만나는 오류 정리
+
+## 1) `No module named 'music.forms'`
+
+`music/forms.py` 파일을 아직 만들지 않았을 가능성이 큽니다.
+
+반드시 아래 파일이 있어야 합니다.
+
+```python title="music/forms.py"
+from django import forms
+from .models import Song
+```
+
+---
+
+## 2) 수정 페이지에서 기존 값이 안 보임
+
+대부분 아래 코드가 빠졌을 때 발생합니다.
+
+```python title="music/views.py"
+form = SongForm(instance=song)
+```
+
+또는 POST일 때도 아래처럼 `instance=song`이 있어야 합니다.
+
+```python title="music/views.py"
+form = SongForm(request.POST, instance=song)
+```
+
+---
+
+## 3) 유튜브 영상이 안 나옴
+
+가장 먼저 아래를 확인해보세요.
+
+* 링크 형식이 올바른지
+* `extract_youtube_video_id()` 함수가 제대로 작성되었는지
+* `embed_url`을 context로 넘겼는지
+* 템플릿에서 `{% if embed_url %}` 조건을 잘 썼는지
+
+특히 `watch?v=` 형식과 `youtu.be/` 형식을 모두 처리하는지 확인해야 합니다.
+
+---
+
+## 4) `NoReverseMatch`
+
+보통 URL name이 잘못됐을 때 발생합니다.
+
+예를 들면 아래 name들을 정확히 맞춰야 합니다.
+
+* `music:song_list`
+* `music:song_create`
+* `music:song_detail`
+* `music:song_update`
+* `music:song_delete`
+
+---
+
+## 5) 삭제 버튼 누르자마자 바로 삭제됨
+
+삭제를 GET으로 처리했을 가능성이 있습니다.
+
+이번 교안처럼 아래 구조로 가야 더 안전합니다.
+
+* GET → 삭제 확인 화면
+* POST → 실제 삭제
+
+---
+
+# 18. 이번 편 핵심 개념 요약
+
+이번 2편에서 가장 중요한 개념은 아래입니다.
+
+| 개념                  | 핵심                             |
+| ------------------- | ------------------------------ |
+| ModelForm           | 모델 기반으로 입력 폼을 효율적으로 만들 수 있다    |
+| CRUD                | 생성, 조회, 수정, 삭제 전체 흐름을 직접 구현한다  |
+| `get_object_or_404` | 특정 pk의 객체를 안전하게 조회할 수 있다       |
+| `instance=`         | 수정 폼에서 기존 데이터를 불러올 때 사용한다      |
+| 조건부 렌더링             | 유튜브 링크가 있을 때만 iframe을 보여줄 수 있다 |
+
+즉 오늘은 아래 흐름을 직접 구현한 것입니다.
+
+```
+Form
+→ Create
+→ Detail
+→ Update
+→ Delete
+→ Conditional Rendering
+```
+
+---
+
+# 19. 체크리스트
+
+아래 항목이 모두 되면 이번 2편은 성공입니다.
+
+* ✅ `SongForm`을 만들었다
+* ✅ 곡 등록 페이지를 만들었다
+* ✅ 브라우저에서 곡을 직접 등록해봤다
+* ✅ 등록 후 상세페이지로 이동된다
+* ✅ 곡 상세페이지가 정상적으로 보인다
+* ✅ 유튜브 링크가 있을 때 영상이 재생된다
+* ✅ 곡 수정 기능이 동작한다
+* ✅ 곡 삭제 기능이 동작한다
+* ✅ 목록 → 상세 → 수정/삭제 흐름이 자연스럽게 이어진다
+* ✅ CRUD 전체 흐름을 직접 테스트했다
+
+---
+
+# 20. 결론
+
+이번 2편에서는 1편에서 만든 카드형 목록 프로젝트를
+이제 실제로 사용하는 **CRUD 웹앱**으로 확장했습니다.
+
+우리는 이번 편에서 아래를 완성했습니다.
+
+* 브라우저에서 곡 등록하기
+* 특정 곡 상세페이지 보기
+* 곡 수정하기
+* 곡 삭제하기
+* 유튜브 링크를 상세페이지에서 재생하기
+
+즉 지금 상태는 이미 아래 흐름이 가능합니다.
+
+```
+사용자가 직접 곡 입력
+→ 목록에서 확인
+→ 상세페이지에서 감상
+→ 필요하면 수정 / 삭제
+```
+
+이제 앱다운 느낌이 꽤 살아났습니다.
+
+다음 3편에서는 여기서 한 단계 더 나아가서,
+
+* 제목 검색
+* 가수별 필터
+* 별점 높은 곡 추천 카드
+* 유튜브 썸네일을 메인 카드 이미지로 사용하기
+
+까지 붙이면서 **메인 페이지 경험을 완성**할 예정입니다.
+
+---
+
+# Quick Quiz
+
+<MultipleChoiceQuiz
+question="Django에서 기존 모델 데이터를 수정할 때 ModelForm에 꼭 함께 전달해야 하는 것은 무엇인가요?"
+options={[
+"request.user",
+"instance=기존객체",
+"initial=True",
+"pk만 있으면 된다"
+]}
+correctIndex={1}
+explanation="수정할 때는 ModelForm에 instance=기존객체를 넘겨야 기존 데이터를 수정 대상으로 사용할 수 있습니다."
+/>
+
+<MultipleChoiceQuiz
+question="곡 삭제 기능을 구현할 때 더 안전한 방식으로 가장 알맞은 것은 무엇인가요?"
+options={[
+"GET 요청으로 바로 삭제한다",
+"브라우저 주소창에서 삭제한다",
+"삭제 확인 페이지를 보여준 뒤 POST 요청으로 삭제한다",
+"삭제는 admin에서만 가능하게 한다"
+]}
+correctIndex={2}
+explanation="삭제는 실수 방지를 위해 보통 GET으로 확인 화면을 보여주고, 실제 삭제는 POST 요청으로 처리합니다."
+/>
+
+<ShortAnswerQuiz
+question="유튜브 상세페이지 재생을 위해 일반 유튜브 링크에서 먼저 추출해야 하는 핵심 값은 무엇인가요?"
+answers={["video id", "video_id", "유튜브 video id", "영상 id"]}
+explanation="일반 링크를 iframe용 embed 주소로 바꾸기 위해서는 먼저 유튜브 video id를 추출해야 합니다."
+/>
+
+---
