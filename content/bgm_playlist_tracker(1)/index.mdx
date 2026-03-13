@@ -1,0 +1,1577 @@
+---
+title: "Django 기초 - BGM 플레이리스트 기록기 만들기(1)"
+description: "Django로 나만의 인생 BGM 플레이리스트를 기록하는 웹앱을 만들며, 프로젝트 생성부터 모델 작성, 관리자 등록, 함수형 View 목록 페이지, 카드형 메인 UI까지 차근차근 실습합니다."
+image: "../../public/blogs/bgm_playlist_tracker(1)/cover.png"
+publishedAt: "2026-03-13"
+updatedAt: "2026-03-13"
+author: "Baekki"
+isPublished: true
+tags:
+    - Django basic
+---
+
+# Django 기초 - BGM 플레이리스트 기록기 만들기(1) : 프로젝트 생성, 모델 작성, 함수형 목록 페이지
+
+이번 교안에서는 **내가 좋아하는 곡들을 직접 기록하고 모아볼 수 있는 Django 웹앱**을 만들어 봅니다.
+
+기존의 TodoList, 메모장처럼 너무 익숙한 주제 대신,
+조금 더 결과물이 눈에 보이고 감성적인 프로젝트로 **BGM 플레이리스트 기록기**를 선택했습니다.
+
+이번 프로젝트에서 사용자는 아래 정보를 저장하게 됩니다.
+
+* 가수
+* 곡 제목
+* 별점(1~5)
+* 한줄 코멘트
+* 유튜브 링크(선택)
+
+그리고 1편에서는 우선 아래 흐름까지 완성합니다.
+
+```
+프로젝트 생성
+→ 앱 생성
+→ settings 등록
+→ 모델 작성
+→ 마이그레이션
+→ admin 등록
+→ 함수형 View 목록 페이지
+→ 카드형 메인 화면 완성
+```
+
+즉 이번 1편의 목표는
+**“곡 데이터를 저장할 수 있는 구조를 만들고, 메인 홈페이지에 카드 목록으로 예쁘게 보여주는 것”** 입니다.
+
+---
+
+# 0. 이번 교안의 진짜 목표
+
+이번 교안의 핵심은 단순히 노래 정보를 몇 개 저장하는 데 있지 않습니다.
+
+실제로는 아래 3가지를 훈련하는 것이 더 중요합니다.
+
+| 목표                    | 설명                                                         |
+| --------------------- | ---------------------------------------------------------- |
+| Django 프로젝트 시작 흐름 익히기 | 프로젝트 생성 → 앱 생성 → settings 등록 → URL 연결 흐름을 자연스럽게 익힌다        |
+| 모델 중심 개발 흐름 이해        | Song 모델을 만들고, migration과 admin까지 연결해보며 Django의 기본 구조를 이해한다 |
+| 템플릿 기반 목록 페이지 만들기     | 함수형 View로 데이터를 조회하고, 템플릿에서 카드형 UI로 출력하는 흐름을 익힌다            |
+
+즉 이번 교안에서 꼭 머릿속에 남겨야 할 흐름은 아래입니다.
+
+```
+무엇을 저장할지 먼저 정한다
+→ 모델을 만든다
+→ DB에 반영한다
+→ 관리자 페이지에서 데이터를 넣어본다
+→ View에서 조회한다
+→ Template에서 화면으로 보여준다
+```
+
+이 흐름이 익숙해지면, 이후 2편에서 만들 **상세 / 생성 / 수정 / 삭제**,
+3편에서 만들 **검색 / 필터 / 추천 기능**도 훨씬 덜 어렵게 느껴집니다.
+
+---
+
+# 1. 이번 교안에서 만들 최종 결과 먼저 보기
+
+이번 1편이 끝나면 아래 상태가 되어야 합니다.
+
+## 이번 편에서 완성할 것
+
+| 영역      | 기능                           |
+| ------- | ---------------------------- |
+| 프로젝트 구조 | Django 프로젝트와 `music` 앱 생성 완료 |
+| 데이터 구조  | `Song` 모델 작성 및 migration 완료  |
+| 관리자 페이지 | admin에서 곡 데이터 등록 가능          |
+| 메인 페이지  | 등록한 곡들이 카드형 목록으로 출력됨         |
+| View 방식 | 함수형 View로 목록 페이지 구현          |
+
+## 최종 사용 흐름
+
+```
+관리자 페이지에서 곡 등록
+→ 메인 페이지 접속
+→ 등록한 곡들이 카드로 보임
+```
+
+즉 이번 1편은 **브라우저 첫 화면과 데이터 구조를 완성하는 편**이라고 보면 됩니다.
+
+아직은 CRUD 전체를 다 만드는 단계가 아닙니다.
+먼저 뼈대를 정확하게 세우는 것이 더 중요합니다.
+
+---
+
+# 2. 이번 실습 순서 먼저 보기
+
+이번 1편은 아래 순서로 진행합니다.
+
+```
+1. 가상환경 만들기
+2. Django 설치
+3. 프로젝트 생성
+4. 앱 생성
+5. settings.py 앱 등록
+6. 루트 URL 연결
+7. Song 모델 작성
+8. 마이그레이션
+9. admin 등록
+10. 함수형 View 작성
+11. app URL 연결
+12. base 템플릿 만들기
+13. 목록 템플릿 만들기
+14. 카드형 CSS 만들기
+15. 관리자 페이지에서 데이터 넣기
+16. 브라우저에서 목록 확인
+```
+
+## 왜 이 순서인가?
+
+이 순서는 그냥 편한 순서가 아니라,
+**Django가 실제로 동작하는 흐름에 맞춘 순서**입니다.
+
+예를 들면:
+
+* 모델이 없으면 migration을 할 수 없습니다.
+* migration이 안 되어 있으면 admin에서 데이터를 넣을 수 없습니다.
+* View가 있어야 URL을 연결할 수 있습니다.
+* View와 URL이 연결되어야 템플릿을 브라우저에서 볼 수 있습니다.
+
+즉 Django는 아래처럼 **앞 단계가 준비되어 있어야 다음 단계가 가능한 구조**입니다.
+
+```
+모델 작성
+→ DB 반영
+→ 관리자에서 데이터 입력
+→ View 조회
+→ Template 출력
+```
+
+이 흐름을 이번 1편에서 확실히 잡아두는 것이 가장 중요합니다.
+
+---
+
+# 3. 프로젝트 생성하기
+
+먼저 작업 폴더를 만들고 가상환경을 준비하겠습니다.
+
+## 3-1. 작업 폴더 만들기
+
+원하는 위치에서 새 폴더를 하나 만들고 이동합니다.
+
+### macOS / Linux
+
+```bash title="terminal"
+mkdir bgm_playlist_tracker
+cd bgm_playlist_tracker
+```
+
+### Windows PowerShell
+
+```powershell title="terminal"
+mkdir bgm_playlist_tracker
+cd bgm_playlist_tracker
+```
+
+---
+
+## 3-2. 가상환경 만들기
+
+가상환경은 프로젝트별로 패키지 버전을 분리해서 관리하기 위해 사용합니다.
+
+### macOS / Linux
+
+```bash title="terminal"
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### Windows PowerShell
+
+```powershell title="terminal"
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+가상환경이 활성화되면 보통 터미널 앞에 `(.venv)` 같은 표시가 보입니다.
+
+---
+
+## 3-3. Django 설치하기
+
+이제 Django를 설치합니다.
+
+### macOS / Linux / Windows 공통
+
+```bash title="terminal"
+pip install django
+```
+
+설치가 끝났다면 버전도 한 번 확인해보면 좋습니다.
+
+```bash title="terminal"
+python -m django --version
+```
+
+---
+
+## 3-4. Django 프로젝트 생성하기
+
+이번 교안에서는 프로젝트 이름을 `config`, 앱 이름을 `music`으로 사용하겠습니다.
+
+```bash title="terminal"
+django-admin startproject config .
+python manage.py startapp music
+```
+
+여기서 중요한 점은:
+
+* `config`는 **프로젝트 설정 폴더**
+* `music`은 **실제 기능을 담는 앱**
+
+이라는 것입니다.
+
+---
+
+# 4. 현재 프로젝트 구조 먼저 확인하기
+
+지금까지 작업하면 폴더 구조는 대략 아래와 비슷합니다.
+
+```text title="project structure"
+bgm_playlist_tracker/
+├── .venv/
+├── config/
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── music/
+│   ├── admin.py
+│   ├── apps.py
+│   ├── migrations/
+│   ├── models.py
+│   ├── tests.py
+│   └── views.py
+└── manage.py
+```
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/1.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+
+여기서 앞으로 자주 다루게 될 파일은 아래입니다.
+
+| 파일                   | 역할             |
+| -------------------- | -------------- |
+| `config/settings.py` | 프로젝트 전체 설정     |
+| `config/urls.py`     | 프로젝트 루트 URL 관리 |
+| `music/models.py`    | 곡 데이터 구조 정의    |
+| `music/views.py`     | 브라우저 요청 처리     |
+| `music/urls.py`      | music 앱 URL 관리 |
+| `templates/...`      | HTML 화면        |
+| `static/...`         | CSS 파일         |
+
+---
+
+# 5. settings.py에 앱 등록하기
+
+Django는 앱을 만들었다고 해서 자동으로 사용하는 것이 아닙니다.
+반드시 `INSTALLED_APPS`에 등록해야 합니다.
+
+```python title="config/settings.py"
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'music',
+]
+```
+
+## 왜 등록해야 할까?
+
+앱을 등록해야 Django가 아래 작업을 할 수 있습니다.
+
+* 모델 인식
+* migration 대상 포함
+* admin 연결
+* 템플릿 / static 탐색 구조 반영
+
+즉 `music` 앱을 만들었으면 거의 항상 `INSTALLED_APPS` 등록이 뒤따라야 합니다.
+
+---
+
+# 6. Song 모델 작성하기
+
+이제 이번 프로젝트에서 저장할 핵심 데이터 구조를 정의하겠습니다.
+
+이번 프로젝트의 입력값은 아래와 같습니다.
+
+* 가수
+* 곡 제목
+* 별점(1~5)
+* 한줄 코멘트
+* 유튜브 링크(선택)
+
+여기에 Django가 자주 쓰는 `생성일`, `수정일`도 같이 넣겠습니다.
+
+```python title="music/models.py"
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+
+
+class Song(models.Model):
+    artist = models.CharField(max_length=100, verbose_name="가수")
+    title = models.CharField(max_length=100, verbose_name="곡 제목")
+    rating = models.PositiveSmallIntegerField(
+        verbose_name="별점",
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    comment = models.TextField(verbose_name="한줄 코멘트")
+    youtube_url = models.URLField(
+        blank=True,
+        verbose_name="유튜브 링크",
+        help_text="선택 입력입니다. 2편, 3편에서 활용합니다.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "곡"
+        verbose_name_plural = "곡 목록"
+
+    def __str__(self):
+        return f"{self.artist} - {self.title}"
+```
+
+---
+
+## 필드 하나씩 해석하기
+
+### `artist`
+
+```python title="music/models.py"
+artist = models.CharField(max_length=100, verbose_name="가수")
+```
+
+짧은 문자열을 저장할 때 사용하는 필드입니다.
+가수 이름은 보통 길지 않으므로 `CharField`가 적절합니다.
+
+---
+
+### `title`
+
+```python title="music/models.py"
+title = models.CharField(max_length=100, verbose_name="곡 제목")
+```
+
+곡 제목도 짧은 텍스트이므로 `CharField`를 사용합니다.
+
+---
+
+### `rating`
+
+```python title="music/models.py"
+rating = models.PositiveSmallIntegerField(
+    verbose_name="별점",
+    validators=[MinValueValidator(1), MaxValueValidator(5)],
+)
+```
+
+별점은 1~5 사이의 숫자만 허용하고 싶기 때문에
+정수 필드를 사용하고, validator로 범위를 제한합니다.
+
+이렇게 해두면 잘못된 숫자가 들어가는 것을 줄일 수 있습니다.
+
+---
+
+### `comment`
+
+```python title="music/models.py"
+comment = models.TextField(verbose_name="한줄 코멘트")
+```
+
+한줄 코멘트라고 이름은 붙였지만,
+실제로는 짧은 감상평이나 추천 이유가 들어갈 수 있으므로 `TextField`를 사용합니다.
+
+`CharField`와 달리 길이 제한을 엄격하게 잡지 않아도 되므로 조금 더 유연합니다.
+
+---
+
+### `youtube_url`
+
+```python title="music/models.py"
+youtube_url = models.URLField(
+    blank=True,
+    verbose_name="유튜브 링크",
+    help_text="선택 입력입니다. 2편, 3편에서 활용합니다.",
+)
+```
+
+유튜브 링크는 나중에 상세페이지 재생, 썸네일 추출에 활용할 예정입니다.
+
+여기서 중요한 점은 `blank=True` 입니다.
+
+즉, 지금은 링크를 입력하지 않아도 저장이 가능하게 해두는 것입니다.
+
+이렇게 해두면:
+
+* 입력 부담이 줄어들고
+* 링크 없는 데이터도 저장 가능하며
+* 나중에 조건부 렌더링을 설명하기 좋습니다.
+
+---
+
+### `created_at`, `updated_at`
+
+```python title="music/models.py"
+created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성일")
+updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+```
+
+이 두 필드는 Django 프로젝트에서 매우 자주 쓰는 기본 필드입니다.
+
+* `auto_now_add=True` → 처음 생성될 때만 자동 입력
+* `auto_now=True` → 수정될 때마다 자동 갱신
+
+이번 1편에서는 화면에 꼭 보여주지 않아도 되지만,
+관리자 페이지나 정렬 기준에서 매우 유용합니다.
+
+---
+
+### `Meta`
+
+```python title="music/models.py"
+class Meta:
+    ordering = ["-created_at"]
+    verbose_name = "곡"
+    verbose_name_plural = "곡 목록"
+```
+
+`ordering = ["-created_at"]`는 **최신 등록 곡이 먼저 보이도록** 정렬하는 설정입니다.
+
+즉, 별도의 정렬 코드를 매번 쓰지 않아도 기본적으로 최신 데이터가 위로 옵니다.
+
+---
+
+### `__str__`
+
+```python title="music/models.py"
+def __str__(self):
+    return f"{self.artist} - {self.title}"
+```
+
+이 코드를 넣어두면 admin 페이지, shell 등에서 객체를 볼 때
+`Song object(1)`처럼 밋밋하게 보이지 않고, 사람이 읽기 좋은 형태로 표시됩니다.
+
+---
+
+# 7. 마이그레이션하기
+
+모델을 만들었다고 해서 바로 DB에 테이블이 생기는 것은 아닙니다.
+반드시 migration 과정을 거쳐야 합니다.
+
+```bash title="terminal"
+python manage.py makemigrations
+python manage.py migrate
+```
+
+## 두 명령어 차이
+
+| 명령어              | 역할                          |
+| ---------------- | --------------------------- |
+| `makemigrations` | 모델 변경 내용을 migration 파일로 생성  |
+| `migrate`        | 생성된 migration 내용을 실제 DB에 반영 |
+
+즉 흐름은 늘 아래처럼 기억하면 됩니다.
+
+```
+models.py 수정
+→ makemigrations
+→ migrate
+```
+
+---
+
+# 8. 관리자 계정 만들기
+
+이제 관리자 페이지에서 곡 데이터를 직접 넣기 위해 superuser를 생성합니다.
+
+```bash title="terminal"
+python manage.py createsuperuser
+```
+
+실행하면 보통 아래 정보를 입력하게 됩니다.
+
+* username
+* email(선택 또는 필수 환경에 따라 다름)
+* password
+
+생성이 끝났다면 서버를 실행해봅니다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+```text title="browser url"
+http://127.0.0.1:8000/
+```
+
+정상 동작하는지 확인합니다.
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/2.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+
+브라우저에서 아래 admin 주소로 접속합니다.
+
+```text title="browser url"
+http://127.0.0.1:8000/admin/
+```
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/3.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+
+> Song model을 만들었는데 왜 안보일까요???
+
+아직 `Song` 모델을 admin에 등록하지 않았기 때문에,
+지금은 music 관련 메뉴가 보이지 않아도 괜찮습니다.
+
+---
+
+# 9. 관리자 페이지에 Song 모델 등록하기
+
+이제 `Song` 모델을 관리자 페이지에서 다룰 수 있도록 등록합니다.
+
+```python title="music/admin.py"
+from django.contrib import admin
+from .models import Song
+
+
+@admin.register(Song)
+class SongAdmin(admin.ModelAdmin):
+    list_display = ("id", "artist", "title", "rating", "created_at")
+    list_filter = ("rating", "artist")
+    search_fields = ("artist", "title", "comment")
+```
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/4.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+## 이 설정은 무엇을 해주나?
+
+### `list_display`
+
+관리자 목록 화면에서 어떤 컬럼을 보여줄지 정합니다.
+
+```python title="music/admin.py"
+list_display = ("id", "artist", "title", "rating", "created_at")
+```
+
+이렇게 하면 admin에서 곡 목록을 훨씬 보기 쉽게 관리할 수 있습니다.
+
+---
+
+### `list_filter`
+
+오른쪽 사이드바에서 필터 기능을 제공합니다.
+
+```python title="music/admin.py"
+list_filter = ("rating", "artist")
+```
+
+이번 프로젝트에서는 별점과 가수 기준으로 admin 필터를 줄 수 있습니다.
+
+---
+
+### `search_fields`
+
+검색창에서 어떤 필드를 대상으로 검색할지 지정합니다.
+
+```python title="music/admin.py"
+search_fields = ("artist", "title", "comment")
+```
+
+이렇게 해두면 나중에 곡이 많아져도 관리가 쉬워집니다.
+
+---
+
+# 10. 관리자 페이지에서 테스트 데이터 넣기
+
+이제 다시 `/admin/` 으로 들어가 보면 **곡 목록** 메뉴가 보일 것입니다.
+
+테스트용으로 아래처럼 3~5개 정도 데이터를 먼저 넣어보세요.
+
+예시:
+
+| 가수       | 제목            | 별점 | 한줄 코멘트            | 유튜브 링크 |
+| -------- | ------------- | -- | ----------------- | ------ |
+| IU       | Love wins all | 5  | 밤에 들으면 분위기가 정말 좋다 | 비워도 됨  |
+| DAY6     | 예뻤어           | 5  | 가사가 너무 세다         | 비워도 됨  |
+| NewJeans | Ditto         | 4  | 겨울 감성이 잘 어울린다     | 비워도 됨  |
+
+지금은 링크를 넣지 않아도 괜찮습니다.
+1편에서는 **목록 출력 구조가 먼저**이기 때문입니다.
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/5.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/6.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+---
+
+# 11. 함수형 View로 목록 페이지 만들기
+
+이제 브라우저 메인 화면에서 곡 목록을 보여주겠습니다.
+
+우선 `music/views.py`에 함수형 View를 작성합니다.
+
+```python title="music/views.py"
+from django.shortcuts import render
+from .models import Song
+
+
+def song_list(request):
+    songs = Song.objects.all()
+    return render(request, "music/song_list.html", {"songs": songs})
+```
+
+## 코드 설명
+
+### `Song.objects.all()`
+
+DB에 저장된 모든 곡 데이터를 가져옵니다.
+
+```python title="music/views.py"
+songs = Song.objects.all()
+```
+
+이번 모델의 `Meta.ordering = ["-created_at"]` 덕분에
+최신 등록 순으로 자동 정렬됩니다.
+
+---
+
+### `render()`
+
+`music/song_list.html` 템플릿에 데이터를 전달해서 브라우저 화면으로 보여줍니다.
+
+```python title="music/views.py"
+return render(request, "music/song_list.html", {"songs": songs})
+```
+
+여기서 `songs`라는 이름으로 템플릿에 전달되므로,
+HTML에서는 `{% for song in songs %}` 형태로 반복문을 사용할 수 있습니다.
+
+---
+
+# 12. music 앱 URL 만들기
+
+이제 `music` 앱 전용 URL 파일을 만들어 연결하겠습니다.
+
+```python title="music/urls.py"
+from django.urls import path
+from . import views
+
+app_name = "music"
+
+urlpatterns = [
+    path("", views.song_list, name="song_list"),
+]
+```
+
+## 왜 app 전용 urls.py를 따로 만들까?
+
+프로젝트가 커질수록 기능별 URL을 분리하는 것이 훨씬 관리하기 좋습니다.
+
+예를 들면 앞으로 `music` 앱 안에는 아래 같은 URL들이 계속 늘어날 수 있습니다.
+
+* 목록
+* 상세
+* 생성
+* 수정
+* 삭제
+* 검색
+* 추천
+
+그래서 지금부터 app별 `urls.py`를 분리하는 습관을 들이는 것이 좋습니다.
+
+---
+
+# 13. 프로젝트 루트 URL 연결하기
+
+이제 `music.urls`를 루트 URL에 연결합니다.
+
+```python title="config/urls.py"
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("music.urls")),
+]
+```
+
+이렇게 하면 `/` 접속 시 `music.urls`의 첫 페이지가 연결됩니다.
+
+즉 지금 프로젝트의 메인 홈페이지는
+`music` 앱의 목록 페이지가 됩니다.
+
+---
+
+# 14. 템플릿 폴더 구조 만들기
+
+이제 HTML 파일을 둘 템플릿 구조를 준비합니다.
+
+```text title="template structure"
+bgm_playlist_tracker/
+├── music/
+├── templates/
+│   └── music/
+│       ├── base.html
+│       └── song_list.html
+└── static/
+    └── music/
+        └── css/
+            └── style.css
+```
+
+이번 교안에서는 프로젝트 루트에 `templates`, `static` 폴더를 두고 사용하겠습니다.
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/8.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+---
+
+# 15. settings.py에 templates / static 경로 설정하기
+
+프로젝트 루트의 `templates`, `static` 폴더를 쓰기 위해 설정을 조금 추가하겠습니다.
+
+```python title="config/settings.py"
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / "templates"],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+STATIC_URL = "static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+```
+
+## 왜 `DIRS`에 templates를 넣을까?
+
+```python title="config/settings.py"
+'DIRS': [BASE_DIR / "templates"],
+```
+
+이 설정이 있어야 Django가 프로젝트 루트의 `templates/` 폴더를 탐색합니다.
+
+---
+
+## 왜 `STATICFILES_DIRS`를 설정할까?
+
+```python title="config/settings.py"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+```
+
+이 설정이 있어야 CSS 같은 정적 파일을 프로젝트 루트 `static/` 폴더에서 찾을 수 있습니다.
+
+---
+
+# 16. base.html 만들기
+
+먼저 공통 레이아웃 역할을 할 `base.html`을 만듭니다.
+
+```html title="templates/music/base.html"
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BGM Playlist Tracker</title>
+  <link rel="stylesheet" href="{% static 'music/css/style.css' %}" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a href="{% url 'music:song_list' %}" class="logo">
+          <span class="logo__icon">♪</span>
+          <span class="logo__text">BGM Playlist Tracker</span>
+        </a>
+
+        <nav class="site-nav">
+          <a href="{% url 'music:song_list' %}">Home</a>
+          <a href="/admin/" target="_blank" rel="noopener noreferrer">Admin</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main-content">
+      {% block content %}
+      {% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <p>나만의 인생 BGM을 기록하는 Django 플레이리스트 프로젝트</p>
+    </footer>
+  </div>
+</body>
+</html>
+```
+
+## 왜 base.html을 만들까?
+
+모든 페이지마다 아래 요소는 거의 반복됩니다.
+
+* `<head>`
+* CSS 연결
+* 상단 헤더
+* 하단 푸터
+
+이걸 매 페이지마다 복붙하면 비효율적이므로,
+공통 틀은 `base.html`에 두고 각 페이지는 필요한 내용만 채워 넣는 방식으로 갑니다.
+
+이 구조는 앞으로 상세, 생성, 수정 페이지를 만들 때도 매우 유용합니다.
+
+---
+
+# 17. 목록 페이지 템플릿 만들기
+
+이제 실제 메인 화면이 될 `song_list.html`을 작성합니다.
+
+```html title="templates/music/song_list.html"
+{% extends "music/base.html" %}
+
+{% block content %}
+<section class="hero-section">
+  <div class="hero-section__text">
+    <p class="eyebrow">Django Basic Project</p>
+    <h1>내 인생 BGM 플레이리스트</h1>
+    <p class="hero-description">
+      내가 좋아하는 곡들을 직접 기록하고,
+      나만의 플레이리스트 아카이브를 만들어보는 Django 프로젝트입니다.
+    </p>
+  </div>
+</section>
+
+<section class="songs-section">
+  <div class="section-header">
+    <div>
+      <p class="section-label">Playlist</p>
+      <h2>등록된 곡 목록</h2>
+    </div>
+    <span class="song-count">{{ songs|length }}곡</span>
+  </div>
+
+  {% if songs %}
+    <div class="song-grid">
+      {% for song in songs %}
+        <article class="song-card">
+          <div class="song-card__cover">
+            <div class="cover-placeholder">
+              <span>♪</span>
+            </div>
+          </div>
+
+          <div class="song-card__body">
+            <p class="song-card__artist">{{ song.artist }}</p>
+            <h3 class="song-card__title">{{ song.title }}</h3>
+
+            <div class="song-card__rating">
+              {% for _ in "12345" %}
+                {% if forloop.counter <= song.rating %}
+                  <span class="star filled">★</span>
+                {% else %}
+                  <span class="star">☆</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <p class="song-card__comment">
+              {{ song.comment|truncatechars:60 }}
+            </p>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-box">
+      <h3>아직 등록된 곡이 없습니다.</h3>
+      <p>관리자 페이지에서 첫 번째 곡을 등록해보세요.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+```
+
+---
+
+## 이 템플릿에서 중요한 포인트
+
+### `{% extends "music/base.html" %}`
+
+공통 레이아웃을 상속받는다는 의미입니다.
+
+```html title="templates/music/song_list.html"
+{% extends "music/base.html" %}
+```
+
+즉 `base.html`의 헤더, 푸터는 그대로 쓰고
+중간 콘텐츠 영역만 채워 넣는 구조입니다.
+
+---
+
+### `{% if songs %}`
+
+데이터가 있을 때와 없을 때 화면을 다르게 보여줍니다.
+
+```html title="templates/music/song_list.html"
+{% if songs %}
+...
+{% else %}
+...
+{% endif %}
+```
+
+이런 조건 분기는 Django 템플릿에서 매우 자주 사용합니다.
+
+---
+
+### `{% for song in songs %}`
+
+전달받은 곡 목록을 반복 출력합니다.
+
+```html title="templates/music/song_list.html"
+{% for song in songs %}
+```
+
+이 부분이 바로:
+
+```python
+{"songs": songs}
+```
+
+와 연결되는 지점입니다.
+
+---
+
+### 별점 표시 로직
+
+```html title="templates/music/song_list.html"
+{% for _ in "12345" %}
+  {% if forloop.counter <= song.rating %}
+    <span class="star filled">★</span>
+  {% else %}
+    <span class="star">☆</span>
+  {% endif %}
+{% endfor %}
+```
+
+별점 1~5를 숫자로만 보여주면 밋밋할 수 있기 때문에,
+별 모양으로 시각화했습니다.
+
+이렇게 하면 메인 목록이 훨씬 보기 좋아집니다.
+
+---
+
+# 18. 카드형 CSS 만들기
+
+이제 화면을 보기 좋게 꾸며보겠습니다.
+
+```css title="static/music/css/style.css"
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  color: #e5e7eb;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(14px);
+  background: rgba(15, 23, 42, 0.82);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.site-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.logo__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #a78bfa, #38bdf8);
+  color: white;
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25);
+}
+
+.site-nav {
+  display: flex;
+  gap: 18px;
+  font-size: 15px;
+  color: #cbd5e1;
+}
+
+.site-nav a:hover {
+  color: #ffffff;
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+.hero-section {
+  margin-bottom: 36px;
+  padding: 40px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 25%),
+    radial-gradient(circle at left bottom, rgba(167, 139, 250, 0.16), transparent 20%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.hero-section h1 {
+  margin: 0 0 12px;
+  font-size: 42px;
+  line-height: 1.2;
+}
+
+.hero-description {
+  margin: 0;
+  max-width: 700px;
+  color: #cbd5e1;
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.songs-section {
+  margin-top: 24px;
+}
+
+.section-header {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-label {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.song-count {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.song-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.song-card {
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.song-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.28);
+}
+
+.song-card__cover {
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cover-placeholder {
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #a78bfa, #38bdf8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  color: white;
+  box-shadow: 0 16px 32px rgba(56, 189, 248, 0.22);
+}
+
+.song-card__body {
+  padding: 20px 20px 22px;
+}
+
+.song-card__artist {
+  margin: 0 0 8px;
+  color: #93c5fd;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.song-card__title {
+  margin: 0 0 14px;
+  font-size: 22px;
+  line-height: 1.3;
+  color: #ffffff;
+}
+
+.song-card__rating {
+  margin-bottom: 14px;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.star {
+  color: #64748b;
+}
+
+.star.filled {
+  color: #fbbf24;
+}
+
+.song-card__comment {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.empty-box {
+  padding: 48px 24px;
+  text-align: center;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+}
+
+.empty-box h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+.site-footer {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+@media (max-width: 960px) {
+  .song-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-section h1 {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-header__inner,
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .main-content {
+    padding: 32px 18px 64px;
+  }
+
+  .hero-section {
+    padding: 28px;
+  }
+
+  .hero-section h1 {
+    font-size: 28px;
+  }
+
+  .song-grid {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+---
+
+# 19. 지금까지 만든 흐름 다시 정리하기
+
+여기까지 오면 흐름은 아래처럼 연결됩니다.
+
+```
+Song 모델 작성
+→ migrate로 DB 반영
+→ admin에 Song 등록
+→ 관리자 페이지에서 테스트 데이터 입력
+→ song_list 함수형 View로 데이터 조회
+→ song_list.html 템플릿에서 반복 출력
+→ CSS로 카드형 UI 완성
+```
+
+이 흐름이 바로 Django의 아주 기본적인 **모델 → 뷰 → 템플릿** 흐름입니다.
+
+---
+
+# 20. 브라우저에서 실행 확인하기
+
+이제 서버를 다시 실행합니다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+브라우저에서 아래 주소에 접속합니다.
+
+```text title="browser url"
+http://127.0.0.1:8000/
+```
+
+정상이라면:
+
+* 상단 헤더가 보이고
+* 히어로 영역이 보이며
+* 등록한 곡들이 카드 형태로 나타나야 합니다.
+
+만약 데이터가 없다면 빈 상태 메시지가 보일 수 있습니다.
+그 경우 `/admin/` 에서 먼저 곡을 몇 개 등록해보세요.
+
+<Image
+  src="/blogs/bgm_playlist_tracker(1)/7.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+---
+
+# 21. 자주 만나는 오류 정리
+
+이번 단계에서 초보자가 가장 자주 막히는 포인트를 정리해보겠습니다.
+
+## 1) `No module named 'music.urls'`
+
+보통 `music/urls.py` 파일을 아직 만들지 않았거나,
+파일 이름이 다를 때 발생합니다.
+
+반드시 아래 파일이 있어야 합니다.
+
+```python title="music/urls.py"
+from django.urls import path
+from . import views
+
+app_name = "music"
+
+urlpatterns = [
+    path("", views.song_list, name="song_list"),
+]
+```
+
+---
+
+## 2) `TemplateDoesNotExist`
+
+보통 템플릿 경로가 잘못되었을 때 발생합니다.
+
+이번 교안에서는 아래 경로를 사용합니다.
+
+```text title="template path"
+templates/music/base.html
+templates/music/song_list.html
+```
+
+그리고 `settings.py` 에도 아래 설정이 있어야 합니다.
+
+```python title="config/settings.py"
+'DIRS': [BASE_DIR / "templates"],
+```
+
+---
+
+## 3) CSS가 적용되지 않음
+
+아래 항목을 체크해보세요.
+
+* `static/music/css/style.css` 경로가 맞는지
+* `base.html` 상단에 `{% load static %}` 가 있는지
+* `<link rel="stylesheet" href="{% static 'music/css/style.css' %}" />` 문법이 맞는지
+* `STATICFILES_DIRS` 설정이 들어갔는지
+
+---
+
+## 4) admin에 모델이 안 보임
+
+`music/admin.py` 등록을 안 했을 가능성이 큽니다.
+
+```python title="music/admin.py"
+@admin.register(Song)
+class SongAdmin(admin.ModelAdmin):
+    ...
+```
+
+또는 `INSTALLED_APPS`에 `music` 등록이 안 되어 있을 수도 있습니다.
+
+---
+
+## 5) `OperationalError: no such table`
+
+이건 거의 항상 migration 문제입니다.
+
+모델을 만들고 아래 명령어를 하지 않았을 가능성이 큽니다.
+
+```bash title="terminal"
+python manage.py makemigrations
+python manage.py migrate
+```
+
+---
+
+# 22. 이번 편 핵심 개념 요약
+
+이번 1편에서 가장 중요한 개념은 아래 5가지입니다.
+
+| 개념        | 핵심                                        |
+| --------- | ----------------------------------------- |
+| 앱 등록      | 만든 앱은 `INSTALLED_APPS`에 등록해야 Django가 인식한다 |
+| 모델        | 저장할 데이터 구조를 `models.py`에서 정의한다            |
+| migration | 모델을 실제 DB 테이블로 반영하는 과정이다                  |
+| admin     | 코드를 일일이 안 짜고도 데이터를 쉽게 넣어볼 수 있다            |
+| 함수형 View  | DB 데이터를 조회해서 템플릿으로 넘기는 가장 직관적인 방식이다       |
+
+즉 오늘은 아래 구조를 실제로 손으로 만든 셈입니다.
+
+```
+Model
+→ Migration
+→ Admin
+→ View
+→ Template
+→ CSS
+```
+
+이 순서를 반복해서 익히는 것이 Django 기초에서 정말 중요합니다.
+
+---
+
+# 23. 체크리스트
+
+아래 항목이 모두 되면 이번 1편은 성공입니다.
+
+* ✅ Django 프로젝트와 `music` 앱을 생성했다
+* ✅ `settings.py`에 `music` 앱을 등록했다
+* ✅ `Song` 모델을 작성했다
+* ✅ `makemigrations`, `migrate`를 실행했다
+* ✅ `createsuperuser`로 관리자 계정을 만들었다
+* ✅ admin에 `Song` 모델을 등록했다
+* ✅ 관리자 페이지에서 곡 데이터를 직접 추가해봤다
+* ✅ 함수형 View로 곡 목록 페이지를 만들었다
+* ✅ `/` 접속 시 곡 카드 목록이 보인다
+* ✅ 카드 UI가 3열 그리드 형태로 잘 보인다
+
+---
+
+# 24. 결론
+
+이번 1편에서는 BGM 플레이리스트 프로젝트의 가장 중요한 뼈대를 완성했습니다.
+
+아직 사용자가 브라우저에서 직접 곡을 등록하는 기능은 없지만,
+그 전에 더 중요한 것들을 이미 끝냈습니다.
+
+* 어떤 데이터를 저장할지 정했다
+* Django 모델로 구조를 만들었다
+* DB에 반영했다
+* 관리자 페이지에서 데이터를 넣어봤다
+* 브라우저 메인 화면에 목록을 출력했다
+
+즉 지금 상태는 이미 아래 흐름이 완성된 것입니다.
+
+```
+데이터 저장 구조 완성
+→ 데이터 직접 입력 가능
+→ 메인 목록 화면 출력 가능
+```
+
+다음 2편에서는 여기서 한 단계 더 나아가서
+**곡 등록 / 상세 / 수정 / 삭제**를 붙이며 CRUD를 완성할 예정입니다.
+
+그때부터는 지금 만든 목록 페이지가 진짜 웹앱처럼 살아나기 시작합니다.
+
+---
+
+# Quick Quiz
+
+<MultipleChoiceQuiz
+question="Django에서 새로 만든 앱이 프로젝트에서 정상적으로 인식되도록 하기 위해 가장 먼저 확인해야 하는 것은 무엇인가요?"
+options={[
+"admin.py에만 등록하면 된다",
+"models.py만 작성하면 된다",
+"settings.py의 INSTALLED_APPS에 앱을 등록해야 한다",
+"templates 폴더만 만들면 된다"
+]}
+correctIndex={2}
+explanation="Django는 INSTALLED_APPS에 등록된 앱을 기준으로 모델, admin, migration 등을 인식합니다."
+/>
+
+<MultipleChoiceQuiz
+question="다음 중 모델 변경 내용을 실제 데이터베이스에 반영하는 명령어는 무엇인가요?"
+options={[
+"python manage.py runserver",
+"python manage.py migrate",
+"python manage.py shell",
+"python manage.py collectstatic"
+]}
+correctIndex={1}
+explanation="migrate는 migration 파일의 내용을 실제 데이터베이스에 반영하는 명령어입니다."
+/>
+
+<ShortAnswerQuiz
+question="Django에서 DB의 데이터를 조회한 뒤 HTML 템플릿으로 전달해 브라우저에 보여주는 역할을 하는 파일은 보통 어디인가요?"
+answers={["views.py", "view.py", "views"]}
+explanation="보통 Django에서는 views.py에서 요청을 처리하고, 데이터를 조회한 뒤 템플릿으로 전달합니다."
+/>
+
+---
+
+## 다음 편 예고
+
+다음 2편에서는 아래 기능을 이어서 만듭니다.
+
+* 곡 등록 페이지
+* 상세 페이지
+* 수정 / 삭제
+* 유튜브 링크를 상세페이지에서 재생하기
+
+즉 1편에서 만든 목록 구조 위에
+이제 **실제 CRUD 동작을 하나씩 붙이는 단계**로 넘어가게 됩니다.
+
+<a href="https://python-lesson-red.vercel.app/blogs/bgm_playlist_tracker(2)" target="_blank">➡️ 다음 교안 보러가기</a>
