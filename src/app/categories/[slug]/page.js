@@ -24,17 +24,18 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }) {
-  const decodedSlug = slugToTagLabel(params.slug);
+  const normalizedSlug = params.slug === "all" ? "all" : slugToTagLabel(params.slug);
 
   return {
-    title: `${decodedSlug.replaceAll("-", " ")} Lessons`,
-    description: `파이썬 ${params.slug === "all" ? "전체" : decodedSlug} 교안 모음입니다.`,
+    title: `${normalizedSlug.replaceAll("-", " ")} Lessons`,
+    description: `파이썬 ${normalizedSlug === "all" ? "전체" : normalizedSlug} 교안 모음입니다.`,
   };
 }
 
 const CategoryPage = ({ params }) => {
   const publishedBlogs = allBlogs.filter((blog) => blog.isPublished);
   const tagMap = getTagMap(publishedBlogs);
+  const normalizedSlug = params.slug === "all" ? "all" : slugToTagLabel(params.slug);
 
   const allCategories = [
     { slug: "all", label: "all" },
@@ -42,14 +43,14 @@ const CategoryPage = ({ params }) => {
   ];
 
   const currentLabel =
-    params.slug === "all" ? "all" : tagMap.get(params.slug) ?? slugToTagLabel(params.slug);
+    normalizedSlug === "all" ? "all" : tagMap.get(normalizedSlug) ?? normalizedSlug;
 
   let blogs = publishedBlogs.filter((blog) => {
-    if (params.slug === "all") {
+    if (normalizedSlug === "all") {
       return true;
     }
 
-    return blog.tags.some((tag) => tagToSlug(tag) === params.slug);
+    return blog.tags.some((tag) => tagToSlug(tag) === normalizedSlug);
   });
 
   blogs = sortBlogsByUpdatedAt(blogs);
@@ -62,7 +63,7 @@ const CategoryPage = ({ params }) => {
           파이썬 학습 주제별로 강의 교안을 탐색해보세요.
         </span>
       </div>
-      <Categories categories={allCategories} currentSlug={params.slug} />
+      <Categories categories={allCategories} currentSlug={normalizedSlug} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-rows-2 gap-16 mt-5 sm:mt-10 md:mt-24 sxl:mt-32 px-5 sm:px-10 md:px-24 sxl:px-32">
         {blogs.map((blog) => (
