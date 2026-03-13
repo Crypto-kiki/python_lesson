@@ -1001,6 +1001,14 @@ HTML 화면과 API는 서로 다른 세계가 아니라
 * Method: `GET`
 * URL: `http://127.0.0.1:8000/api/studies/`
 
+<Image
+  src="/blogs/study_time_tracker(3)/3.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
 ## 테스트 2: 새 기록 생성
 
 * Method: `POST`
@@ -1018,10 +1026,26 @@ HTML 화면과 API는 서로 다른 세계가 아니라
 }
 ```
 
+<Image
+  src="/blogs/study_time_tracker(3)/4.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
 ## 테스트 3: 상세 조회
 
 * Method: `GET`
 * URL: `http://127.0.0.1:8000/api/studies/1/`
+
+<Image
+  src="/blogs/study_time_tracker(3)/5.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
 
 ## 테스트 4: 수정
 
@@ -1035,17 +1059,151 @@ HTML 화면과 API는 서로 다른 세계가 아니라
 }
 ```
 
+<Image
+  src="/blogs/study_time_tracker(3)/6.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+> PATCH 와 PUT 요청의 차이는 뭘까요? 둘 다 수정아닌가요?
+
+### PUT 과 PATCH 차이
+
+PUT은 전체 수정입니다.
+즉 기존 객체를 일부만 고치는 개념보다는, 새 데이터로 전체를 교체하는 방식에 가깝죠.
+
+그래서 PUT 요청을 보낼 때는 보통 해당 객체의 전체 필드를 함께 보내야 합니다.
+
+예를 들어 공부기록이 아래처럼 있을 때,
+
+```json
+{
+  "id": 1,
+  "title": "DRF ViewSet 복습",
+  "category": "django",
+  "study_date": "2026-03-13",
+  "hours": 1,
+  "minutes": 40,
+  "memo": "Serializer와 Router 흐름을 다시 정리했다."
+}
+```
+
+PUT은 이 객체를 통째로 새 상태로 바꾸는 요청으로 봅니다.
+그래서 minutes만 보내면, 서버 입장에서는 나머지 필드가 빠진 것으로 판단할 수 있습니다.
+
+<Image
+  src="/blogs/study_time_tracker(3)/7.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+> 그럼 위 사진에서는 왜 title, study_date만 필수라고 뜨나요?
+
+* title, study_date는 모델과 Serializer 기준에서 필수 필드이기 때문입니다. study/models.py 코드를 봐볼까요?
+
+```python title="study/models.py"
+from django.db import models
+
+class Study(models.Model):
+    CATEGORY_CHOICES = [
+        ('python', 'Python'),
+        ('django', 'Django'),
+        ('algorithm', '알고리즘'),
+        ('database', 'Database'),
+        ('etc', '기타'),
+    ]
+
+    title = models.CharField(max_length=200, verbose_name='공부 제목')
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='django', verbose_name='카테고리')
+    study_date = models.DateField(verbose_name='공부 날짜')
+    hours = models.PositiveIntegerField(default=0, verbose_name='시간')
+    minutes = models.PositiveIntegerField(default=0, verbose_name='분')
+    memo = models.TextField(blank=True, verbose_name='메모')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-study_date', '-created_at']
+        verbose_name = '공부 기록'
+        verbose_name_plural = '공부 기록들'
+
+    def __str__(self):
+        return f'{self.title} ({self.study_date})'
+
+    @property
+    def total_minutes(self):
+        return self.hours * 60 + self.minutes
+```
+
+위 코드 중 아래 두 줄을 살펴봅시다.
+
+```python
+title = models.CharField(max_length=200, verbose_name='공부 제목')
+study_date = models.DateField(verbose_name='공부 날짜')
+```
+
+여기에는:
+
+- blank=True 없음
+
+- null=True 없음
+
+- default도 없음
+
+즉 Django 입장에서는 반드시 값이 있어야 하는 필드로 봅니다.
+
+그리고 ModelSerializer는 이 모델 정보를 바탕으로
+Serializer 필드를 자동 생성하면서 required=True에 해당하는 성격으로 처리합니다.
+
+> 그럼 memo는요?
+
+```python
+memo = models.TextField(blank=True, verbose_name='메모')
+```
+
+blank=True가 있으면, 
+폼이나 Serializer 검증에서 “비워도 됨”으로 해석될 수 있습니다.
+
+즉 memo는 선택 입력처럼 동작하고,
+title, study_date는 필수 입력처럼 동작하는 이유가 여기서 나옵니다.
+
+> 그럼 category, hours, minutes는요?
+
+위 3개는 코드를 보시면 default 값이 있습니다. 즉 값이 안와도 기본 값으로 처리하기 때문입니다.
+
+따라서 아래처럼 필수값을 넣어주면 PUT 요청도 정상 동작합니디.
+
+<Image
+  src="/blogs/study_time_tracker(3)/8.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
 ## 테스트 5: 삭제
 
 * Method: `DELETE`
 * URL: `http://127.0.0.1:8000/api/studies/1/`
+
+<Image
+  src="/blogs/study_time_tracker(3)/9.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
 
 ## 여기서 꼭 이해해야 할 점
 
 브라우저 화면에서 했던 CRUD와 API CRUD는 결국 같은 데이터를 다룹니다.
 차이는 **표현 방식**입니다.
 
-```text
+```
 HTML 방식
 → 사용자 화면 중심
 
@@ -1064,7 +1222,7 @@ API 방식
 
 ## 1) 브라우저 HTML 흐름
 
-```text
+```
 URL
 → View
 → Template
@@ -1073,7 +1231,7 @@ URL
 
 ## 2) API JSON 흐름
 
-```text
+```
 URL
 → ViewSet
 → Serializer
@@ -1094,7 +1252,7 @@ URL
 
 실습이 끝난 뒤 프로젝트 구조는 아래와 비슷합니다.
 
-```text
+```
 study_time_tracker/
 ├── config/
 │   ├── __init__.py
@@ -1133,11 +1291,11 @@ study_time_tracker/
 
 ---
 
-# 25. 이번 3편에서 반드시 머리에 남겨야 할 흐름
+# 25. 이번 교안에서 핵심 흐름
 
 이번 교안의 핵심을 한 줄 흐름으로 정리하면 아래와 같습니다.
 
-```text
+```
 함수형 View로 CRUD 이해
 → 클래스형 View로 구조화 이해
 → 제너릭 View로 Django 패턴 정리
@@ -1187,22 +1345,22 @@ study_time_tracker/
 
 아래 항목을 직접 체크해보세요.
 
-* [ ] 2편 기준 브라우저 CRUD가 정상 동작한다.
-* [ ] 클래스형 View로 목록 페이지를 한 번 바꿔봤다.
-* [ ] `as_view()`의 의미를 이해했다.
-* [ ] 제너릭 View가 왜 필요한지 설명할 수 있다.
-* [ ] `views_generic.py`를 만들었다.
-* [ ] 제너릭 View로 CRUD를 다시 구성했다.
-* [ ] 브라우저에서 제너릭 View 기준 CRUD가 정상 동작한다.
-* [ ] DRF를 설치했다.
-* [ ] `settings.py`에 `rest_framework`를 등록했다.
-* [ ] `StudySerializer`를 만들었다.
-* [ ] `StudyViewSet`을 만들었다.
-* [ ] `api_urls.py`에서 Router를 연결했다.
-* [ ] `config/urls.py`에서 `/api/`를 연결했다.
-* [ ] 브라우저에서 `/api/studies/`가 열린다.
-* [ ] Insomnia에서 GET / POST / PATCH / DELETE 테스트를 해봤다.
-* [ ] HTML 흐름과 API 흐름 차이를 설명할 수 있다.
+* ✅ 2편 기준 브라우저 CRUD가 정상 동작한다.
+* ✅ 클래스형 View로 목록 페이지를 한 번 바꿔봤다.
+* ✅ `as_view()`의 의미를 이해했다.
+* ✅ 제너릭 View가 왜 필요한지 설명할 수 있다.
+* ✅ `views_generic.py`를 만들었다.
+* ✅ 제너릭 View로 CRUD를 다시 구성했다.
+* ✅ 브라우저에서 제너릭 View 기준 CRUD가 정상 동작한다.
+* ✅ DRF를 설치했다.
+* ✅ `settings.py`에 `rest_framework`를 등록했다.
+* ✅ `StudySerializer`를 만들었다.
+* ✅ `StudyViewSet`을 만들었다.
+* ✅ `api_urls.py`에서 Router를 연결했다.
+* ✅ `config/urls.py`에서 `/api/`를 연결했다.
+* ✅ 브라우저에서 `/api/studies/`가 열린다.
+* ✅ Insomnia에서 GET / POST / PATCH / DELETE 테스트를 해봤다.
+* ✅ HTML 흐름과 API 흐름 차이를 설명할 수 있다.
 
 ---
 
@@ -1231,7 +1389,7 @@ study_time_tracker/
 즉 이제 여러분은 단순히 Django 페이지 하나를 만드는 수준을 넘어,
 아래 전체 흐름을 한 번 완주한 것입니다.
 
-```text
+```
 프로젝트 시작
 → 모델 설계
 → 브라우저 기반 CRUD
@@ -1253,22 +1411,42 @@ study_time_tracker/
 
 같은 주제로 다시 만들어보면 Django 구조가 훨씬 더 빠르게 익숙해질 것입니다.
 
-수고 많았습니다. 이번 반복훈련 1~3편을 모두 마치면,
+이번 교안 주제인 "공부시간 기록기" 1~3편을 모두 마치면,
 Django의 가장 기본적인 실습 사이클은 한 번 제대로 경험한 것입니다.
 
 ---
 
-# 다음 반복훈련 예고
+# Quick Quiz
 
-다음 반복훈련에서는 아래 주제로 확장할 수 있습니다.
+<MultipleChoiceQuiz
+  question="Django REST Framework에서 모델 객체를 JSON 데이터로 변환하거나, JSON 입력값을 검증해 모델로 저장할 때 사용하는 것은 무엇인가요?"
+  options={[
+    "Template",
+    "Serializer",
+    "Paginator",
+    "Middleware"
+  ]}
+  correctIndex={1}
+  explanation="Serializer는 모델 객체를 JSON으로 변환하고, JSON 입력 데이터를 검증해 저장할 수 있도록 도와주는 DRF의 핵심 구성 요소입니다."
+/>
 
-* 로그인 / 회원가입 추가
-* 사용자별 공부기록 분리
-* 카테고리별 통계 페이지
-* Chart.js 연동
-* Axios로 API 호출
-* DRF + Template 혼합 구조
-* React / Next.js와 Django API 연동
+<MultipleChoiceQuiz
+  question="HTTP 메서드 중 기존 데이터의 일부 필드만 수정할 때 가장 적절한 것은 무엇인가요?"
+  options={[
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH"
+  ]}
+  correctIndex={3}
+  explanation="PATCH는 기존 객체의 일부 필드만 부분 수정할 때 사용하는 메서드입니다. PUT은 보통 전체 교체에 가깝습니다."
+/>
 
-즉 이번 3편이 **구조 확장과 API 확장**이었다면,
-다음 단계는 **사용자 / 프론트엔드 / 통계 / 실전 확장** 단계가 됩니다.
+<ShortAnswerQuiz
+  question="Django 클래스형 View를 URL에 연결할 때 클래스명을 그대로 쓰지 않고 반드시 뒤에 붙여야 하는 메서드는 무엇인가요?"
+  answers={["as_view()", "as_view", ".as_view()", "as_view() 메서드"]}
+  placeholder="예: as_view()"
+  explanation="클래스형 View는 URL에 직접 연결할 수 없으므로 as_view() 메서드를 통해 Django가 처리 가능한 형태로 바꿔 연결합니다."
+/>
+
+---

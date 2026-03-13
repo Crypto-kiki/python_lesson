@@ -2044,22 +2044,34 @@ POST
 # Quick Quiz
 
 <MultipleChoiceQuiz
-  question="Jupyter Notebook의 가장 큰 특징으로 가장 알맞은 것은 무엇인가요?"
+  question="Django에서 ModelForm을 사용하는 가장 큰 이유로 가장 알맞은 것은 무엇인가요?"
   options={[
-    "코드를 한 번에 전체 실행만 할 수 있다",
-    "셀 단위로 실행하면서 결과를 바로 확인할 수 있다",
-    "웹사이트 배포 전용 도구이다",
-    "오직 그래프만 그릴 수 있다"
+    "HTML 파일을 자동으로 배포해주기 위해",
+    "모델과 연결된 입력 폼 생성, 검증, 저장을 쉽게 하기 위해",
+    "CSS 스타일을 자동으로 넣기 위해",
+    "URL을 자동으로 만들어주기 위해"
   ]}
   correctIndex={1}
-  explanation="Jupyter Notebook은 셀 단위 실행과 즉시 결과 확인이 가장 큰 특징입니다."
+  explanation="ModelForm은 모델과 연결되어 입력 폼 생성, 유효성 검사, 저장 흐름을 쉽게 처리할 수 있게 도와줍니다."
+/>
+
+<MultipleChoiceQuiz
+  question="수정(Update) 기능에서 기존 데이터를 불러와 폼에 채워 넣기 위해 반드시 필요한 것은 무엇인가요?"
+  options={[
+    "redirect()",
+    "instance=기존객체",
+    "Paginator()",
+    "get_context_data()"
+  ]}
+  correctIndex={1}
+  explanation="수정 기능에서는 instance=기존객체를 전달해야 기존 값이 채워진 폼이 열리고, 새 데이터가 아니라 기존 데이터를 수정할 수 있습니다."
 />
 
 <ShortAnswerQuiz
-  question="Jupyter Notebook에서 가장 자주 사용하는 실행 단축키는 무엇인가요?"
-  answers={["Shift + Enter", "shift+enter", "Shift+Enter"]}
-  placeholder="예: Shift + Enter"
-  explanation="가장 많이 사용하는 실행 단축키는 Shift + Enter 입니다."
+  question="Django에서 POST 요청으로 폼을 제출할 때 보안을 위해 템플릿 안 form 태그 내부에 반드시 넣어야 하는 태그는 무엇인가요?"
+  answers={["{% csrf_token %}", "csrf_token", "{%csrf_token%}"]}
+  placeholder="예: {% csrf_token %}"
+  explanation="Django의 POST 폼에서는 CSRF 보호를 위해 {% csrf_token %} 태그를 반드시 넣어야 합니다."
 />
 
 # 다음 교안 예고
@@ -2077,3 +2089,5 @@ POST
 
 즉 이번 편이 **브라우저 기반 CRUD 완성**이었다면,
 다음 편은 **구조 확장과 API 확장** 단계입니다.
+
+<a href="https://python-lesson-red.vercel.app/blogs/study_time_tracker(3)" target="_blank">➡️ 다음 교안 보러가기</a>

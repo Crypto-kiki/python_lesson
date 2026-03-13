@@ -1916,22 +1916,34 @@ Model
 # Quick Quiz
 
 <MultipleChoiceQuiz
-  question="Jupyter Notebook의 가장 큰 특징으로 가장 알맞은 것은 무엇인가요?"
+  question="Django에서 새로 만든 앱을 프로젝트가 인식하도록 하려면 가장 먼저 어디에 등록해야 하나요?"
   options={[
-    "코드를 한 번에 전체 실행만 할 수 있다",
-    "셀 단위로 실행하면서 결과를 바로 확인할 수 있다",
-    "웹사이트 배포 전용 도구이다",
-    "오직 그래프만 그릴 수 있다"
+    "models.py",
+    "views.py",
+    "settings.py의 INSTALLED_APPS",
+    "admin.py"
+  ]}
+  correctIndex={2}
+  explanation="새로 만든 앱은 settings.py의 INSTALLED_APPS에 등록해야 Django가 해당 앱을 프로젝트의 일부로 인식합니다."
+/>
+
+<MultipleChoiceQuiz
+  question="Django에서 모델을 작성한 뒤 실제 데이터베이스 테이블에 반영하려면 어떤 순서가 올바른가요?"
+  options={[
+    "runserver → migrate",
+    "makemigrations → migrate",
+    "admin 등록 → runserver",
+    "urls.py 수정 → migrate"
   ]}
   correctIndex={1}
-  explanation="Jupyter Notebook은 셀 단위 실행과 즉시 결과 확인이 가장 큰 특징입니다."
+  explanation="모델을 작성한 뒤에는 먼저 makemigrations로 변경사항 설계 파일을 만들고, 그 다음 migrate로 실제 DB에 반영해야 합니다."
 />
 
 <ShortAnswerQuiz
-  question="Jupyter Notebook에서 가장 자주 사용하는 실행 단축키는 무엇인가요?"
-  answers={["Shift + Enter", "shift+enter", "Shift+Enter"]}
-  placeholder="예: Shift + Enter"
-  explanation="가장 많이 사용하는 실행 단축키는 Shift + Enter 입니다."
+  question="Django에서 URL → View → HTML 응답 흐름에서, View가 템플릿과 데이터를 함께 반환할 때 가장 자주 사용하는 함수는 무엇인가요?"
+  answers={["render", "render()", "django.shortcuts.render"]}
+  placeholder="예: render"
+  explanation="Django에서 View가 템플릿과 context 데이터를 함께 반환할 때 가장 자주 사용하는 함수는 render 입니다."
 />
 
 # 다음 교안 예고
