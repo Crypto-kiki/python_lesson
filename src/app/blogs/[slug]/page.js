@@ -5,7 +5,7 @@ import BlogDetails from "@/src/components/Blog/BlogDetails";
 import RenderMdx from "@/src/components/Blog/RenderMdx";
 import Tag from "@/src/components/Elements/Tag";
 import siteMetadata from "@/src/utils/siteMetadata";
-import { slug } from "github-slugger";
+import { tagToSlug } from "@/src/utils/tags";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -118,7 +118,7 @@ export default function BlogPage({ params }) {
                 <Tag
                   key={tag}
                   name={tag}
-                  link={`/categories/${slug(tag)}`}
+                  link={`/categories/${tagToSlug(tag)}`}
                   className="px-5 py-2 text-sm !rounded-xl !border !border-light/60 !bg-light/15 backdrop-blur-sm shadow-md"
                 />
               ))}

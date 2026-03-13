@@ -2,7 +2,7 @@ import Image from "next/image";
 import React from "react";
 import Tag from "../Elements/Tag";
 import Link from "next/link";
-import { slug } from "github-slugger";
+import { tagToSlug } from "@/src/utils/tags";
 
 const BlogLayoutOne = ({ blog }) => {
   return (
@@ -23,7 +23,7 @@ const BlogLayoutOne = ({ blog }) => {
           {blog.tags.map((tag) => (
             <Tag
               key={tag}
-              link={`/categories/${slug(tag)}`}
+              link={`/categories/${tagToSlug(tag)}`}
               name={tag}
               className="px-6 text-xs sm:text-sm py-1 sm:py-2 !border"
             />

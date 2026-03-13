@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import Tag from "../Elements/Tag";
-import { slug } from "github-slugger";
+import { tagToSlug } from "@/src/utils/tags";
 import { uiFlags } from "@/src/utils/uiFlags";
 
 const HomeCoverSection = ({ blog }) => {
@@ -36,7 +36,7 @@ const HomeCoverSection = ({ blog }) => {
         >
           <div className="mt-2 flex flex-wrap gap-2">
             {blog.tags.map((tag) => (
-              <Tag key={tag} link={`/categories/${slug(tag)}`} name={tag} />
+              <Tag key={tag} link={`/categories/${tagToSlug(tag)}`} name={tag} />
             ))}
           </div>
           <Link href={blog.url} className="mt-3">

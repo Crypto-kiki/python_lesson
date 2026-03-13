@@ -1,19 +1,18 @@
 import { allBlogs } from "contentlayer/generated";
 import BlogLayoutThree from "@/src/components/Blog/BlogLayoutThree";
 import Categories from "@/src/components/Blog/Categories";
-import { slug } from "github-slugger";
+import { getTagMap, slugToTagLabel, tagToSlug } from "@/src/utils/tags";
+import { sortBlogs, sortBlogsByUpdatedAt } from "@/src/utils";
 
 export async function generateStaticParams() {
   const categories = [];
   const paths = [{ slug: "all" }];
 
-  const sortedBlogs = allBlogs
-    .filter((blog) => blog.isPublished)
-    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  const sortedBlogs = sortBlogs(allBlogs.filter((blog) => blog.isPublished));
 
   sortedBlogs.forEach((blog) => {
     blog.tags.forEach((tag) => {
-      const slugified = slug(tag);
+      const slugified = tagToSlug(tag);
       if (!categories.includes(slugified)) {
         categories.push(slugified);
         paths.push({ slug: slugified });
@@ -25,36 +24,40 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }) {
+  const decodedSlug = slugToTagLabel(params.slug);
+
   return {
-    title: `${params.slug.replaceAll("-", " ")} Lessons`,
-    description: `파이썬 ${params.slug === "all" ? "전체" : params.slug} 교안 모음입니다.`,
+    title: `${decodedSlug.replaceAll("-", " ")} Lessons`,
+    description: `파이썬 ${params.slug === "all" ? "전체" : decodedSlug} 교안 모음입니다.`,
   };
 }
 
 const CategoryPage = ({ params }) => {
   const publishedBlogs = allBlogs.filter((blog) => blog.isPublished);
+  const tagMap = getTagMap(publishedBlogs);
 
   const allCategories = [
-    "all",
-    ...new Set(
-      publishedBlogs.flatMap((blog) => blog.tags.map((tag) => slug(tag)))
-    ),
+    { slug: "all", label: "all" },
+    ...Array.from(tagMap.entries()).map(([slug, label]) => ({ slug, label })),
   ];
+
+  const currentLabel =
+    params.slug === "all" ? "all" : tagMap.get(params.slug) ?? slugToTagLabel(params.slug);
 
   let blogs = publishedBlogs.filter((blog) => {
     if (params.slug === "all") {
       return true;
     }
 
-    return blog.tags.some((tag) => slug(tag) === params.slug);
+    return blog.tags.some((tag) => tagToSlug(tag) === params.slug);
   });
 
-  blogs = blogs.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  blogs = sortBlogsByUpdatedAt(blogs);
 
   return (
     <article className="mt-12 flex flex-col text-dark dark:text-light">
       <div className="px-5 sm:px-10 md:px-24 sxl:px-32 flex flex-col">
-        <h1 className="mt-6 font-semibold text-2xl md:text-4xl lg:text-5xl">#{params.slug}</h1>
+        <h1 className="mt-6 font-semibold text-2xl md:text-4xl lg:text-5xl">#{currentLabel}</h1>
         <span className="mt-2 inline-block text-gray dark:text-light/70">
           파이썬 학습 주제별로 강의 교안을 탐색해보세요.
         </span>
