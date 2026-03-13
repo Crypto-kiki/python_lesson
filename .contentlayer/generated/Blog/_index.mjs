@@ -3,6 +3,6 @@
 import drf_excuse_1__indexMdx from './DRF_excuse(1)__index.mdx.json' assert { type: 'json' }
 import jupyterNotebook__indexMdx from './Jupyter-Notebook__index.mdx.json' assert { type: 'json' }
 import nextJsBlogWithContentlayer_3__indexMdx from './Next.js-blog-with-contentlayer-3__index.mdx.json' assert { type: 'json' }
-import basic_1__indexMdx from './basic(1)__index.mdx.json' assert { type: 'json' }
+import study_time_tracker_1__indexMdx from './study_time_tracker(1)__index.mdx.json' assert { type: 'json' }
 
-export const allBlogs = [drf_excuse_1__indexMdx, jupyterNotebook__indexMdx, nextJsBlogWithContentlayer_3__indexMdx, basic_1__indexMdx]
+export const allBlogs = [drf_excuse_1__indexMdx, jupyterNotebook__indexMdx, nextJsBlogWithContentlayer_3__indexMdx, study_time_tracker_1__indexMdx]
