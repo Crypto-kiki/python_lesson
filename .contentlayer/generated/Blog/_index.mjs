@@ -4,9 +4,11 @@ import drf_excuse__indexMdx from './DRF_excuse__index.mdx.json' assert { type: '
 import bgm_playlist_tracker_1__indexMdx from './bgm_playlist_tracker(1)__index.mdx.json' assert { type: 'json' }
 import bgm_playlist_tracker_2__indexMdx from './bgm_playlist_tracker(2)__index.mdx.json' assert { type: 'json' }
 import bgm_playlist_tracker_3__indexMdx from './bgm_playlist_tracker(3)__index.mdx.json' assert { type: 'json' }
-import study_time_tracker_1__indexMdx from './study_time_tracker(1)__index.mdx.json' assert { type: 'json' }
-import study_time_tracker_3__indexMdx from './study_time_tracker(3)__index.mdx.json' assert { type: 'json' }
-import study_time_tracker_2__indexMdx from './study_time_tracker(2)__index.mdx.json' assert { type: 'json' }
 import bgm_playlist_tracker_4__indexMdx from './bgm_playlist_tracker(4)__index.mdx.json' assert { type: 'json' }
+import memory_place_1__indexMdx from './memory_place(1)__index.mdx.json' assert { type: 'json' }
+import memory_place_2_1__indexMdx from './memory_place(2-1)__index.mdx.json' assert { type: 'json' }
+import study_time_tracker_1__indexMdx from './study_time_tracker(1)__index.mdx.json' assert { type: 'json' }
+import study_time_tracker_2__indexMdx from './study_time_tracker(2)__index.mdx.json' assert { type: 'json' }
+import study_time_tracker_3__indexMdx from './study_time_tracker(3)__index.mdx.json' assert { type: 'json' }
 
-export const allBlogs = [drf_excuse__indexMdx, bgm_playlist_tracker_1__indexMdx, bgm_playlist_tracker_2__indexMdx, bgm_playlist_tracker_3__indexMdx, study_time_tracker_1__indexMdx, study_time_tracker_3__indexMdx, study_time_tracker_2__indexMdx, bgm_playlist_tracker_4__indexMdx]
+export const allBlogs = [drf_excuse__indexMdx, bgm_playlist_tracker_1__indexMdx, bgm_playlist_tracker_2__indexMdx, bgm_playlist_tracker_3__indexMdx, bgm_playlist_tracker_4__indexMdx, memory_place_1__indexMdx, memory_place_2_1__indexMdx, study_time_tracker_1__indexMdx, study_time_tracker_2__indexMdx, study_time_tracker_3__indexMdx]
