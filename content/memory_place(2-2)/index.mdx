@@ -2510,6 +2510,7 @@ textarea::placeholder {
 
 * 장소 등록 폼에서 위도/경도 숨기기
 * 메인페이지 최근 등록된 장소 리스트에서 위도/경도 제거하기
+* 상세페이지에서도 숨기기.
 
 ---
 
@@ -2635,7 +2636,59 @@ textarea::placeholder {
 {% endblock %}
 ```
 
-이제 최근 등록된 장소 카드에서는 위도/경도 대신,
+### 11-2-1. place_detail.html 전체 코드 수정하기
+
+```html title="templates/places/place_detail.html"
+{% extends 'base.html' %}
+ 
+{% block title %}{{ place.title }} | 추억 장소 아카이브{% endblock %}
+ 
+{% block content %}
+<section class="detail-section">
+  <div class="container detail-grid">
+    <div class="detail-image-card">
+      {% if place.image %}
+        <img src="{{ place.image.url }}" alt="{{ place.title }}" class="detail-image">
+      {% else %}
+        <div class="detail-image placeholder-box">이미지 없음</div>
+      {% endif %}
+    </div>
+ 
+    <div class="detail-content-card">
+      <div class="badge-row">
+        <span class="badge">{{ place.emotion }}</span>
+        <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+      </div>
+ 
+      <h1 class="detail-title">{{ place.title }}</h1>
+      <p class="detail-memory-line">{{ place.memory_line }}</p>
+ 
+      <div class="detail-meta-list">
+        <div><strong>작성자</strong><span>{{ place.author.username }}</span></div>
+        <div><strong>주소</strong><span>{{ place.address|default:'주소 미입력' }}</span></div>
+        <div><strong>방문 날짜</strong><span>{{ place.visited_date|default:'미기록' }}</span></div>
+        <div><strong>생성일</strong><span>{{ place.created_at }}</span></div>
+      </div>
+ 
+      <div class="detail-description-box">
+        <h2>상세 설명</h2>
+        <p>{{ place.description|default:'아직 상세 설명이 없습니다.'|linebreaksbr }}</p>
+      </div>
+ 
+      <div class="action-row">
+        <a href="{% url 'places:place_list' %}" class="secondary-button">목록으로</a>
+        {% if user == place.author %}
+          <a href="{% url 'places:place_update' place.pk %}" class="primary-button">수정하기</a>
+          <a href="{% url 'places:place_delete' place.pk %}" class="danger-button">삭제하기</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+```
+
+이제 최근 등록된 장소, 상세페에지, 카드에서는 위도/경도 대신,
 사용자가 보기 좋은 정보만 남기게 됩니다.
 
 ---
