@@ -2,8 +2,8 @@
 title: "추억 장소 아카이브 만들기(2-1) : 회원가입 + 로그인 + 작성자 연결 + 함수형 CRUD"
 description: "Django 인증 기능을 붙이고, Place 모델에 작성자를 연결한 뒤 함수형 View로 장소 생성/수정/삭제까지 완성합니다."
 image: "../../public/blogs/memory_place(2-1)/cover.png"
-publishedAt: "2026-03-17"
-updatedAt: "2026-03-17"
+publishedAt: "2026-03-17T09:00:00+09:00"
+updatedAt: "2026-03-17T09:00:00+09:00"
 author: "Baekki"
 isPublished: true
 tags:
@@ -46,6 +46,22 @@ tags:
 * 각 장소는 작성자와 연결된다.
 * 작성자 본인만 수정 / 삭제할 수 있다.
 * 생성(Create), 수정(Update), 삭제(Delete) 흐름이 함수형 View로 완성된다.
+
+<Image
+  src="/blogs/memory_place(2-1)/10.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+<Image
+  src="/blogs/memory_place(2-1)/11.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
 
 ---
 
@@ -2494,3 +2510,5 @@ form = PlaceForm(request.POST, request.FILES, instance=place)
 
 CRUD 구조가 안정적으로 잡힌 지금 시점에서 지도 검색을 붙이는 것이,
 가장 자연스럽고 가장 덜 헷갈리는 순서입니다.
+
+<a href="https://python-lesson-red.vercel.app/blogs/memory_place(2-2)" target="_blank">다음 교안 보기</a>

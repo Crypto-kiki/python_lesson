@@ -2,8 +2,8 @@
 title: "추억 장소 아카이브 만들기(1) : 모델 설계 + 관리자페이지 + 기본 메인/목록 화면"
 description: "추억 장소를 기록하는 아카이브 서비스를 만들며, Place 모델 설계부터 관리자페이지 커스터마이징, 메인 화면과 기본 목록 페이지 구현까지 차근차근 완성합니다."
 image: "../../public/blogs/memory_place(1)/cover.png"
-publishedAt: "2026-03-16"
-updatedAt: "2026-03-16"
+publishedAt: "2026-03-16T09:00:00+09:00"
+updatedAt: "2026-03-16T09:00:00+09:00"
 author: "Baekki"
 isPublished: true
 tags:
@@ -1386,22 +1386,6 @@ pip install pillow
 
 ---
 
-# 다음 편 예고
-
-다음 글에서는 아래 내용을 이어서 진행합니다.
-
-* 함수형 View 기반 CRUD 완성
-* 회원가입 / 로그인 / 로그아웃
-* 작성자(author) 연결
-* 본인 글만 수정 / 삭제 가능하도록 제한
-* 카카오맵 장소 검색으로 장소 자동 입력
-* 등록 폼 UX 개선
-
-즉, 다음 편부터는 이 프로젝트가 단순한 데이터 출력용 예제가 아니라,
-**실제로 사용해볼 수 있는 추억 기록 서비스**에 가까워지기 시작합니다.
-
----
-
 # Quick Quiz
 
 <MultipleChoiceQuiz
@@ -1427,3 +1411,21 @@ options={[
 correctIndex={2}
 explanation="관리자페이지는 초기 개발 단계에서 데이터를 빠르게 넣고 관리할 수 있는 매우 유용한 도구입니다. search_fields, list_filter, image_preview 같은 설정이 큰 도움이 됩니다."
 />
+
+# 다음 편 예고
+
+다음 글에서는 아래 내용을 이어서 진행합니다.
+
+* 함수형 View 기반 CRUD 완성
+* 회원가입 / 로그인 / 로그아웃
+* 작성자(author) 연결
+* 본인 글만 수정 / 삭제 가능하도록 제한
+* 카카오맵 장소 검색으로 장소 자동 입력
+* 등록 폼 UX 개선
+
+즉, 다음 편부터는 이 프로젝트가 단순한 데이터 출력용 예제가 아니라,
+**실제로 사용해볼 수 있는 추억 기록 서비스**에 가까워지기 시작합니다.
+
+<a href="https://python-lesson-red.vercel.app/blogs/memory_place(2-1)" target="_blank">다음 교안 보기</a>
+
+---

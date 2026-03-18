@@ -1,0 +1,2885 @@
+---
+title: "추억 장소 아카이브 만들기(2-2) : 카카오맵 장소 검색으로 주소·지역·좌표 자동입력 붙이기"
+description: "카카오맵 장소 검색을 활용해 장소명, 주소, 지역, 위도, 경도를 자동으로 채우는 입력 UX를 만들고, 기존 PlaceForm과 자연스럽게 연결합니다."
+image: "../../public/blogs/memory_place(2-2)/cover.png"
+publishedAt: "2026-03-18T16:00:00+09:00"
+updatedAt: "2026-03-18T16:00:00+09:00"
+author: "Baekki"
+isPublished: true
+tags:
+  - Django basic
+  - 추억 장소 아카이브 만들기
+  - Kakao Map API
+---
+
+# 추억 장소 아카이브 만들기 2-2편
+
+<a href="https://python-lesson-red.vercel.app/blogs/memory_place(2-1)" target="_blank">이전 교안 보기</a>
+
+
+지난 2-1편에서는 **회원가입 / 로그인 / 로그아웃**, **작성자(author) 연결**, **함수형 CRUD** 까지 완성했습니다.
+이제 이 프로젝트는 단순히 데이터를 보여주는 수준을 넘어서,
+**로그인한 사용자가 직접 추억 장소를 기록하고 관리할 수 있는 서비스 구조**를 갖추게 되었습니다.
+
+그런데 실제로 사용해보면 금방 한 가지 불편함이 보입니다.
+
+장소를 기록할 때 아래 값들을 전부 사용자가 직접 입력해야 한다는 점입니다.
+
+* 장소명
+* 주소
+* 지역
+* 위도
+* 경도
+
+특히 위도와 경도는 초보자 입장에서는 직접 입력하기도 어렵고,
+실수할 가능성도 높습니다.
+
+주소 역시 사용자가 일일이 복사해서 넣거나,
+지역을 따로 다시 입력해야 하니 UX가 매끄럽지 않습니다.
+
+그래서 이번 2-2편에서는,
+이제 이 직접 입력 방식을 한 단계 업그레이드해보겠습니다.
+
+이번 편의 핵심은 아주 명확합니다.
+
+> **카카오맵 장소 검색을 붙여서, 검색 결과를 클릭하면 장소명 / 주소 / 지역 / 위도 / 경도가 자동으로 입력되게 만들기**
+
+즉, 이번 편은 DB 구조를 새로 바꾸는 편이 아니라,
+이미 만들어둔 `PlaceForm` 을 기반으로
+**입력 경험(UX)을 훨씬 편하게 만드는 확장편**입니다.
+
+---
+
+## 이번 편에서 완성할 결과물
+
+이번 글을 끝내면 아래 상태까지 완성됩니다.
+
+* 장소 등록 페이지에 장소 검색 UI가 추가된다.
+* 사용자가 키워드로 장소를 검색할 수 있다.
+* 검색 결과 목록이 화면에 표시된다.
+* 결과를 클릭하면 아래 값이 자동으로 폼에 들어간다.
+
+  * 장소명
+  * 주소
+  * 지역
+  * 위도
+  * 경도
+* 사용자는 한 줄 추억, 상세 설명, 감정, 이미지 정도만 추가 입력하면 된다.
+* 기존 `PlaceForm` 과 충돌 없이 함께 동작한다.
+* 다음 편에서 지도 표시, 상세 지도, 리스트-지도 연동 같은 확장을 붙일 기반이 생긴다.
+
+---
+
+## 왜 2-1 다음에 바로 지도 검색 자동입력을 붙일까요?
+
+이 순서에는 이유가 있습니다.
+
+2-1편에서는 먼저 서비스의 기본 뼈대를 만들었습니다.
+
+* 누가 작성했는지
+* 누가 수정할 수 있는지
+* 누가 삭제할 수 있는지
+* 데이터가 어떻게 저장되는지
+
+즉, **저장 구조와 권한 구조**를 먼저 안정화한 것입니다.
+
+이제 그다음 단계는,
+같은 저장 구조를 유지한 채 **사용자가 입력하는 과정을 더 편하게 바꾸는 것**입니다.
+
+자동입력은 데이터를 더 많이 저장하게 해주는 기능이 아니라,
+**같은 데이터를 더 정확하고 더 편하게 넣게 해주는 기능**입니다.
+
+그래서 이 순서가 가장 자연스럽습니다.
+
+* 2-1편: 서비스 뼈대 만들기
+* 2-2편: 입력 UX 개선하기
+
+이 흐름을 잘 기억해두면,
+나중에 다른 프로젝트를 할 때도
+“기능의 본체”와 “사용 경험 개선”을 구분해서 설계하는 감각이 생깁니다.
+
+---
+
+# 0. 이번 편 전체 흐름 먼저 보기
+
+## 이번 편 실습 순서
+
+1. 카카오맵 API 준비하기
+2. `settings.py` 에 카카오 JavaScript 키 연결하기
+3. 장소 등록 페이지 UI 확장하기
+4. 카카오 장소 검색 결과를 보여줄 박스 만들기
+5. 검색 버튼 클릭 시 장소 검색 실행하기
+6. 검색 결과를 카드 형태로 렌더링하기
+7. 검색 결과 클릭 시 폼 자동 채우기
+8. 지역명 추출 규칙 만들기
+9. 등록 페이지에서 실제 저장 테스트하기
+10. 자주 발생하는 오류와 디버깅 포인트 정리하기
+
+이번 편의 핵심 기술은 아래 3가지가 함께 작동하는 것입니다.
+
+* Django 템플릿
+* JavaScript
+* 카카오맵 장소 검색 API
+
+즉, 이번 편은 단순 Django 코드만 보는 편이 아니라,
+**템플릿 + JS + 외부 API를 하나의 폼 UX로 연결하는 연습**이 됩니다.
+
+---
+
+# 1. 이번 편에서 바뀌는 구조 먼저 보기
+
+<Image
+  src="/blogs/memory_place(2-2)/12.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+이번 편에서 핵심적으로 수정되는 파일은 많지 않습니다.
+
+하지만 그 안에서 중요한 변화가 생깁니다.
+
+* `settings.py` : 카카오 API 키를 템플릿에서 쓸 수 있게 연결
+* `place_form.html` : 검색창 / 결과 목록 / 자동입력 JS 추가
+* `style.css` : 검색 UI와 결과 카드 디자인 추가
+
+즉,
+DB 모델을 크게 바꾸는 편이 아니라,
+**폼 화면과 템플릿 동작을 크게 업그레이드하는 편**입니다.
+
+---
+
+# 2. 카카오맵 장소 검색을 왜 쓰는가?
+
+이번 프로젝트에서 필요한 것은 “지도 전체를 먼저 보여주는 것”이 아닙니다.
+우선은 사용자가 장소를 쉽게 고를 수 있게 하는 것이 더 중요합니다.
+
+카카오맵 장소 검색을 붙이면,
+사용자가 예를 들어 아래처럼 검색할 수 있습니다.
+
+* 서울숲
+* 국립현대미술관 서울
+* 해운대 블루라인파크
+* 성수동 카페
+
+그리고 검색 결과 하나를 클릭하면,
+그 결과에 들어 있는 정보를 그대로 폼에 반영할 수 있습니다.
+
+즉, 사용자는 아래 같은 번거로운 작업을 줄일 수 있습니다.
+
+* 장소명 따로 입력
+* 주소 복붙
+* 지역 다시 입력
+* 위도/경도 따로 찾기
+
+이 기능은 나중에 아래 기능으로도 이어질 수 있습니다.
+
+* 상세 페이지에 지도 마커 표시
+* 특정 지역별 필터
+* 거리 기반 정렬
+* 추천 장소 지도 시각화
+
+즉, 이번 자동입력 기능은 단순 편의 기능이 아니라,
+이후 프로젝트 확장을 위한 기반이기도 합니다.
+
+---
+
+# 3. 카카오맵 API 준비하기
+
+<a href="https://developers.kakao.com/" target="_blank">➡️ 카카오 개발 홈페이지 이동하기</a>
+
+이번 편을 진행하려면 카카오맵 JavaScript 키가 필요합니다.
+
+## 3-1. 준비 개념 먼저 이해하기
+
+카카오 API를 처음 써보는 분들은 보통 여기서 헷갈립니다.
+
+“REST API 키를 써야 하나요?”
+“JavaScript 키를 써야 하나요?”
+
+이번 실습은 **브라우저 안에서 JavaScript로 장소 검색을 실행**할 것이므로,
+핵심적으로 필요한 것은 **JavaScript 키**입니다.
+
+즉,
+이번 편은 서버가 카카오 API에 요청하는 방식이 아니라,
+**템플릿에 로드된 카카오 스크립트가 브라우저에서 장소 검색을 수행하는 구조**입니다.
+
+그래서 JavaScript 키가 필요합니다.
+
+## 3-2. Kakao Javascript Key 생성하기
+
+* Kakao developers 홈페이지로 이동 후 상단 '앱' 탭으로 들어갑니다.
+
+<Image
+  src="/blogs/memory_place(2-2)/1.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+* 앱 생성을 누릅니다.
+
+<Image
+  src="/blogs/memory_place(2-2)/2.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+* 필수 정보들을 입력해줍니다. 임의로 넣어도 무방합니다.
+
+<Image
+  src="/blogs/memory_place(2-2)/3.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+* 생성되었다면 키를 확인합니다. 
+
+<Image
+  src="/blogs/memory_place(2-2)/4.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+* Javascript 키 사용할 도메인 등록해줍니다. 우리는 로컬에서 테스트 중이니 아래 주소를 등록하고 저장합니다.
+
+```text
+http://127.0.0.1:8000
+http://localhost:8000
+```
+
+<Image
+  src="/blogs/memory_place(2-2)/7.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+* 카카오맵 키 활성화 해줍니다.(안하면 403 에러 발생해요.)
+
+<Image
+  src="/blogs/memory_place(2-2)/6.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+---
+
+## 3-2. .env에 키 추가하기
+
+프로젝트 루트에 `.env` 파일을 생성 후,
+아래처럼 카카오 키를 추가합니다.
+
+```env title=".env"
+KAKAO_JAVASCRIPT_KEY=여기에_본인_카카오_자바스크립트_키
+```
+
+## 3-3. python-dotenv 패키지 설치
+
+그리고 아래 패키지를 설치합니다.
+
+```text
+pip install python-dotenv
+```
+
+실제 프로젝트에서는 민감한 키를 코드에 직접 박아두기보다,
+환경변수로 관리하는 습관이 훨씬 좋습니다.
+
+특히 나중에 배포나 협업을 하게 되면,
+이런 습관이 굉장히 중요해집니다.
+
+---
+
+## 3-4. settings.py에 환경변수 연결하기
+
+```python title="config/settings.py"
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
+
+KAKAO_JAVASCRIPT_KEY = os.getenv('KAKAO_JAVASCRIPT_KEY', '')
+```
+
+---
+
+## 3-5 왜 `os.getenv()` 를 쓰는가?
+
+이 코드는 `.env` 에 있는 값을 꺼내오는 역할을 합니다.
+
+```python title="config/settings.py"
+KAKAO_JAVASCRIPT_KEY = os.getenv('KAKAO_JAVASCRIPT_KEY', '')
+```
+
+만약 `.env` 에 값이 없다면 기본값으로 빈 문자열을 사용합니다.
+이렇게 해두면 서버가 아예 터지는 것을 어느 정도 줄일 수 있습니다.
+
+물론 키가 비어 있으면 검색 기능은 정상 동작하지 않겠지만,
+최소한 설정이 어디 문제인지 확인하기는 더 쉬워집니다.
+
+---
+
+# 4. 템플릿에서 키를 사용할 수 있게 View 수정하기
+
+장소 등록 폼 템플릿에서 카카오 스크립트를 로드하려면,
+템플릿 안에서도 키를 사용할 수 있어야 합니다.
+
+그러므로 `place_create()` View에서 키를 같이 넘겨주겠습니다.
+
+```python title="places/views.py"
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from .forms import PlaceForm, SignUpForm
+from .models import Place
+
+
+def home(request):
+    featured_places = Place.objects.filter(is_featured=True)[:3]
+    latest_places = Place.objects.select_related('author').all()[:6]
+    return render(
+        request,
+        'places/home.html',
+        {
+            'featured_places': featured_places,
+            'latest_places': latest_places,
+        },
+    )
+
+
+def place_list(request):
+    places = Place.objects.select_related('author').all()
+    return render(request, 'places/place_list.html', {'places': places})
+
+
+def place_detail(request, pk):
+    place = get_object_or_404(Place.objects.select_related('author'), pk=pk)
+    return render(request, 'places/place_detail.html', {'place': place})
+
+
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('places:home')
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, '회원가입이 완료되었습니다. 바로 로그인되었습니다.')
+            return redirect('places:home')
+    else:
+        form = SignUpForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+
+
+@login_required
+def place_create(request):
+    if request.method == 'POST':
+        form = PlaceForm(request.POST, request.FILES)
+        if form.is_valid():
+            place = form.save(commit=False)
+            place.author = request.user
+            place.save()
+            messages.success(request, '새로운 추억 장소가 등록되었습니다.')
+            return redirect('places:place_detail', pk=place.pk)
+    else:
+        form = PlaceForm()
+
+    return render(
+        request,
+        'places/place_form.html',
+        {
+            'form': form,
+            'page_title': '장소 기록 추가',
+            'submit_label': '장소 저장하기',
+            'kakao_javascript_key': settings.KAKAO_JAVASCRIPT_KEY,
+        },
+    )
+
+
+@login_required
+def place_update(request, pk):
+    place = get_object_or_404(Place, pk=pk)
+
+    if place.author != request.user:
+        raise Http404('본인 글만 수정할 수 있습니다.')
+
+    if request.method == 'POST':
+        form = PlaceForm(request.POST, request.FILES, instance=place)
+        if form.is_valid():
+            updated_place = form.save(commit=False)
+            updated_place.author = request.user
+            updated_place.save()
+            messages.success(request, '추억 장소가 수정되었습니다.')
+            return redirect('places:place_detail', pk=updated_place.pk)
+    else:
+        form = PlaceForm(instance=place)
+
+    return render(
+        request,
+        'places/place_form.html',
+        {
+            'form': form,
+            'page_title': '장소 기록 수정',
+            'submit_label': '수정 내용 저장하기',
+            'place': place,
+            'kakao_javascript_key': settings.KAKAO_JAVASCRIPT_KEY,
+        },
+    )
+
+
+@login_required
+def place_delete(request, pk):
+    place = get_object_or_404(Place, pk=pk)
+
+    if place.author != request.user:
+        raise Http404('본인 글만 삭제할 수 있습니다.')
+
+    if request.method == 'POST':
+        place.delete()
+        messages.success(request, '추억 장소가 삭제되었습니다.')
+        return redirect('places:place_list')
+
+    return render(request, 'places/place_confirm_delete.html', {'place': place})
+```
+
+---
+
+## 4-1. 이번 수정에서 중요한 점
+
+사실 바뀐 것은 많지 않습니다.
+핵심은 아래 한 줄입니다.
+
+```python title="places/views.py"
+'kakao_javascript_key': settings.KAKAO_JAVASCRIPT_KEY,
+```
+
+이 값을 템플릿으로 넘겨야,
+`place_form.html` 에서 카카오 JavaScript SDK 스크립트를 로드할 수 있습니다.
+
+그리고 이번에는 `create` 뿐 아니라 `update` 에도 같이 넘겨줬습니다.
+그 이유는 앞으로 수정 페이지에서도 같은 검색 UX를 재사용할 수 있게 하기 위해서입니다.
+
+즉,
+이번 편에서는 우선 등록 페이지를 기준으로 설명하지만,
+구조는 **생성/수정 모두에서 재사용 가능한 방향**으로 잡고 있습니다.
+
+---
+
+# 5. PlaceForm의 필드 전략 다시 확인하기
+
+2-1편에서 만든 `PlaceForm` 은 이번 편에서도 그대로 사용합니다.
+
+```python title="places/forms.py"
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+from .models import Place
+
+
+class SignUpForm(UserCreationForm):
+    email = forms.EmailField(required=True, label='이메일')
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')
+        labels = {
+            'username': '아이디',
+        }
+
+
+class PlaceForm(forms.ModelForm):
+    class Meta:
+        model = Place
+        fields = [
+            'title',
+            'address',
+            'region',
+            'memory_line',
+            'description',
+            'emotion',
+            'image',
+            'visited_date',
+            'latitude',
+            'longitude',
+            'is_featured',
+        ]
+        labels = {
+            'title': '장소명',
+            'address': '주소',
+            'region': '지역',
+            'memory_line': '한 줄 추억',
+            'description': '상세 설명',
+            'emotion': '감정',
+            'image': '대표 이미지',
+            'visited_date': '방문 날짜',
+            'latitude': '위도',
+            'longitude': '경도',
+            'is_featured': '추천 장소 여부',
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={'placeholder': '예: 서울숲'}),
+            'address': forms.TextInput(attrs={'placeholder': '예: 서울 성동구 뚝섬로 273'}),
+            'region': forms.TextInput(attrs={'placeholder': '예: 서울'}),
+            'memory_line': forms.TextInput(attrs={'placeholder': '예: 처음 같이 산책했던 곳'}),
+            'description': forms.Textarea(attrs={'rows': 5, 'placeholder': '그 장소에 대한 자세한 추억을 남겨보세요.'}),
+            'visited_date': forms.DateInput(attrs={'type': 'date'}),
+            'latitude': forms.NumberInput(attrs={'step': '0.0000001', 'placeholder': '예: 37.5665000'}),
+            'longitude': forms.NumberInput(attrs={'step': '0.0000001', 'placeholder': '예: 126.9780000'}),
+        }
+```
+
+---
+
+## 5-1. 이번 편에서는 Form 구조를 왜 크게 안 바꾸는가?
+
+이것도 중요한 포인트입니다.
+
+이번 편은 카카오맵 검색을 붙인다고 해서,
+Django Form 자체를 갈아엎는 편이 아닙니다.
+
+오히려 **기존 Form 구조는 유지한 채**,
+JavaScript로 필요한 필드 값을 자동으로 채워 넣는 방식입니다.
+
+즉,
+
+* 저장 구조는 그대로 유지
+* 화면에서 입력 보조 UX만 강화
+
+이 방향이 훨씬 안정적입니다.
+
+실제로 프로젝트를 만들 때도,
+DB와 서버 구조는 그대로 두고
+프론트 UX만 개선하는 경우가 매우 많습니다.
+
+---
+
+# 6. 장소 등록 / 수정 페이지 템플릿 확장하기
+
+이제 이번 편의 핵심인 `place_form.html` 을 바꿔보겠습니다.
+
+이번에는 아래 기능이 들어갑니다.
+
+* 검색 키워드 입력창
+* 검색 버튼
+* 검색 결과 목록
+* 검색 결과 클릭 시 폼 자동입력
+* 위도/경도 필드를 읽기 전용처럼 안내
+
+---
+
+## 6-1. place_form.html 전체 코드
+
+```html title="templates/places/place_form.html"
+{% extends 'base.html' %}
+ 
+{% block title %}{{ page_title }} | 추억 장소 아카이브{% endblock %}
+ 
+{% block content %}
+<section class="auth-section place-form-section">
+  <div class="container narrow-container">
+    <div class="panel-card place-form-panel">
+      <div class="panel-head">
+        <span class="eyebrow">PLACE SEARCH FORM</span>
+        <h1>{{ page_title }}</h1>
+        <p>
+          이번 편에서는 카카오맵 장소 검색을 통해 장소명, 주소, 지역, 위도, 경도를 자동으로 채울 수 있습니다.
+          먼저 장소를 검색한 뒤 원하는 결과를 클릭하고, 나머지 추억 정보를 이어서 작성해보세요.
+        </p>
+      </div>
+ 
+      <div class="search-helper-box">
+        <h2>1️⃣ 먼저 장소를 검색해보세요</h2>
+        <p>
+          장소명이나 지역 키워드를 입력하면 검색 결과가 나타납니다.
+          결과를 클릭하면 아래 폼의 <strong>장소명 / 주소 / 지역 / 위도 / 경도</strong>가 자동 입력됩니다.
+        </p>
+ 
+        <div class="place-search-bar">
+          <input
+            type="text"
+            id="place-search-keyword"
+            class="place-search-input"
+            placeholder="예: 서울숲, 국립현대미술관 서울, 성수동 카페"
+          >
+          <button type="button" id="place-search-button" class="primary-button search-button">
+            장소 검색
+          </button>
+        </div>
+ 
+        <div class="search-tip-list">
+          <div class="search-tip-item">정확한 상호명으로 검색하면 결과가 더 잘 나옵니다.</div>
+          <div class="search-tip-item">너무 짧은 키워드보다 지역 + 장소명을 함께 쓰면 좋습니다.</div>
+          <div class="search-tip-item">검색 결과를 클릭해야 폼 자동입력이 적용됩니다.</div>
+        </div>
+      </div>
+ 
+      <div class="search-result-box">
+        <div class="search-result-head">
+          <h2>2️⃣ 검색 결과</h2>
+          <p>원하는 장소를 클릭하면 아래 입력 폼이 자동으로 채워집니다.</p>
+        </div>
+        <div id="place-search-results" class="result-list empty-state-box">
+          아직 검색 결과가 없습니다. 먼저 장소를 검색해보세요.
+        </div>
+      </div>
+ 
+      <form method="post" enctype="multipart/form-data" class="form-grid place-main-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+ 
+        <div class="form-section-label">3️⃣ 추억 정보 입력</div>
+ 
+        {% for field in form %}
+          <div class="form-field {% if field.name == 'latitude' or field.name == 'longitude' %}coordinate-field{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.name == 'title' %}
+              <small class="help-text">검색 결과를 클릭하면 장소명이 자동으로 들어갑니다.</small>
+            {% elif field.name == 'address' %}
+              <small class="help-text">카카오 검색 결과의 도로명 주소 또는 지번 주소가 자동 반영됩니다.</small>
+            {% elif field.name == 'region' %}
+              <small class="help-text">주소를 바탕으로 대표 지역명을 자동 추출합니다.</small>
+            {% elif field.name == 'latitude' or field.name == 'longitude' %}
+              <small class="help-text">검색 결과를 클릭하면 자동으로 채워집니다. 지도 기능 확장을 위해 매우 중요합니다.</small>
+            {% elif field.help_text %}
+              <small class="help-text">{{ field.help_text }}</small>
+            {% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+ 
+        <button type="submit" class="primary-button full-width">{{ submit_label }}</button>
+      </form>
+    </div>
+  </div>
+</section>
+ 
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}&libraries=services"></script>
+<script>
+  const searchInput = document.getElementById('place-search-keyword');
+  const searchButton = document.getElementById('place-search-button');
+  const resultBox = document.getElementById('place-search-results');
+ 
+  const titleInput = document.getElementById('id_title');
+  const addressInput = document.getElementById('id_address');
+  const regionInput = document.getElementById('id_region');
+  const latitudeInput = document.getElementById('id_latitude');
+  const longitudeInput = document.getElementById('id_longitude');
+ 
+  function extractRegion(addressName) {
+    if (!addressName) return '';
+ 
+    const parts = addressName.split(' ');
+ 
+    if (parts.length >= 2) {
+      return parts[0] + ' ' + parts[1];
+    }
+ 
+    return parts[0] || '';
+  }
+ 
+  function toSevenDecimals(value) {
+  if (!value) return '';
+  return Number(value).toFixed(7);
+}
+
+function fillPlaceForm(place) {
+  const fullAddress = place.road_address_name || place.address_name || '';
+  const region = extractRegion(fullAddress);
+
+  titleInput.value = place.place_name || '';
+  addressInput.value = fullAddress;
+  regionInput.value = region;
+  latitudeInput.value = toSevenDecimals(place.y);
+  longitudeInput.value = toSevenDecimals(place.x);
+
+  titleInput.focus();
+
+  window.scrollTo({
+    top: document.querySelector('.place-main-form').offsetTop - 100,
+    behavior: 'smooth'
+  });
+}
+ 
+  function renderPlaces(data) {
+    if (!data.length) {
+      resultBox.className = 'result-list empty-state-box';
+      resultBox.innerHTML = '검색 결과가 없습니다. 다른 키워드로 다시 검색해보세요.';
+      return;
+    }
+ 
+    resultBox.className = 'result-list';
+    resultBox.innerHTML = data.map((place, index) => {
+      const displayAddress = place.road_address_name || place.address_name || '주소 정보 없음';
+      const phone = place.phone || '전화번호 정보 없음';
+ 
+      return `
+        <button type="button" class="result-card" data-index="${index}">
+          <div class="result-card-top">
+            <span class="result-number">${index + 1}</span>
+            <span class="result-name">${place.place_name}</span>
+          </div>
+          <div class="result-meta">
+            <span class="result-category">${place.category_name || '카테고리 정보 없음'}</span>
+            <span class="result-phone">${phone}</span>
+          </div>
+          <div class="result-address">${displayAddress}</div>
+          <div class="result-coordinates">위도: ${place.y} / 경도: ${place.x}</div>
+        </button>
+      `;
+    }).join('');
+ 
+    const cards = document.querySelectorAll('.result-card');
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        const selectedPlace = data[card.dataset.index];
+        fillPlaceForm(selectedPlace);
+      });
+    });
+  }
+ 
+  function searchPlaces() {
+    const keyword = searchInput.value.trim();
+ 
+    if (!keyword) {
+      resultBox.className = 'result-list empty-state-box';
+      resultBox.innerHTML = '검색어를 먼저 입력해주세요.';
+      searchInput.focus();
+      return;
+    }
+ 
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+      resultBox.className = 'result-list empty-state-box';
+      resultBox.innerHTML = '카카오맵 스크립트가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.';
+      return;
+    }
+ 
+    const ps = new kakao.maps.services.Places();
+ 
+    resultBox.className = 'result-list empty-state-box';
+    resultBox.innerHTML = '장소를 검색하는 중입니다...';
+ 
+    ps.keywordSearch(keyword, function(data, status) {
+      if (status === kakao.maps.services.Status.OK) {
+        renderPlaces(data);
+      } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+        resultBox.className = 'result-list empty-state-box';
+        resultBox.innerHTML = '검색 결과가 없습니다. 키워드를 조금 더 구체적으로 입력해보세요.';
+      } else {
+        resultBox.className = 'result-list empty-state-box';
+        resultBox.innerHTML = '검색 중 오류가 발생했습니다. API 키와 스크립트 로드 상태를 확인해주세요.';
+      }
+    });
+  }
+ 
+  searchButton.addEventListener('click', searchPlaces);
+ 
+  searchInput.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      searchPlaces();
+    }
+  });
+</script>
+{% endblock %}
+```
+
+---
+
+# 7. place_form.html에서 꼭 이해 할 것!!
+
+이번 템플릿은 코드 길이가 조금 길어졌습니다.
+
+아래 핵심 포인트는 꼭 이해하고 넘어가는 것이 중요합니다.
+
+---
+
+## 7-1. 검색 UI와 실제 저장 폼을 분리한 이유
+
+이번 템플릿은 크게 두 영역으로 나뉩니다.
+
+* 검색 UI 영역
+* 실제 Django Form 영역
+
+이렇게 나눈 이유는 역할이 다르기 때문입니다.
+
+### 검색 UI 영역의 역할
+
+* 사용자가 키워드를 입력한다.
+* 카카오맵 검색 결과를 보여준다.
+* 클릭한 장소 데이터를 가져온다.
+
+### 실제 Form 영역의 역할
+
+* 최종적으로 Django 서버에 저장될 값을 담는다.
+* 사용자가 한 줄 추억, 설명, 이미지 등을 추가로 입력한다.
+* submit 시 DB 저장이 일어난다.
+
+즉,
+검색 UI는 어디까지나 **입력을 도와주는 보조 장치**이고,
+실제 저장의 중심은 여전히 Django Form입니다.
+
+이 구조를 잘 구분해야,
+JavaScript를 붙이더라도 전체 폼 흐름이 헷갈리지 않습니다.
+
+---
+
+## 7-2. 카카오 스크립트 로드 부분
+
+```html title="templates/places/place_form.html"
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}&libraries=services"></script>
+```
+
+이 부분은 카카오맵 JavaScript SDK를 불러오는 코드입니다.
+
+여기서 중요한 것은 두 가지입니다.
+
+### 1) `appkey={{ kakao_javascript_key }}`
+
+Django View에서 넘겨준 키를 템플릿에 꽂아 넣는 구조입니다.
+
+### 2) `libraries=services`
+
+이번 편에서는 지도 화면을 그리는 것보다,
+**장소 검색 서비스(Places)** 기능이 필요합니다.
+
+그래서 `services` 라이브러리를 함께 로드해야 합니다.
+이 값이 빠지면 아래 코드가 정상 동작하지 않을 수 있습니다.
+
+```javascript title="templates/places/place_form.html"
+new kakao.maps.services.Places()
+```
+
+---
+
+## 7-3. 왜 DOM 요소를 먼저 변수로 잡는가?
+
+```javascript title="templates/places/place_form.html"
+const titleInput = document.getElementById('id_title');
+const addressInput = document.getElementById('id_address');
+const regionInput = document.getElementById('id_region');
+const latitudeInput = document.getElementById('id_latitude');
+const longitudeInput = document.getElementById('id_longitude');
+```
+
+이 코드는 Django Form이 렌더링한 실제 input 요소를 JavaScript에서 잡아오는 부분입니다.
+
+즉,
+카카오 검색 결과를 클릭했을 때
+어떤 input 칸에 값을 넣을지 정확히 연결해두는 단계입니다.
+
+여기서 가장 많이 나는 실수가 **id 이름 오타**입니다.
+예를 들어 `id_latitude`, `id_longitude` 같은 이름이 실제 렌더링된 form과 다르면,
+자동입력이 작동하지 않습니다.
+
+따라서 이런 연결 코드는 반드시 정확해야 합니다.
+
+---
+
+## 7-4. 지역명을 따로 추출하는 이유
+
+```javascript title="templates/places/place_form.html"
+function extractRegion(addressName) {
+  if (!addressName) return '';
+
+  const parts = addressName.split(' ');
+
+  if (parts.length >= 2) {
+    return parts[0] + ' ' + parts[1];
+  }
+
+  return parts[0] || '';
+}
+```
+
+카카오 검색 결과에는 보통 전체 주소가 들어옵니다.
+예를 들어 아래처럼요.
+
+```text title="예시 주소"
+서울 성동구 뚝섬로 273
+```
+
+그런데 우리 프로젝트의 `region` 필드는 전체 주소가 아니라,
+목록이나 카드에서 간단히 보여줄 지역 정보를 담는 용도입니다.
+
+그래서 이번 예제에서는 가장 단순한 방식으로,
+주소 앞의 1~2단어를 잘라서 지역처럼 사용합니다.
+
+예를 들어 아래처럼 들어갑니다.
+
+* `서울 성동구 뚝섬로 273` → `서울 성동구`
+* `부산 해운대구 우동 ...` → `부산 해운대구`
+
+물론 지역 추출 규칙은 프로젝트에 따라 더 정교하게 만들 수도 있습니다.
+하지만 이번 학습 단계에서는 이 정도가 가장 이해하기 쉽고 실용적입니다.
+
+---
+
+## 7-5. 검색 결과를 클릭했을 때 실제로 일어나는 일
+
+핵심 동작은 이 부분입니다.
+
+```javascript title="templates/places/place_form.html"
+function fillPlaceForm(place) {
+  const fullAddress = place.road_address_name || place.address_name || '';
+  const region = extractRegion(fullAddress);
+
+  titleInput.value = place.place_name || '';
+  addressInput.value = fullAddress;
+  regionInput.value = region;
+  latitudeInput.value = place.y || '';
+  longitudeInput.value = place.x || '';
+}
+```
+
+즉, 검색 결과 객체에서 아래 값을 꺼내와서
+Django Form input에 직접 넣는 구조입니다.
+
+```javascript title="templates/places/place_form.html"
+function toSevenDecimals(value) {
+  if (!value) return '';
+  return Number(value).toFixed(7);
+}
+```
+
+그리고 그 위의 toSevenDecimals 함수는, 위도/경도의 소숫점 자리수를 7자리까지만 구합니다.
+
+이유는, 소수점 7자리 초과시 카카오맵 에서 아래와 같은 오류가 발생합니다.
+
+<Image
+  src="/blogs/memory_place(2-2)/5.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+
+* `place.place_name` → 장소명
+* `place.road_address_name` 또는 `place.address_name` → 주소
+* 주소 기반 가공값 → 지역
+* `place.y` → 위도
+* `place.x` → 경도
+
+여기서 방향도 중요합니다.
+
+* `y` 는 위도
+* `x` 는 경도
+
+이 부분은 실수하기 쉬우니 꼭 주의해야 합니다.
+
+---
+
+## 7-6. 검색 결과를 버튼 형태로 렌더링한 이유
+
+이번 예제에서는 검색 결과 하나하나를 `<button type="button">` 형태로 렌더링했습니다.
+
+그 이유는 두 가지입니다.
+
+### 1) 접근성과 클릭 UX가 좋음
+
+카드 전체를 버튼처럼 눌러 선택할 수 있어서 UX가 좋습니다.
+
+### 2) form submit을 막기 쉬움
+
+일반 `<button>` 은 폼 안에 있으면 submit이 될 수 있지만,
+`type="button"` 으로 명시하면 검색 결과 클릭 시 저장 폼이 제출되는 문제를 막을 수 있습니다.
+
+이런 작은 부분도 실제로는 매우 중요합니다.
+
+---
+
+## 7-7. Enter 키 검색 지원
+
+```javascript title="templates/places/place_form.html"
+searchInput.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    searchPlaces();
+  }
+});
+```
+
+이 부분은 UX를 좋게 만드는 장치입니다.
+
+사용자는 검색창에 키워드를 입력한 뒤,
+굳이 마우스로 검색 버튼을 누르지 않아도 Enter로 바로 검색할 수 있습니다.
+
+그리고 `event.preventDefault()` 를 넣어둔 이유는,
+엔터 입력이 폼 전체 submit으로 잘못 이어지는 것을 막기 위해서입니다.
+
+---
+
+# 8. CSS 확장하기
+
+검색 UI와 결과 카드가 추가되었으므로,
+이번 편에서는 `style.css` 에 아래 스타일을 이어서 추가합니다.
+
+```css title="static/css/style.css"
+.place-form-section {
+  background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+}
+
+.place-form-panel {
+  display: grid;
+  gap: 24px;
+}
+
+.search-helper-box,
+.search-result-box {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.search-helper-box h2,
+.search-result-head h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.search-helper-box p,
+.search-result-head p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.place-search-bar {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.place-search-input {
+  width: 100%;
+  border: 1px solid #c7d2fe;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 15px;
+  background: white;
+}
+
+.place-search-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+.search-button {
+  width: 100%;
+}
+
+.search-tip-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.search-tip-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: white;
+  color: #475569;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.empty-state-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  text-align: center;
+  padding: 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  background: white;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.result-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.result-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  border-color: #818cf8;
+  box-shadow: 0 16px 30px rgba(99, 102, 241, 0.12);
+}
+
+.result-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.result-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.result-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.result-category,
+.result-phone {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.result-address {
+  color: #334155;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.result-coordinates {
+  color: #6366f1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.form-section-label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.coordinate-field input {
+  background: #f8fafc;
+}
+
+@media (max-width: 720px) {
+  .place-search-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .result-card-top {
+    align-items: flex-start;
+  }
+}
+```
+
+---
+
+## 8-1. CSS에서 중요한 의도
+
+이번 스타일은 단순히 예쁘게 보이기 위해 넣은 것이 아닙니다.
+각 영역의 역할이 눈에 잘 들어오도록 설계한 것입니다.
+
+### 검색 안내 박스
+
+사용자에게 먼저 무엇을 해야 하는지 알려줍니다.
+
+### 검색 결과 박스
+
+검색 결과를 시각적으로 분리해서 “클릭 대상”임을 분명하게 보여줍니다.
+
+### 폼 영역
+
+실제 저장 입력이 이루어지는 본체라는 점을 구분합니다.
+
+즉,
+이번 화면은 하나의 긴 폼처럼 보이지만,
+실제로는 아래 3단계 경험을 갖게 됩니다.
+
+1. 검색한다.
+2. 선택한다.
+3. 추억 내용을 채운다.
+
+이 구조가 UX 관점에서 굉장히 중요합니다.
+
+---
+
+# 9. 좌표 필드를 왜 자동입력하게 두는가?
+
+위도와 경도는 사용자 입장에서 가장 입력하기 어려운 값입니다.
+그래서 이번 편에서는 자동입력의 가치를 가장 크게 보여주는 필드이기도 합니다.
+
+하지만 단순히 편하다는 이유만은 아닙니다.
+좌표는 나중에 굉장히 많은 확장 포인트로 이어집니다.
+
+예를 들면 아래와 같습니다.
+
+* 상세 페이지에 지도 마커 표시
+* 내 추억 장소를 지도에 전부 찍기
+* 특정 지역 근처 장소 묶기
+* 사용자 위치 기반 추천
+
+즉, 지금은 숫자 두 개처럼 보이지만,
+사실상 **지도를 붙이기 위한 핵심 데이터**라고 볼 수 있습니다.
+
+그래서 이번 편에서는 위도/경도를 직접 입력하게 하지 않고,
+검색 결과에서 정확한 값을 받아오도록 설계하는 것이 좋습니다.
+
+---
+
+# 10. 실제 테스트 방법
+
+이제 서버를 실행하고 직접 테스트해보겠습니다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+그 뒤 아래 순서대로 꼭 테스트해보세요.
+
+## 10-1. 장소 등록 페이지 접속
+
+* 로그인 상태에서 `장소 기록 추가` 클릭
+* 검색 입력창과 검색 결과 박스가 보이는지 확인
+
+## 10-2. 장소 검색 테스트
+
+예를 들어 아래 키워드로 검색해봅니다.
+
+* 서울숲
+* 국립현대미술관 서울
+* 성수동 카페
+
+검색 결과 카드가 나타나는지 확인합니다.
+
+<Image
+  src="/blogs/memory_place(2-2)/8.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+> 검색 결과는 잘 나오지만, 결과가 많으면 리스트도 많아져서 스크롤이 너무 늘어나네요. 이 부분은 뒤에서 모달로 수정할게요.
+
+> 그리고 유저에게는 위도/경도를 안보여줘도 상관 없기 때문에 저장은 하지만, 보이지는 않도록 뒤에서 같이 수정할게요!
+
+## 10-3. 검색 결과 클릭 테스트
+
+결과 중 하나를 클릭합니다.
+
+그 뒤 아래 input들이 자동으로 채워지는지 확인합니다.
+
+* 장소명
+* 주소
+* 지역
+* 위도
+* 경도
+
+<Image
+  src="/blogs/memory_place(2-2)/9.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+## 10-4. 나머지 추억 정보 입력
+
+이제 직접 입력이 필요한 나머지 값만 채웁니다.
+
+* 한 줄 추억
+* 상세 설명
+* 감정
+* 대표 이미지
+* 방문 날짜
+
+## 10-5. 실제 저장 테스트
+
+저장 버튼을 눌러 상세 페이지로 이동합니다.
+그리고 저장된 값이 올바른지 확인합니다.
+
+특히 아래를 꼭 확인하세요.
+
+* 제목이 자동입력된 값과 같은지
+* 주소가 검색 결과와 같은지
+* 지역이 정상 추출되었는지
+* 위도/경도가 DB에 저장되었는지
+
+## 10-6. 수정 페이지 재사용 테스트
+
+이미 저장된 장소를 수정 페이지로 열어봅니다.
+수정 페이지에서도 검색 UI가 보이는지 확인합니다.
+
+이번 편에서는 등록 중심으로 설명했지만,
+구조상 수정 페이지에서도 그대로 재사용할 수 있어야 합니다.
+
+---
+
+# 11. 추가 수정사항
+
+## 11-1. 검색 결과를 페이지 안에 길게 쌓지 말고 모달로 바꾸기
+
+<Image
+  src="/blogs/memory_place(2-2)/10.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+검색 결과가 많아지면 페이지가 너무 길어지고,
+선택 후 다시 폼으로 내려와야 해서 UX가 불편해집니다.
+
+그래서 검색 결과를 본문에 계속 쌓지 않고,
+**모달 안에서 스크롤하며 선택하는 방식**으로 바꾸는 것이 좋습니다.
+
+---
+
+### 11-1-1. place_form.html 전체 코드 수정하기
+
+기존 `templates/places/place_form.html` 파일을 아래 전체 코드로 교체합니다.
+
+```html title="templates/places/place_form.html"
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | 추억 장소 아카이브{% endblock %}
+
+{% block content %}
+<section class="auth-section place-form-section">
+  <div class="container narrow-container">
+    <div class="panel-card place-form-panel">
+      <div class="panel-head">
+        <span class="eyebrow">PLACE SEARCH FORM</span>
+        <h1>{{ page_title }}</h1>
+        <p>
+          이번 편에서는 카카오맵 장소 검색을 통해 장소명, 주소, 지역, 위도, 경도를 자동으로 채울 수 있습니다.
+          먼저 장소를 검색한 뒤 원하는 결과를 클릭하고, 나머지 추억 정보를 이어서 작성해보세요.
+        </p>
+      </div>
+
+      <div class="search-helper-box">
+        <h2>1️⃣ 먼저 장소를 검색해보세요</h2>
+        <p>
+          장소명이나 지역 키워드를 입력하면 검색 결과가 나타납니다.
+          결과를 클릭하면 아래 폼의 <strong>장소명 / 주소 / 지역 / 위도 / 경도</strong>가 자동 입력됩니다.
+        </p>
+
+        <div class="place-search-bar">
+          <input
+            type="text"
+            id="place-search-keyword"
+            class="place-search-input"
+            placeholder="예: 서울숲, 국립현대미술관 서울, 성수동 카페"
+          >
+          <button type="button" id="place-search-button" class="primary-button search-button">
+            장소 검색
+          </button>
+        </div>
+
+        <div class="search-tip-list">
+          <div class="search-tip-item">정확한 상호명으로 검색하면 결과가 더 잘 나옵니다.</div>
+          <div class="search-tip-item">너무 짧은 키워드보다 지역 + 장소명을 함께 쓰면 좋습니다.</div>
+          <div class="search-tip-item">검색 결과를 클릭해야 폼 자동입력이 적용됩니다.</div>
+        </div>
+      </div>
+
+      <div id="place-search-modal" class="search-modal hidden">
+        <div class="search-modal-backdrop" id="search-modal-backdrop"></div>
+
+        <div class="search-modal-dialog">
+          <div class="search-modal-header">
+            <div>
+              <h2>검색 결과</h2>
+              <p>원하는 장소를 클릭하면 폼이 자동으로 채워집니다.</p>
+            </div>
+            <button type="button" id="search-modal-close" class="modal-close-button">닫기</button>
+          </div>
+
+          <div id="place-search-results" class="search-modal-body empty-state-box">
+            아직 검색 결과가 없습니다. 먼저 장소를 검색해보세요.
+          </div>
+        </div>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" class="form-grid place-main-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form-section-label">2️⃣ 추억 정보 입력</div>
+
+        {% for field in form %}
+          <div class="form-field {% if field.name == 'latitude' or field.name == 'longitude' %}coordinate-field{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.name == 'title' %}
+              <small class="help-text">검색 결과를 클릭하면 장소명이 자동으로 들어갑니다.</small>
+            {% elif field.name == 'address' %}
+              <small class="help-text">카카오 검색 결과의 도로명 주소 또는 지번 주소가 자동 반영됩니다.</small>
+            {% elif field.name == 'region' %}
+              <small class="help-text">주소를 바탕으로 대표 지역명을 자동 추출합니다.</small>
+            {% elif field.help_text %}
+              <small class="help-text">{{ field.help_text }}</small>
+            {% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="primary-button full-width">{{ submit_label }}</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}&libraries=services"></script>
+<script>
+  const searchInput = document.getElementById('place-search-keyword');
+  const searchButton = document.getElementById('place-search-button');
+  const resultBox = document.getElementById('place-search-results');
+
+  const modal = document.getElementById('place-search-modal');
+  const modalCloseButton = document.getElementById('search-modal-close');
+  const modalBackdrop = document.getElementById('search-modal-backdrop');
+
+  const titleInput = document.getElementById('id_title');
+  const addressInput = document.getElementById('id_address');
+  const regionInput = document.getElementById('id_region');
+  const latitudeInput = document.getElementById('id_latitude');
+  const longitudeInput = document.getElementById('id_longitude');
+
+  function openSearchModal() {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSearchModal() {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  modalCloseButton.addEventListener('click', closeSearchModal);
+  modalBackdrop.addEventListener('click', closeSearchModal);
+
+  function extractRegion(addressName) {
+    if (!addressName) return '';
+
+    const parts = addressName.split(' ');
+
+    if (parts.length >= 2) {
+      return parts[0] + ' ' + parts[1];
+    }
+
+    return parts[0] || '';
+  }
+
+  function toSevenDecimals(value) {
+    if (!value) return '';
+    return Number(value).toFixed(7);
+  }
+
+  function fillPlaceForm(place) {
+    const fullAddress = place.road_address_name || place.address_name || '';
+    const region = extractRegion(fullAddress);
+
+    titleInput.value = place.place_name || '';
+    addressInput.value = fullAddress;
+    regionInput.value = region;
+    latitudeInput.value = toSevenDecimals(place.y);
+    longitudeInput.value = toSevenDecimals(place.x);
+
+    titleInput.focus();
+
+    window.scrollTo({
+      top: document.querySelector('.place-main-form').offsetTop - 100,
+      behavior: 'smooth'
+    });
+  }
+
+  function renderPlaces(data) {
+    if (!data.length) {
+      resultBox.className = 'search-modal-body empty-state-box';
+      resultBox.innerHTML = '검색 결과가 없습니다. 다른 키워드로 다시 검색해보세요.';
+      return;
+    }
+
+    resultBox.className = 'search-modal-body result-list';
+    resultBox.innerHTML = data.map((place, index) => {
+      const displayAddress = place.road_address_name || place.address_name || '주소 정보 없음';
+      const phone = place.phone || '전화번호 정보 없음';
+
+      return `
+        <button type="button" class="result-card" data-index="${index}">
+          <div class="result-card-top">
+            <span class="result-number">${index + 1}</span>
+            <span class="result-name">${place.place_name}</span>
+          </div>
+          <div class="result-meta">
+            <span class="result-category">${place.category_name || '카테고리 정보 없음'}</span>
+            <span class="result-phone">${phone}</span>
+          </div>
+          <div class="result-address">${displayAddress}</div>
+        </button>
+      `;
+    }).join('');
+
+    const cards = document.querySelectorAll('.result-card');
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        const selectedPlace = data[card.dataset.index];
+        fillPlaceForm(selectedPlace);
+        closeSearchModal();
+      });
+    });
+  }
+
+  function searchPlaces() {
+    const keyword = searchInput.value.trim();
+
+    if (!keyword) {
+      openSearchModal();
+      resultBox.className = 'search-modal-body empty-state-box';
+      resultBox.innerHTML = '검색어를 먼저 입력해주세요.';
+      searchInput.focus();
+      return;
+    }
+
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+      openSearchModal();
+      resultBox.className = 'search-modal-body empty-state-box';
+      resultBox.innerHTML = '카카오맵 스크립트가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.';
+      return;
+    }
+
+    const ps = new kakao.maps.services.Places();
+
+    openSearchModal();
+    resultBox.className = 'search-modal-body empty-state-box';
+    resultBox.innerHTML = '장소를 검색하는 중입니다...';
+
+    ps.keywordSearch(keyword, function(data, status) {
+      if (status === kakao.maps.services.Status.OK) {
+        renderPlaces(data);
+      } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+        resultBox.className = 'search-modal-body empty-state-box';
+        resultBox.innerHTML = '검색 결과가 없습니다. 키워드를 조금 더 구체적으로 입력해보세요.';
+      } else {
+        resultBox.className = 'search-modal-body empty-state-box';
+        resultBox.innerHTML = '검색 중 오류가 발생했습니다. API 키와 스크립트 로드 상태를 확인해주세요.';
+      }
+    });
+  }
+
+  searchButton.addEventListener('click', searchPlaces);
+
+  searchInput.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      searchPlaces();
+    }
+  });
+</script>
+{% endblock %}
+```
+
+간단히 정리하면, 검색 결과를 본문에 길게 쌓지 않고 모달 안에서 선택하게 바꾼 것입니다.
+
+모달은 현재 화면 위에 덮여 떠서, 사용자에게 중요한 내용이나 추가 작업을 잠시 집중해서 보여주는 팝업 UI입니다.
+
+이렇게 하면 검색 결과가 많아도 화면이 훨씬 덜 복잡해집니다.
+
+---
+
+### 11-1-2. style.css 전체 코드 수정하기
+
+기존 `static/css/style.css` 파일 전체 코드입니다. 그대로 복붙하세요!
+
+```css title="static/css/style.css"
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #1f2937;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.container {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.navbar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: 800;
+  color: #4338ca;
+}
+
+.nav-links {
+  display: flex;
+  gap: 18px;
+  font-size: 15px;
+  color: #374151;
+}
+
+.hero {
+  padding: 72px 0 40px;
+}
+
+.hero-box {
+  background: linear-gradient(135deg, #4338ca 0%, #7c3aed 100%);
+  color: white;
+  border-radius: 28px;
+  padding: 48px;
+  box-shadow: 0 20px 60px rgba(79, 70, 229, 0.25);
+}
+
+.hero-box h1 {
+  margin: 0 0 14px;
+  font-size: 42px;
+  line-height: 1.2;
+}
+
+.hero-box p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.7;
+  opacity: 0.92;
+}
+
+.section {
+  padding: 28px 0 52px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.section-subtitle {
+  color: #6b7280;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.card-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+  background: #e5e7eb;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c7d2fe 0%, #ddd6fe 100%);
+  color: #4338ca;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge.gray {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.card-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.card-text {
+  margin: 0 0 14px;
+  color: #4b5563;
+  line-height: 1.7;
+  min-height: 54px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.empty-box {
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 24px;
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+}
+
+.footer {
+  padding: 40px 0 60px;
+  color: #6b7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+.inline-form {
+  display: inline;
+  margin: 0;
+}
+
+.text-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.flash-wrap {
+  margin-top: 18px;
+}
+
+.flash-message {
+  background: #ecfeff;
+  color: #155e75;
+  border: 1px solid #a5f3fc;
+  padding: 14px 18px;
+  border-radius: 16px;
+  box-shadow: 0 10px 20px rgba(8, 145, 178, 0.08);
+}
+
+.auth-section {
+  padding: 56px 0 80px;
+  background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
+}
+
+.narrow-container {
+  width: min(760px, calc(100% - 32px));
+}
+
+.panel-card {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 28px;
+  padding: 36px 32px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+.panel-head {
+  margin-bottom: 24px;
+}
+
+.eyebrow,
+.panel-head .eyebrow {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.panel-head h1 {
+  margin: 0 0 12px;
+  font-size: 36px;
+  line-height: 1.2;
+  color: #1e3a8a;
+}
+
+.panel-head p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.form-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.form-field label {
+  font-weight: 700;
+  color: #111827;
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+  width: 100%;
+  border: 1px solid #c7d2fe;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 15px;
+  background: #fefefe;
+  color: #111827;
+  transition: all 0.2s;
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus,
+.place-search-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+.help-text {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.errorlist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button,
+.card-link-button,
+button.primary-button.full-width {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 16px;
+  padding: 13px 18px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primary-button,
+button.primary-button.full-width {
+  background: linear-gradient(135deg, #4338ca 0%, #7c3aed 100%);
+  color: white;
+  box-shadow: 0 14px 30px rgba(79, 70, 229, 0.2);
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.danger-button:hover,
+.card-link-button:hover,
+.hero-primary:hover,
+.hero-secondary:hover,
+button.primary-button.full-width:hover {
+  transform: translateY(-2px);
+}
+
+.secondary-button {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.danger-button {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+  box-shadow: 0 14px 30px rgba(239, 68, 68, 0.2);
+}
+
+.card-link-button {
+  width: 100%;
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.hero-primary,
+.hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.hero-primary {
+  background: white;
+  color: #4338ca;
+}
+
+.hero-secondary {
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.card-action-row {
+  margin-top: 16px;
+}
+
+.detail-section {
+  padding: 52px 0 80px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.detail-image-card,
+.detail-content-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
+}
+
+.detail-image {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  object-fit: cover;
+  display: block;
+}
+
+.placeholder-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+  color: #4338ca;
+  min-height: 520px;
+  font-weight: 800;
+}
+
+.detail-content-card {
+  padding: 30px;
+}
+
+.detail-title {
+  margin: 10px 0 10px;
+  font-size: 36px;
+  line-height: 1.2;
+}
+
+.detail-memory-line {
+  margin: 0 0 22px;
+  font-size: 18px;
+  color: #374151;
+  line-height: 1.7;
+}
+
+.detail-meta-list {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.detail-meta-list > div {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.detail-meta-list strong {
+  color: #111827;
+}
+
+.detail-meta-list span {
+  color: #4b5563;
+}
+
+.detail-description-box {
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.detail-description-box h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.detail-description-box p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.8;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.delete-panel {
+  border: 1px solid #fecaca;
+}
+
+.place-form-section {
+  background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+}
+
+.place-form-panel {
+  display: grid;
+  gap: 24px;
+}
+
+.search-helper-box {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.search-helper-box h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.search-helper-box p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.place-search-bar {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.place-search-input {
+  width: 100%;
+  border: 1px solid #c7d2fe;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 15px;
+  background: white;
+}
+
+.search-button {
+  width: 100%;
+}
+
+.search-tip-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.search-tip-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: white;
+  color: #475569;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.empty-state-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  text-align: center;
+  padding: 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  background: white;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.result-list {
+  display: grid;
+  gap: 14px;
+}
+
+.result-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  border-color: #818cf8;
+  box-shadow: 0 16px 30px rgba(99, 102, 241, 0.12);
+}
+
+.result-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.result-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.result-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.result-category,
+.result-phone {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.result-address {
+  color: #334155;
+  line-height: 1.6;
+}
+
+.form-section-label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.coordinate-field {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.search-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.search-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.search-modal-dialog {
+  position: relative;
+  width: min(760px, calc(100% - 32px));
+  max-height: 80vh;
+  margin: 60px auto;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.22);
+  z-index: 1001;
+}
+
+.search-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.search-modal-header h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.search-modal-header p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.modal-close-button {
+  border: none;
+  background: #f3f4f6;
+  color: #374151;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.search-modal-body {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+  max-height: calc(80vh - 100px);
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-box {
+    padding: 36px;
+  }
+
+  .hero-box h1 {
+    font-size: 34px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-image {
+    min-height: 360px;
+  }
+
+  .placeholder-box {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 720px) {
+  .place-search-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .result-card-top {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding-top: 36px;
+  }
+
+  .hero-box {
+    padding: 28px;
+    border-radius: 22px;
+  }
+
+  .hero-box h1 {
+    font-size: 28px;
+  }
+
+  .panel-card {
+    padding: 24px;
+    border-radius: 22px;
+  }
+
+  .panel-head h1 {
+    font-size: 28px;
+  }
+
+  .action-row {
+    flex-direction: column;
+  }
+
+  .detail-content-card {
+    padding: 22px;
+  }
+
+  .detail-title {
+    font-size: 28px;
+  }
+}
+```
+
+핵심은 `.search-modal`, `.search-modal-body` 를 추가해서
+검색 결과가 모달 내부에서만 스크롤되도록 만드는 것입니다.
+
+---
+
+## 11-2. 위도/경도는 저장하되 사용자에게는 보이지 않게 숨기기
+
+<Image
+  src="/blogs/memory_place(2-2)/11.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+위도/경도는 내부적으로는 중요하지만,
+사용자가 장소를 등록할 때 직접 볼 필요는 거의 없습니다.
+
+그리고 메인페이지의 최근 등록된 장소 카드에서도,
+좌표 숫자까지 보여줄 필요는 없습니다.
+
+즉, 이번 수정은 아래 두 군데에 적용합니다.
+
+* 장소 등록 폼에서 위도/경도 숨기기
+* 메인페이지 최근 등록된 장소 리스트에서 위도/경도 제거하기
+
+---
+
+### 11-2-1. home.html 전체 코드 수정하기
+
+기존 `templates/places/home.html` 파일을 아래 전체 코드로 교체합니다.
+
+```html title="templates/places/home.html"
+{% extends 'base.html' %}
+
+{% block title %}홈 | 추억 장소 아카이브{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <div class="hero-box">
+      <h1>장소를 저장하고, 추억을 오래 남겨보세요.</h1>
+      <p>
+        단순한 방문 기록이 아니라, 그 순간의 감정과 한 줄의 기억까지 함께 남기는
+        나만의 추억 장소 아카이브입니다. 이제 회원가입 후 직접 장소를 기록할 수 있습니다.
+      </p>
+      <div class="hero-actions">
+        {% if user.is_authenticated %}
+          <a href="{% url 'places:place_create' %}" class="hero-primary">첫 장소 기록하기</a>
+        {% else %}
+          <a href="{% url 'places:signup' %}" class="hero-primary">회원가입하고 시작하기</a>
+          <a href="{% url 'login' %}" class="hero-secondary">로그인</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">추천 장소</h2>
+        <p class="section-subtitle">관리자페이지에서 추천 장소로 설정한 장소들을 먼저 보여줍니다.</p>
+      </div>
+    </div>
+
+    {% if featured_places %}
+      <div class="grid">
+        {% for place in featured_places %}
+          <article class="card">
+            {% if place.image %}
+              <img src="{{ place.image.url }}" alt="{{ place.title }}" class="card-image" />
+            {% else %}
+              <div class="image-placeholder">추억 이미지 준비 중</div>
+            {% endif %}
+            <div class="card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+              <h3 class="card-title">{{ place.title }}</h3>
+              <p class="card-text">{{ place.memory_line }}</p>
+              <div class="meta">
+                <span>작성자: {{ place.author.username }}</span>
+                <span>주소: {{ place.address|default:'주소 정보 없음' }}</span>
+                <span>방문일: {{ place.visited_date|default:'미기록' }}</span>
+              </div>
+              <div class="card-action-row">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-box">
+        아직 추천 장소가 없습니다. 관리자페이지에서 <strong>추천 장소 여부</strong>를 체크해보세요.
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">최근 등록된 장소</h2>
+        <p class="section-subtitle">가장 최근에 저장한 장소들을 카드 형태로 확인할 수 있습니다.</p>
+      </div>
+    </div>
+
+    {% if latest_places %}
+      <div class="grid">
+        {% for place in latest_places %}
+          <article class="card">
+            {% if place.image %}
+              <img src="{{ place.image.url }}" alt="{{ place.title }}" class="card-image" />
+            {% else %}
+              <div class="image-placeholder">{{ place.title }}</div>
+            {% endif %}
+            <div class="card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+              <h3 class="card-title">{{ place.title }}</h3>
+              <p class="card-text">{{ place.memory_line }}</p>
+              <div class="meta">
+                <span>작성자: {{ place.author.username }}</span>
+                <span>지역: {{ place.region|default:'지역 미입력' }}</span>
+                <span>방문일: {{ place.visited_date|default:'미기록' }}</span>
+              </div>
+              <div class="card-action-row">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-box">
+        아직 등록된 장소가 없습니다. 회원가입 후 직접 첫 장소를 기록해보세요.
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+```
+
+이제 최근 등록된 장소 카드에서는 위도/경도 대신,
+사용자가 보기 좋은 정보만 남기게 됩니다.
+
+---
+
+# 12. 자주 발생하는 오류와 해결 포인트
+
+이번 편은 JavaScript + 외부 API + Django 템플릿이 함께 움직이기 때문에,
+기존 편보다 오류 포인트가 조금 더 많습니다.
+
+그래서 여기서는 꼭 꼼꼼히 체크하는 것이 좋습니다.
+
+---
+
+## 12-1. 검색 버튼을 눌러도 아무 반응이 없는 경우
+
+원인 후보:
+
+* 카카오 스크립트가 정상 로드되지 않음
+* JavaScript 키가 비어 있음
+* 브라우저 콘솔에 에러가 남
+* API사용 설정 활성화 상태 확인하기
+
+확인할 것:
+
+* `.env` 의 `KAKAO_JAVASCRIPT_KEY` 값 확인
+* `settings.py` 에 환경변수 연결 여부 확인
+* View에서 `kakao_javascript_key` 를 템플릿으로 넘겼는지 확인
+* 개발자도구 콘솔 에러 확인
+* 카카오 개발자 홈페이지에서 앱 - 앱 클릭 - 좌측의 카카오맵 - 사용설정 상태 ON 확인
+
+---
+
+## 12-2. `kakao is not defined` 에러
+
+원인:
+카카오 SDK 스크립트가 아직 로드되지 않았거나,
+스크립트 URL이 잘못되었을 가능성이 큽니다.
+
+확인할 것:
+
+```html title="templates/places/place_form.html"
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}&libraries=services"></script>
+```
+
+* `appkey=` 부분이 비어 있지 않은지
+* `libraries=services` 가 들어 있는지
+* JS 코드가 SDK 스크립트 뒤에 위치하는지
+
+---
+
+## 12-3. 검색 결과 클릭해도 input이 안 채워지는 경우
+
+원인 후보:
+
+* input id를 잘못 잡았음
+* `id_title`, `id_address` 같은 DOM 선택자가 실제 렌더링된 이름과 다름
+* 클릭 이벤트 연결이 정상 동작하지 않음
+
+확인할 것:
+
+```javascript title="templates/places/place_form.html"
+const titleInput = document.getElementById('id_title');
+```
+
+브라우저 개발자도구에서 실제 input id를 확인해보는 습관이 중요합니다.
+
+---
+
+## 12-4. 주소는 들어오는데 지역이 이상한 경우
+
+원인:
+현재 지역 추출 로직은 가장 단순한 규칙으로 구현했기 때문입니다.
+
+```javascript title="templates/places/place_form.html"
+function extractRegion(addressName) {
+  const parts = addressName.split(' ');
+  if (parts.length >= 2) {
+    return parts[0] + ' ' + parts[1];
+  }
+  return parts[0] || '';
+}
+```
+
+즉, 모든 주소 형식을 완벽하게 처리하는 것은 아닙니다.
+하지만 현재 학습 단계에서는 충분히 실용적입니다.
+
+필요하면 나중에 시/군/구 추출 규칙을 더 정교하게 확장할 수 있습니다.
+
+---
+
+## 12-5. Enter를 눌렀더니 폼이 저장되는 경우
+
+원인:
+검색 input에서 Enter 입력 시 `preventDefault()` 처리가 누락되었을 수 있습니다.
+
+확인할 것:
+
+```javascript title="templates/places/place_form.html"
+if (event.key === 'Enter') {
+  event.preventDefault();
+  searchPlaces();
+}
+```
+
+검색창에서 Enter를 누를 때는 저장이 아니라 검색이 되어야 합니다.
+
+---
+
+## 12-6. 위도/경도가 반대로 저장된 경우
+
+원인:
+카카오 검색 결과에서 `x`, `y` 를 헷갈렸을 가능성이 큽니다.
+
+기억할 것:
+
+* `y` = 위도(latitude)
+* `x` = 경도(longitude)
+
+이 부분은 지도 API를 처음 붙일 때 굉장히 자주 실수합니다.
+
+---
+
+## 12-7. 수정 페이지에서 검색 기능이 안 보이는 경우
+
+원인:
+`place_update()` View에서도 `kakao_javascript_key` 를 템플릿으로 넘기지 않았을 수 있습니다.
+
+확인할 것:
+
+```python title="places/views.py"
+'kakao_javascript_key': settings.KAKAO_JAVASCRIPT_KEY,
+```
+
+create와 update 둘 다 같은 템플릿을 쓰는 구조라면,
+둘 다 같은 context를 챙겨야 합니다.
+
+---
+
+# 13. 이번 편에서 꼭 이해하고 넘어가야 할 것
+
+이번 2-2편의 핵심은 단순히 “지도 API를 붙였다” 가 아닙니다.
+사실 더 중요한 것은 아래 감각입니다.
+
+* Django Form 구조는 그대로 두고,
+* JavaScript와 외부 API를 이용해, 사용자가 입력하는 경험만 더 편하게 개선할 수 있다.
+
+예를 들어 아래와 같은 기능들도 모두 같은 발상입니다.
+
+* 주소 자동완성
+* 태그 추천
+* 검색어 자동완성
+* 이미지 미리보기
+* 외부 API 기반 추천값 자동 채우기
+
+즉,
+이번 편은 카카오맵 하나를 배우는 것이 아니라,
+**폼 UX를 외부 데이터와 연결해 개선하는 사고방식**을 배우는 편이라고 볼 수 있습니다.
+
+---
+
+# 14. 체크리스트
+
+아래 항목을 하나씩 직접 점검해보세요.
+이번 편은 “코드를 넣었는가” 보다
+“정말 검색 → 선택 → 자동입력 → 저장 흐름이 자연스럽게 이어지는가”를 확인하는 것이 더 중요합니다.
+
+* ✅ `.env` 에 `KAKAO_JAVASCRIPT_KEY` 를 추가했다.
+* ✅ `settings.py` 에서 환경변수를 정상적으로 불러왔다.
+* ✅ `place_create()` 와 `place_update()` 에서 키를 템플릿으로 넘겼다.
+* ✅ `place_form.html` 에 검색창과 검색 결과 박스를 추가했다.
+* ✅ 카카오 SDK 스크립트가 정상적으로 로드된다.
+* ✅ 검색 버튼 클릭 시 장소 검색이 실행된다.
+* ✅ Enter 키로도 검색이 된다.
+* ✅ 검색 결과가 카드 형태로 화면에 출력된다.
+* ✅ 검색 결과 클릭 시 장소명 / 주소 / 지역 / 위도 / 경도가 자동으로 들어간다.
+* ✅ 한 줄 추억, 상세 설명, 감정, 이미지 등을 추가 입력해 저장할 수 있다.
+* ✅ 저장 후 상세 페이지에서 자동입력된 값이 정상적으로 보인다.
+* ✅ 수정 페이지에서도 같은 검색 UI를 재사용할 수 있다.
+* ✅ `x`, `y` 좌표를 반대로 저장하지 않았다.
+
+---
+
+# Quick Quiz
+
+<MultipleChoiceQuiz
+question="카카오맵 장소 검색 기능을 붙일 때, 장소 검색 관련 기능을 사용하기 위해 SDK URL에 함께 붙여야 하는 값으로 알맞은 것은 무엇인가요?"
+options={[
+"&libraries=admin",
+"&libraries=services",
+"&libraries=database",
+"&libraries=auth"
+]}
+correctIndex={1}
+explanation="카카오 장소 검색 기능은 services 라이브러리를 사용하므로 SDK URL에 &libraries=services 를 추가해야 합니다."
+/>
+
+<MultipleChoiceQuiz
+question="이번 2-2편에서 위도(latitude)와 경도(longitude) 필드를 사용자 화면에서는 숨기고도 저장할 수 있었던 가장 큰 이유는 무엇인가요?"
+options={[
+"Django가 숨겨진 필드를 자동으로 DB에 직접 저장해주기 때문에",
+"위도와 경도는 모델에만 있으면 폼 없이도 저장되기 때문에",
+"input 요소는 DOM에 남아 있고, JavaScript가 값을 넣어준 뒤 폼이 제출되기 때문에",
+"카카오맵이 DB에 직접 좌표를 저장해주기 때문에"
+]}
+correctIndex={2}
+explanation="화면에서는 CSS로 숨겼지만 input 요소 자체는 DOM에 남아 있어서, JavaScript가 값을 넣어주면 폼 제출 시 함께 저장할 수 있습니다."
+/>
+
+<ShortAnswerQuiz
+question="카카오 검색 결과 객체에서 위도와 경도에 각각 대응하는 값은 무엇인가요? (형식: 위도=?, 경도=?)"
+answers={["위도=y, 경도=x", "위도는 y, 경도는 x", "y가 위도, x가 경도"]}
+explanation="카카오 장소 검색 결과에서는 y가 위도(latitude), x가 경도(longitude)입니다. 이 순서를 반대로 넣지 않도록 주의해야 합니다."
+/>
+
+---
+
+# 15. 마무리
+
+이번 2-2편에서는 드디어 이 프로젝트가
+“입력칸이 많은 CRUD 폼”에서
+“장소를 검색하고 선택하면서 기록하는 서비스형 UX”로 한 단계 더 발전했습니다.
+
+이번 편을 통해 우리는 아래를 완성했습니다.
+
+* 장소 검색 UI 추가
+* 검색 결과 목록 출력
+* 결과 클릭 시 폼 자동입력
+* 주소 / 지역 / 좌표 자동 반영
+* 기존 Django Form 구조와 자연스럽게 연결
+
+이제 사용자는 더 이상 위도/경도를 일일이 입력할 필요가 없고,
+주소를 복붙하느라 번거롭지 않아도 됩니다.
+
+즉,
+2-1편이 **저장 구조와 권한 구조를 세우는 편**이었다면,
+이번 2-2편은 **실제 사용 경험을 확실히 좋게 만드는 편**이라고 볼 수 있습니다.
+
+다음 단계로는 이 좌표 데이터를 활용해,
+상세 페이지에 실제 지도를 보여주거나,
+여러 장소를 지도 위에 찍어보는 기능으로 확장할 수 있습니다.
+
+또는 시리즈 흐름에 맞춰,
+다음 편에서 함수형 View를 제너릭 View로 정리하면서
+지금 만든 검색 UX까지 함께 자연스럽게 재사용하도록 리팩토링할 수도 있습니다.
+
+즉, 이번 편은 단순한 편의 기능 추가가 아니라,
+**이후 지도 시각화와 구조 정리를 모두 가능하게 만드는 중요한 연결편**입니다.
