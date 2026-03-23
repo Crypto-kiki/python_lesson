@@ -1,0 +1,1723 @@
+---
+title: "추억 장소 아카이브 만들기(6) : 카카오맵 전국지도에 전체 방문 장소 핀 표시하기"
+description: "저장된 위도·경도 데이터를 활용해 메인페이지와 전체 장소 보기 페이지에 대한민국 전체 지도를 띄우고, DB에 저장된 모든 장소를 카카오맵 마커로 표시합니다."
+image: "../../public/blogs/memory_place(6)/cover.png"
+publishedAt: "2026-03-22T21:30:00+09:00"
+updatedAt: "2026-03-22T21:30:00+09:00"
+author: "Baekki"
+isPublished: true
+tags:
+    - Django basic
+    - 추억 장소 아카이브 만들기
+    - Kakao Map
+---
+
+# 추억 장소 아카이브 만들기 6편
+
+<a href="https://python-lesson-red.vercel.app/blogs/memory_place(5)" target="_blank">이전 교안 보기</a>
+
+지난 5편에서는 DRF를 이용해 **생성 / 수정 / 삭제 API** 까지 완성했습니다.
+
+즉 지금 프로젝트는 아래 기능을 모두 갖춘 상태입니다.
+
+* 장소 등록 / 수정 / 삭제
+* 카카오 장소 검색 자동입력
+* 작성자(author) 연결
+* 웹 CRUD
+* DRF CRUD
+* 로그인 / 권한 처리
+
+여기까지 오면 이제 데이터 저장 구조는 꽤 단단해졌습니다.
+
+이제 유저 경험을 향상시킬 수 있는 방법은 뭐가 있을까요?
+
+> “내가 기록한 장소들이 지도 위에서 보이면 훨씬 재미있지 않을까?”
+
+실제로 장소 아카이브 서비스에서 가장 중요한 경험 중 하나는,
+내가 다녀온 장소들이 **지도 위에 점처럼 쌓이는 경험** 입니다.
+
+특히 지금 프로젝트는 이미 아래 데이터를 저장하고 있습니다.
+
+* 위도(latitude)
+* 경도(longitude)
+* 장소명(title)
+* 주소(address)
+* 지역(region)
+
+즉 지도 기능을 붙일 준비가 이미 끝난 상태입니다.
+
+그래서 이번 6편에서는,
+저장된 장소 데이터를 **카카오맵 전국지도 위에 마커(pin)** 로 표시해보겠습니다.
+
+이번 편에서 구현할 핵심은 아래입니다.
+
+* 메인페이지에 대한민국 전체 지도 보여주기
+* 전체 장소 보기 페이지에 대한민국 전체 지도 보여주기
+* DB에 저장된 모든 장소를 마커로 표시하기
+* 마커를 클릭하면 해당 장소 상세 페이지로 이동할 수 있게 만들기
+
+즉 이번 편부터는,
+추억 장소 아카이브가 단순히 카드 목록으로 끝나는 서비스가 아니라,
+**지도 기반 아카이브 서비스**처럼 보이기 시작합니다.
+
+---
+
+## 이번 편에서 완성할 결과물
+
+이번 글을 끝내면 아래 상태까지 완성됩니다.
+
+* 메인페이지에 대한민국 전체 지도를 띄운다.
+* 전체 장소 보기 페이지에도 전국지도를 띄운다.
+* DB에 저장된 모든 장소를 지도 위 마커로 표시한다.
+* 마커를 클릭하면 장소명과 지역을 확인할 수 있다.
+* 마커 클릭 시 상세 페이지로 이동할 수 있다.
+* 좌표가 없는 장소는 지도 마커에서 자동 제외한다.
+* 카드 목록 + 지도 구조가 함께 보이도록 UI를 정리한다.
+
+---
+
+# 0. 이번 편 전체 흐름 먼저 보기
+
+## 이번 편 실습 순서
+
+1. 왜 지금 지도 기능을 붙이는지 이해하기
+2. 카카오맵 전체 지도 표시 전략 이해하기
+3. DB의 장소 데이터를 템플릿에 JSON으로 넘기기
+4. 메인페이지에 전국지도 붙이기
+5. 전체 장소 보기 페이지에도 전국지도 붙이기
+6. 모든 장소를 마커로 표시하기
+7. 마커 클릭 시 상세 페이지로 이동하기
+8. 카드 목록과 지도 UI를 함께 다듬기
+9. 자주 발생하는 오류와 디버깅 포인트 정리하기
+10. 다음 편 마이페이지 확장 방향 확인하기
+
+이번 편의 핵심 기술은 아래입니다.
+
+* Kakao Maps JavaScript SDK
+* Django 템플릿에서 JSON 데이터 전달
+* 저장된 위도 / 경도 기반 마커 렌더링
+* 마커 클릭 이벤트 처리
+
+---
+
+# 1. 왜 6편에서 전국지도 기능을 붙이나요?
+
+지금까지는 장소를 저장하고, 수정하고, API로 조회하는 흐름을 만들었습니다.
+
+즉 “데이터를 관리하는 구조”는 이미 충분히 준비되었습니다.
+
+이제부터는 사용자가 이 데이터를 **어떻게 더 직관적으로 경험하느냐** 가 중요해집니다.
+
+장소 아카이브 서비스에서 카드 목록만 보는 것과,
+전국지도 위에 방문 기록이 하나씩 쌓이는 것을 보는 경험은 꽤 다릅니다.
+
+지도 기능이 붙으면 아래 장점이 생깁니다.
+
+* 내가 어느 지역을 많이 기록했는지 한눈에 보인다.
+* 장소 데이터가 단순 텍스트가 아니라 공간 정보로 느껴진다.
+* 서비스가 더 완성도 있어 보인다.
+* 다음 단계(마이페이지, 필터, 지역별 탐색)로 확장하기 쉬워진다.
+
+특히 이번 프로젝트는 이미 카카오 장소 검색으로 좌표를 자동 저장하고 있기 때문에,
+지금이 지도 기능을 붙이기에 가장 좋은 타이밍입니다.
+
+---
+
+# 2. 이번 편에서 지도는 어떻게 구성할까요?
+
+* 마커 클러스터링
+* 커스텀 오버레이 디자인
+* 실시간 필터링
+* 카드와 마커 완전 동기화
+
+이번 6편에서는 **전국지도 + 전체 마커 표시** 에 집중합니다.
+
+즉 구현 범위는 아래로 잡습니다.
+
+## 메인페이지
+
+* 대한민국 전체 지도 표시
+* 저장된 모든 장소 마커 표시
+
+## 전체 장소 보기 페이지
+
+* 전국지도 표시
+* 저장된 모든 장소 마커 표시
+* 아래에는 기존 장소 카드 목록 유지
+
+즉 이번 편은 “전체 장소를 지도 위에서 본다”가 핵심입니다.
+
+그리고 다음 7편에서,
+같은 패턴을 활용해 **마이페이지 + 내 장소만 표시** 로 확장하면 됩니다.
+
+---
+
+# 3. places/views.py 에서 지도용 데이터 준비하기
+
+지도에서 마커를 찍으려면,
+템플릿에 단순 QuerySet만 넘겨서는 자바스크립트에서 바로 쓰기 불편할 수 있습니다.
+
+그래서 이번에는 템플릿에서 쓰기 좋은 형태로,
+장소 데이터를 리스트 형태로 가공해서 넘겨주겠습니다.
+
+기존 `places/views.py` 를 아래처럼 수정합니다.
+
+```python title="places/views.py"
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+
+from .forms import PlaceForm, SignUpForm
+from .models import Place
+
+
+class HomeView(TemplateView):
+    template_name = 'places/home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        featured_places = Place.objects.filter(is_featured=True)[:3]
+        latest_places = Place.objects.select_related('author').all()[:6]
+        map_places = Place.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+        context['featured_places'] = featured_places
+        context['latest_places'] = latest_places
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        return context
+
+
+class PlaceListView(ListView):
+    model = Place
+    template_name = 'places/place_list.html'
+    context_object_name = 'places'
+    paginate_by = 6
+
+    def get_queryset(self):
+        return Place.objects.select_related('author').all().order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        map_places = Place.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        return context
+
+
+class PlaceDetailView(DetailView):
+    model = Place
+    template_name = 'places/place_detail.html'
+    context_object_name = 'place'
+
+    def get_queryset(self):
+        return Place.objects.select_related('author').all()
+
+
+class PlaceCreateView(LoginRequiredMixin, CreateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '새로운 추억 장소가 등록되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 추가'
+        context['submit_label'] = '장소 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class AuthorRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        place = self.get_object()
+        return place.author == self.request.user
+
+    def handle_no_permission(self):
+        messages.error(self.request, '본인 글만 수정하거나 삭제할 수 있습니다.')
+        return redirect('places:place_list')
+
+
+class PlaceUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+    context_object_name = 'place'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '추억 장소가 수정되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 수정'
+        context['submit_label'] = '수정 내용 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class PlaceDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
+    model = Place
+    template_name = 'places/place_confirm_delete.html'
+    context_object_name = 'place'
+    success_url = reverse_lazy('places:place_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, '추억 장소가 삭제되었습니다.')
+        return super().delete(request, *args, **kwargs)
+
+
+
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('places:home')
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, '회원가입이 완료되었습니다. 바로 로그인되었습니다.')
+            return redirect('places:home')
+    else:
+        form = SignUpForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+```
+
+---
+
+## 3-1. 왜 `map_places` 를 따로 만들까요?
+
+카드 목록용 QuerySet과,
+지도에 바로 뿌릴 JSON용 데이터는 목적이 조금 다릅니다.
+
+지도에서는 주로 아래 값만 있으면 됩니다.
+
+* id
+* title
+* region
+* address
+* latitude
+* longitude
+
+즉 템플릿 안에서 자바스크립트가 다루기 좋은 형태로 미리 정리해두는 것입니다.
+
+또한 `latitude`, `longitude` 는 자바스크립트에서 숫자로 써야 하므로,
+`float()` 로 변환해두는 것이 좋습니다.
+
+---
+
+## 3-2. 좌표 없는 데이터는 왜 제외하나요?
+
+```python title="places/views.py"
+map_places = Place.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+```
+
+좌표가 없는 장소는 지도 위에 정확한 위치를 표시할 수 없습니다.
+
+그래서 이번 편에서는,
+**위도와 경도가 모두 있는 장소만 지도 마커 대상으로 사용**합니다.
+
+이런 예외 처리를 미리 해두면,
+자바스크립트에서 `NaN`, `undefined` 같은 문제를 줄일 수 있습니다.
+
+---
+
+# 4. 메인페이지에 전국지도 섹션 추가하기
+
+이제 홈 화면에 전국지도를 붙여보겠습니다.
+
+기존 `templates/places/home.html` 을 아래처럼 정리합니다.
+
+```html title="templates/places/home.html"
+{% extends 'base.html' %}
+{% load static %}
+ 
+{% block title %}추억 장소 아카이브{% endblock %}
+ 
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <div class="hero-box">
+      <span class="eyebrow">MEMORY PLACE ARCHIVE</span>
+      <h1>추억이 머문 장소들을 한곳에 기록해보세요</h1>
+      <p>
+        여행지, 산책길, 카페, 전시관까지.
+        나만의 감정과 기억이 남아 있는 장소들을 차곡차곡 모아보세요.
+      </p>
+      <div class="hero-actions">
+        <a href="{% url 'places:place_list' %}" class="hero-primary">전체 장소 보기</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'places:place_create' %}" class="hero-secondary">새 장소 기록하기</a>
+        {% else %}
+          <a href="{% url 'places:signup' %}" class="hero-secondary">회원가입하기</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+ 
+<section class="section map-section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <span class="eyebrow">NATIONWIDE MAP</span>
+        <h2 class="section-title">모든 추억 장소 둘러보기</h2>
+        <p class="section-subtitle">
+          지금까지 기록된 유저들의 모든 장소를 대한민국 지도 위에서 한눈에 확인해보세요.
+        </p>
+      </div>
+    </div>
+ 
+    <div class="map-panel-card">
+      <div class="map-panel-head">
+        <div>
+          <p>마커를 클릭하면 해당 장소의 상세 페이지로 이동할 수 있습니다.</p>
+        </div>
+        <span class="map-count-badge">총 {{ map_places|length }}개 장소</span>
+      </div>
+      <div id="homeNationwideMap" class="nationwide-map"></div>
+    </div>
+  </div>
+</section>
+ 
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <span class="eyebrow">FEATURED PLACES</span>
+        <h2 class="section-title">추천 장소</h2>
+        <p class="section-subtitle">특별히 남겨두고 싶은 장소들을 먼저 만나보세요.</p>
+      </div>
+    </div>
+ 
+    {% if featured_places %}
+      <div class="grid">
+        {% for place in featured_places %}
+          <article class="card">
+            {% if place.image %}
+              <img src="{{ place.image.url }}" alt="{{ place.title }}" class="card-image">
+            {% else %}
+              <div class="image-placeholder">이미지 없음</div>
+            {% endif %}
+            <div class="card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+              <h3 class="card-title">{{ place.title }}</h3>
+              <p class="card-text">{{ place.memory_line }}</p>
+              <div class="meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+              <div class="card-action-row">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-box">아직 추천 장소가 없습니다.</div>
+    {% endif %}
+  </div>
+</section>
+ 
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <span class="eyebrow">LATEST PLACES</span>
+        <h2 class="section-title">최근 기록한 장소</h2>
+        <p class="section-subtitle">가장 최근에 추가된 장소들을 빠르게 살펴보세요.</p>
+      </div>
+    </div>
+ 
+    {% if latest_places %}
+      <div class="grid">
+        {% for place in latest_places %}
+          <article class="card">
+            {% if place.image %}
+              <img src="{{ place.image.url }}" alt="{{ place.title }}" class="card-image">
+            {% else %}
+              <div class="image-placeholder">이미지 없음</div>
+            {% endif %}
+            <div class="card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+              <h3 class="card-title">{{ place.title }}</h3>
+              <p class="card-text">{{ place.memory_line }}</p>
+              <div class="meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+              <div class="card-action-row">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-box">아직 등록된 장소가 없습니다.</div>
+    {% endif %}
+  </div>
+</section>
+ 
+{{ map_places|json_script:'home-map-places-data' }}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}"></script>
+<script>
+  const homeMapContainer = document.getElementById('homeNationwideMap');
+  const homePlacesDataElement = document.getElementById('home-map-places-data');
+ 
+  if (homeMapContainer && homePlacesDataElement) {
+    const homePlaces = JSON.parse(homePlacesDataElement.textContent);
+ 
+    const homeMap = new kakao.maps.Map(homeMapContainer, {
+      center: new kakao.maps.LatLng(36.35, 127.8),
+      level: 13,
+    });
+ 
+    homePlaces.forEach((place) => {
+      const markerPosition = new kakao.maps.LatLng(place.latitude, place.longitude);
+      const marker = new kakao.maps.Marker({
+        position: markerPosition,
+        map: homeMap,
+      });
+ 
+      const infoWindow = new kakao.maps.InfoWindow({
+        content: `
+          <div class="map-info-window">
+            <strong>${place.title}</strong><br>
+            <span>${place.region}</span>
+          </div>
+        `,
+      });
+ 
+      kakao.maps.event.addListener(marker, 'mouseover', function () {
+        infoWindow.open(homeMap, marker);
+      });
+ 
+      kakao.maps.event.addListener(marker, 'mouseout', function () {
+        infoWindow.close();
+      });
+ 
+      kakao.maps.event.addListener(marker, 'click', function () {
+        window.location.href = `/places/${place.id}/`;
+      });
+    });
+  }
+</script>
+{% endblock %}
+```
+
+---
+
+## 4-1. `json_script` 를 쓰는 이유
+
+이 부분은 꼭 이해해야 합니다.
+
+```html title="templates/places/home.html"
+{{ map_places|json_script:'home-map-places-data' }}
+```
+
+Django 템플릿에서 파이썬 리스트를 자바스크립트로 넘길 때,
+그냥 문자열처럼 넣으면 따옴표 문제나 XSS 이슈가 생길 수 있습니다.
+
+`json_script` 는 데이터를 비교적 안전하게 JSON 형태로 심어주는 방식입니다.
+
+즉,
+
+* 템플릿에서는 `map_places` 를 JSON으로 숨겨두고
+* 자바스크립트에서는 `JSON.parse(...)` 로 꺼내서 사용
+
+하는 구조입니다.
+
+이 방식은 지도, 차트, 그래프, 프론트엔드 데이터 전달에서 매우 자주 씁니다.
+
+---
+
+## 4-2. 왜 지도 중심 좌표를 `36.35, 127.8` 정도로 잡았나요?
+
+대한민국 전체를 대략 보기 좋은 중심값을 잡은 것입니다.
+
+서울만 보여주려는 것이 아니라,
+전국 지도를 자연스럽게 보여주려면 너무 북쪽/남쪽으로 치우치지 않은 중심값이 필요합니다.
+
+즉 이번 편에서는 “정확한 행정 중심점”보다,
+**대한민국 전체가 보기 좋게 들어오는 지도 중심** 을 기준으로 잡았습니다.
+
+---
+
+## 4-3. 마커 클릭 시 상세 페이지 이동
+
+이 부분은 UX에서 꽤 중요합니다.
+
+```javascript title="templates/places/home.html"
+kakao.maps.event.addListener(marker, 'click', function () {
+  window.location.href = `/places/${place.id}/`;
+});
+```
+
+즉 마커는 단순 표시만 하는 것이 아니라,
+사용자가 클릭하면 바로 해당 장소의 상세 기록으로 들어갈 수 있습니다.
+
+이렇게 해두면 지도와 카드 목록이 따로 노는 것이 아니라,
+지도도 탐색 인터페이스 역할을 하게 됩니다.
+
+---
+
+# 5. 전체 장소 보기 페이지에도 전국지도 추가하기
+
+이번에는 `templates/places/place_list.html` 에도 지도를 붙여보겠습니다.
+
+```html title="templates/places/place_list.html"
+{% extends 'base.html' %}
+
+{% block title %}추억 장소 목록 | 추억 장소 아카이브{% endblock %}
+
+{% block content %}
+<section class="list-section">
+  <div class="container">
+    <div class="section-heading list-heading">
+      <div>
+        <span class="eyebrow">MEMORY PLACE ARCHIVE</span>
+        <h1>추억 장소 목록</h1>
+        <p>기록해둔 장소들을 카드와 전국지도에서 함께 둘러보세요.</p>
+      </div>
+      {% if user.is_authenticated %}
+        <a href="{% url 'places:place_create' %}" class="primary-button">새 장소 기록하기</a>
+      {% endif %}
+    </div>
+
+    <div class="map-panel-card map-panel-spacing">
+      <div class="map-panel-head">
+        <div>
+          <h2>전체 장소 전국지도</h2>
+          <p>저장된 모든 장소를 지도 위 마커로 확인해보세요.</p>
+        </div>
+        <span class="map-count-badge">총 {{ map_places|length }}개 장소</span>
+      </div>
+      <div id="placeListNationwideMap" class="nationwide-map list-map"></div>
+    </div>
+
+    {% if places %}
+      <div class="place-grid">
+        {% for place in places %}
+          <article class="place-card">
+            <div class="place-card-image-wrap">
+              {% if place.image %}
+                <img src="{{ place.image.url }}" alt="{{ place.title }}" class="place-card-image">
+              {% else %}
+                <div class="place-card-image placeholder-box">이미지 없음</div>
+              {% endif %}
+            </div>
+
+            <div class="place-card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+
+              <h2>{{ place.title }}</h2>
+              <p class="memory-line">{{ place.memory_line }}</p>
+
+              <div class="place-meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+
+              <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if is_paginated %}
+        <nav class="pagination" aria-label="추억 장소 목록 페이지 이동">
+          {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-button">처음</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-button">이전</a>
+          {% endif %}
+
+          {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="page-button active">{{ num }}</span>
+            {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+              <a href="?page={{ num }}" class="page-button">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-button">다음</a>
+            <a href="?page={{ paginator.num_pages }}" class="page-button">마지막</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state-card">
+        <h2>아직 등록된 추억 장소가 없습니다.</h2>
+        <p>첫 번째 장소를 기록해서 나만의 아카이브를 시작해보세요.</p>
+        {% if user.is_authenticated %}
+          <a href="{% url 'places:place_create' %}" class="primary-button">첫 장소 기록하러 가기</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{{ map_places|json_script:'place-list-map-places-data' }}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}"></script>
+<script>
+  const listMapContainer = document.getElementById('placeListNationwideMap');
+  const listPlacesDataElement = document.getElementById('place-list-map-places-data');
+
+  if (listMapContainer && listPlacesDataElement) {
+    const listPlaces = JSON.parse(listPlacesDataElement.textContent);
+
+    const listMap = new kakao.maps.Map(listMapContainer, {
+      center: new kakao.maps.LatLng(36.35, 127.8),
+      level: 13,
+    });
+
+    listPlaces.forEach((place) => {
+      const markerPosition = new kakao.maps.LatLng(place.latitude, place.longitude);
+      const marker = new kakao.maps.Marker({
+        position: markerPosition,
+        map: listMap,
+      });
+
+      const infoWindow = new kakao.maps.InfoWindow({
+        content: `
+          <div class="map-info-window">
+            <strong>${place.title}</strong><br>
+            <span>${place.region}</span>
+          </div>
+        `,
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseover', function () {
+        infoWindow.open(listMap, marker);
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseout', function () {
+        infoWindow.close();
+      });
+
+      kakao.maps.event.addListener(marker, 'click', function () {
+        window.location.href = `/places/${place.id}/`;
+      });
+    });
+  }
+</script>
+{% endblock %}
+```
+
+---
+
+## 5-1. 왜 전체 장소 보기 페이지에도 지도를 넣나요?
+
+메인페이지 지도는 서비스 소개용, 첫인상용 의미가 강합니다.
+
+반면 전체 장소 보기 페이지의 지도는
+**실제로 장소를 탐색하는 기능적 의미**가 더 큽니다.
+
+즉 사용자는 이제 이 페이지에서:
+
+* 지도 위에서 위치를 보고
+* 아래 카드 목록을 보고
+* 자세히 보기를 눌러 상세 페이지로 이동
+
+하는 식으로 탐색할 수 있습니다.
+
+이렇게 되면 “장소 목록” 페이지가 훨씬 살아납니다.
+
+---
+
+# 6. CSS에 지도 UI 스타일 추가하기
+
+이제 지도 영역도 프로젝트 분위기에 맞게 보기 좋게 꾸며주겠습니다.
+
+기존 `static/css/style.css` 파일에 아래 코드를 추가합니다.
+
+```css title="static/css/style.css"
+.map-section {
+  padding-top: 16px;
+}
+
+.map-panel-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
+}
+
+.map-panel-spacing {
+  margin-bottom: 28px;
+}
+
+.map-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.map-panel-head h2,
+.map-panel-head h3 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.map-panel-head p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.map-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.nationwide-map {
+  width: 100%;
+  height: 520px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.list-map {
+  height: 460px;
+}
+
+.map-info-window {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1f2937;
+}
+
+.map-info-window strong {
+  font-size: 14px;
+  color: #111827;
+}
+```
+
+---
+
+## 6-1. 왜 지도 박스를 카드처럼 감쌌나요?
+
+이 프로젝트는 전체 UI가 카드 기반 레이아웃으로 정리되어 있습니다.
+
+만약 지도만 갑자기 아무 배경 없이 크게 들어가면,
+전체 디자인 톤이 살짝 깨질 수 있습니다.
+
+그래서 이번 편에서는:
+
+* 흰색 패널 카드
+* 상단 제목/설명/카운트 배지
+* 아래 지도
+
+이런 구조로 정리해서,
+기존 프로젝트의 디자인 흐름과 맞추었습니다.
+
+이런 작은 통일감이 전체 완성도를 꽤 올려줍니다.
+
+---
+
+# 7. 모바일 반응형도 같이 보완하기
+
+지도는 화면이 작아지면 레이아웃이 쉽게 답답해질 수 있습니다.
+그래서 반응형도 함께 손보겠습니다.
+
+기존 `static/css/style.css` 의 반응형 영역에 아래를 추가합니다.
+
+```css title="static/css/style.css"
+@media (max-width: 720px) {
+  .map-panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .nationwide-map {
+    height: 380px;
+  }
+
+  .list-map {
+    height: 340px;
+  }
+}
+```
+
+이렇게 하면 모바일에서도:
+
+* 제목 영역이 세로로 자연스럽게 내려가고
+* 지도 높이도 너무 커지지 않으며
+* 전체 레이아웃이 덜 답답해집니다.
+
+---
+
+# 8. 전체 동작 테스트하기
+
+이제 실제로 잘 되는지 순서대로 확인해보겠습니다.
+
+## 8-1. 서버 실행
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+---
+
+## 8-2. 메인페이지 확인
+
+브라우저에서 아래 주소로 접속합니다.
+
+```text title="browser"
+http://127.0.0.1:8000/
+```
+
+확인할 것:
+
+* 전국지도가 보이는지
+* DB에 저장된 장소 수만큼 마커가 찍히는지
+* 마커에 마우스를 올리면 장소명/지역이 보이는지
+* 마커 클릭 시 상세 페이지로 이동하는지
+
+<Image
+  src="/blogs/memory_place(6)/1.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+---
+
+## 8-3. 전체 장소 보기 페이지 확인
+
+```text title="browser"
+http://127.0.0.1:8000/places/
+```
+
+확인할 것:
+
+* 전국지도가 보이는지
+* 마커가 정상 표시되는지
+* 아래 카드 목록이 기존처럼 잘 보이는지
+* 페이지네이션도 그대로 동작하는지
+
+<Image
+  src="/blogs/memory_place(6)/2.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+---
+
+## 8-4. 좌표 없는 장소 예외 확인
+
+혹시 latitude / longitude 가 비어 있는 장소가 있더라도,
+전체 지도 렌더링이 깨지지 않는지 확인합니다.
+
+현재 코드는 좌표 없는 데이터를 아예 제외하므로,
+정상이라면 지도는 문제없이 떠야 합니다.
+
+---
+
+# 9. 자주 발생하는 오류와 디버깅 포인트
+
+## 9-1. 지도가 아예 안 보이는 경우
+
+가장 먼저 아래를 확인합니다.
+
+* `kakao_javascript_key` 가 템플릿에 정상 전달되는지
+* `.env` 의 키가 올바른지
+* `settings.py` 에서 환경변수를 잘 읽고 있는지
+* SDK 스크립트 태그가 제대로 들어갔는지
+
+예:
+
+```html title="template snippet"
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}"></script>
+```
+
+---
+
+## 9-2. 마커가 하나도 안 찍히는 경우
+
+대부분 아래 중 하나입니다.
+
+* `map_places` 가 비어 있음
+* latitude / longitude 값이 비어 있음
+* 템플릿 JSON 파싱이 제대로 안 됨
+
+먼저 DB에 실제 좌표 값이 저장된 장소가 있는지 확인하세요.
+
+---
+
+## 9-3. 자바스크립트 에러가 나는 경우
+
+브라우저 개발자도구 콘솔을 확인합니다.
+
+자주 생기는 실수:
+
+* `JSON.parse(...)` 대상 element id 오타
+* `homeNationwideMap`, `placeListNationwideMap` id 오타
+* `latitude`, `longitude` 가 숫자가 아니라 문자열/빈값
+
+---
+
+## 9-4. 상세 페이지 이동이 안 되는 경우
+
+```javascript title="template snippet"
+window.location.href = `/places/${place.id}/`;
+```
+
+이 경로가 현재 URL 구조와 맞는지 확인합니다.
+
+현재 프로젝트에서는 상세 페이지 URL이 `/places/<pk>/` 이므로 위 코드가 맞습니다.
+
+---
+
+## 9-5. 지도가 너무 확대되거나 너무 축소되어 보이는 경우
+
+초기 중심 좌표와 level 값을 조금 조절하면 됩니다.
+
+예:
+
+```javascript title="template snippet"
+center: new kakao.maps.LatLng(36.35, 127.8),
+level: 13,
+```
+
+프로젝트 데이터가 많아지면 이후에 `setBounds()` 로 자동 범위를 맞추는 고도화도 가능합니다.
+하지만 이번 편에서는 전국지도 감각을 우선 유지하기 위해 고정값으로 시작합니다.
+
+---
+
+# 10. 전체 반영 코드 모음
+
+## 10-1. `places/views.py`
+
+```python title="places/views.py"
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+
+from .forms import PlaceForm, SignUpForm
+from .models import Place
+
+
+class HomeView(TemplateView):
+    template_name = 'places/home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        featured_places = Place.objects.filter(is_featured=True)[:3]
+        latest_places = Place.objects.select_related('author').all()[:6]
+        map_places = Place.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+        context['featured_places'] = featured_places
+        context['latest_places'] = latest_places
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        return context
+
+
+class PlaceListView(ListView):
+    model = Place
+    template_name = 'places/place_list.html'
+    context_object_name = 'places'
+    paginate_by = 6
+
+    def get_queryset(self):
+        return Place.objects.select_related('author').all().order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        map_places = Place.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        return context
+
+
+class PlaceDetailView(DetailView):
+    model = Place
+    template_name = 'places/place_detail.html'
+    context_object_name = 'place'
+
+    def get_queryset(self):
+        return Place.objects.select_related('author').all()
+
+
+class PlaceCreateView(LoginRequiredMixin, CreateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '새로운 추억 장소가 등록되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 추가'
+        context['submit_label'] = '장소 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class AuthorRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        place = self.get_object()
+        return place.author == self.request.user
+
+    def handle_no_permission(self):
+        messages.error(self.request, '본인 글만 수정하거나 삭제할 수 있습니다.')
+        return redirect('places:place_list')
+
+
+class PlaceUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+    context_object_name = 'place'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '추억 장소가 수정되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 수정'
+        context['submit_label'] = '수정 내용 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class PlaceDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
+    model = Place
+    template_name = 'places/place_confirm_delete.html'
+    context_object_name = 'place'
+    success_url = reverse_lazy('places:place_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, '추억 장소가 삭제되었습니다.')
+        return super().delete(request, *args, **kwargs)
+
+
+
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('places:home')
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, '회원가입이 완료되었습니다. 바로 로그인되었습니다.')
+            return redirect('places:home')
+    else:
+        form = SignUpForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+```
+
+---
+
+## 10-2. `templates/places/home.html`
+
+```html title="templates/places/home.html"
+{% extends 'base.html' %}
+{% load static %}
+ 
+{% block title %}추억 장소 아카이브{% endblock %}
+ 
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <div class="hero-box">
+      <span class="eyebrow">MEMORY PLACE ARCHIVE</span>
+      <h1>추억이 머문 장소들을 한곳에 기록해보세요</h1>
+      <p>
+        여행지, 산책길, 카페, 전시관까지.
+        나만의 감정과 기억이 남아 있는 장소들을 차곡차곡 모아보세요.
+      </p>
+      <div class="hero-actions">
+        <a href="{% url 'places:place_list' %}" class="hero-primary">전체 장소 보기</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'places:place_create' %}" class="hero-secondary">새 장소 기록하기</a>
+        {% else %}
+          <a href="{% url 'places:signup' %}" class="hero-secondary">회원가입하기</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+ 
+<section class="section map-section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <span class="eyebrow">NATIONWIDE MAP</span>
+        <h2 class="section-title">모든 추억 장소 둘러보기</h2>
+        <p class="section-subtitle">
+          지금까지 기록된 유저들의 모든 장소를 대한민국 지도 위에서 한눈에 확인해보세요.
+        </p>
+      </div>
+    </div>
+ 
+    <div class="map-panel-card">
+      <div class="map-panel-head">
+        <div>
+          <p>마커를 클릭하면 해당 장소의 상세 페이지로 이동할 수 있습니다.</p>
+        </div>
+        <span class="map-count-badge">총 {{ map_places|length }}개 장소</span>
+      </div>
+      <div id="homeNationwideMap" class="nationwide-map"></div>
+    </div>
+  </div>
+</section>
+ 
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <span class="eyebrow">FEATURED PLACES</span>
+        <h2 class="section-title">추천 장소</h2>
+        <p class="section-subtitle">특별히 남겨두고 싶은 장소들을 먼저 만나보세요.</p>
+      </div>
+    </div>
+ 
+    {% if featured_places %}
+      <div class="grid">
+        {% for place in featured_places %}
+          <article class="card">
+            {% if place.image %}
+              <img src="{{ place.image.url }}" alt="{{ place.title }}" class="card-image">
+            {% else %}
+              <div class="image-placeholder">이미지 없음</div>
+            {% endif %}
+            <div class="card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+              <h3 class="card-title">{{ place.title }}</h3>
+              <p class="card-text">{{ place.memory_line }}</p>
+              <div class="meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+              <div class="card-action-row">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-box">아직 추천 장소가 없습니다.</div>
+    {% endif %}
+  </div>
+</section>
+ 
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div>
+        <span class="eyebrow">LATEST PLACES</span>
+        <h2 class="section-title">최근 기록한 장소</h2>
+        <p class="section-subtitle">가장 최근에 추가된 장소들을 빠르게 살펴보세요.</p>
+      </div>
+    </div>
+ 
+    {% if latest_places %}
+      <div class="grid">
+        {% for place in latest_places %}
+          <article class="card">
+            {% if place.image %}
+              <img src="{{ place.image.url }}" alt="{{ place.title }}" class="card-image">
+            {% else %}
+              <div class="image-placeholder">이미지 없음</div>
+            {% endif %}
+            <div class="card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+              <h3 class="card-title">{{ place.title }}</h3>
+              <p class="card-text">{{ place.memory_line }}</p>
+              <div class="meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+              <div class="card-action-row">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-box">아직 등록된 장소가 없습니다.</div>
+    {% endif %}
+  </div>
+</section>
+ 
+{{ map_places|json_script:'home-map-places-data' }}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}"></script>
+<script>
+  const homeMapContainer = document.getElementById('homeNationwideMap');
+  const homePlacesDataElement = document.getElementById('home-map-places-data');
+ 
+  if (homeMapContainer && homePlacesDataElement) {
+    const homePlaces = JSON.parse(homePlacesDataElement.textContent);
+ 
+    const homeMap = new kakao.maps.Map(homeMapContainer, {
+      center: new kakao.maps.LatLng(36.35, 127.8),
+      level: 13,
+    });
+ 
+    homePlaces.forEach((place) => {
+      const markerPosition = new kakao.maps.LatLng(place.latitude, place.longitude);
+      const marker = new kakao.maps.Marker({
+        position: markerPosition,
+        map: homeMap,
+      });
+ 
+      const infoWindow = new kakao.maps.InfoWindow({
+        content: `
+          <div class="map-info-window">
+            <strong>${place.title}</strong><br>
+            <span>${place.region}</span>
+          </div>
+        `,
+      });
+ 
+      kakao.maps.event.addListener(marker, 'mouseover', function () {
+        infoWindow.open(homeMap, marker);
+      });
+ 
+      kakao.maps.event.addListener(marker, 'mouseout', function () {
+        infoWindow.close();
+      });
+ 
+      kakao.maps.event.addListener(marker, 'click', function () {
+        window.location.href = `/places/${place.id}/`;
+      });
+    });
+  }
+</script>
+{% endblock %}
+```
+
+---
+
+## 10-3. `templates/places/place_list.html`
+
+```html title="templates/places/place_list.html"
+{% extends 'base.html' %}
+
+{% block title %}추억 장소 목록 | 추억 장소 아카이브{% endblock %}
+
+{% block content %}
+<section class="list-section">
+  <div class="container">
+    <div class="section-heading list-heading">
+      <div>
+        <span class="eyebrow">MEMORY PLACE ARCHIVE</span>
+        <h1>추억 장소 목록</h1>
+        <p>기록해둔 장소들을 카드와 전국지도에서 함께 둘러보세요.</p>
+      </div>
+      {% if user.is_authenticated %}
+        <a href="{% url 'places:place_create' %}" class="primary-button">새 장소 기록하기</a>
+      {% endif %}
+    </div>
+
+    <div class="map-panel-card map-panel-spacing">
+      <div class="map-panel-head">
+        <div>
+          <h2>전체 장소 전국지도</h2>
+          <p>저장된 모든 장소를 지도 위 마커로 확인해보세요.</p>
+        </div>
+        <span class="map-count-badge">총 {{ map_places|length }}개 장소</span>
+      </div>
+      <div id="placeListNationwideMap" class="nationwide-map list-map"></div>
+    </div>
+
+    {% if places %}
+      <div class="place-grid">
+        {% for place in places %}
+          <article class="place-card">
+            <div class="place-card-image-wrap">
+              {% if place.image %}
+                <img src="{{ place.image.url }}" alt="{{ place.title }}" class="place-card-image">
+              {% else %}
+                <div class="place-card-image placeholder-box">이미지 없음</div>
+              {% endif %}
+            </div>
+
+            <div class="place-card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+              </div>
+
+              <h2>{{ place.title }}</h2>
+              <p class="memory-line">{{ place.memory_line }}</p>
+
+              <div class="place-meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+
+              <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if is_paginated %}
+        <nav class="pagination" aria-label="추억 장소 목록 페이지 이동">
+          {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-button">처음</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-button">이전</a>
+          {% endif %}
+
+          {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="page-button active">{{ num }}</span>
+            {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+              <a href="?page={{ num }}" class="page-button">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-button">다음</a>
+            <a href="?page={{ paginator.num_pages }}" class="page-button">마지막</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state-card">
+        <h2>아직 등록된 추억 장소가 없습니다.</h2>
+        <p>첫 번째 장소를 기록해서 나만의 아카이브를 시작해보세요.</p>
+        {% if user.is_authenticated %}
+          <a href="{% url 'places:place_create' %}" class="primary-button">첫 장소 기록하러 가기</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{{ map_places|json_script:'place-list-map-places-data' }}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}"></script>
+<script>
+  const listMapContainer = document.getElementById('placeListNationwideMap');
+  const listPlacesDataElement = document.getElementById('place-list-map-places-data');
+
+  if (listMapContainer && listPlacesDataElement) {
+    const listPlaces = JSON.parse(listPlacesDataElement.textContent);
+
+    const listMap = new kakao.maps.Map(listMapContainer, {
+      center: new kakao.maps.LatLng(36.35, 127.8),
+      level: 13,
+    });
+
+    listPlaces.forEach((place) => {
+      const markerPosition = new kakao.maps.LatLng(place.latitude, place.longitude);
+      const marker = new kakao.maps.Marker({
+        position: markerPosition,
+        map: listMap,
+      });
+
+      const infoWindow = new kakao.maps.InfoWindow({
+        content: `
+          <div class="map-info-window">
+            <strong>${place.title}</strong><br>
+            <span>${place.region}</span>
+          </div>
+        `,
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseover', function () {
+        infoWindow.open(listMap, marker);
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseout', function () {
+        infoWindow.close();
+      });
+
+      kakao.maps.event.addListener(marker, 'click', function () {
+        window.location.href = `/places/${place.id}/`;
+      });
+    });
+  }
+</script>
+{% endblock %}
+```
+
+---
+
+## 10-4. `static/css/style.css`
+
+```css title="static/css/style.css"
+.map-section {
+  padding-top: 16px;
+}
+
+.map-panel-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
+}
+
+.map-panel-spacing {
+  margin-bottom: 28px;
+}
+
+.map-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.map-panel-head h2,
+.map-panel-head h3 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.map-panel-head p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.map-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.nationwide-map {
+  width: 100%;
+  height: 520px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.list-map {
+  height: 460px;
+}
+
+.map-info-window {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1f2937;
+}
+
+.map-info-window strong {
+  font-size: 14px;
+  color: #111827;
+}
+
+@media (max-width: 720px) {
+  .map-panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .nationwide-map {
+    height: 380px;
+  }
+
+  .list-map {
+    height: 340px;
+  }
+}
+```
+
+---
+
+# 11. 체크리스트
+
+아래 항목이 전부 되면 이번 편은 성공입니다.
+
+* ✅ 메인페이지에 전국지도가 보인다.
+* ✅ 전체 장소 보기 페이지에도 전국지도가 보인다.
+* ✅ 좌표가 있는 장소들이 마커로 표시된다.
+* ✅ 마커에 마우스를 올리면 장소명/지역이 보인다.
+* ✅ 마커 클릭 시 상세 페이지로 이동한다.
+* ✅ 좌표가 없는 장소는 자동으로 제외된다.
+* ✅ 카드 목록과 지도 UI가 함께 자연스럽게 보인다.
+* ✅ 모바일에서도 지도 영역이 크게 깨지지 않는다.
+
+---
+
+# 12. 마무리
+
+이번 6편에서는,
+지금까지 저장해둔 장소 데이터를 **대한민국 전국지도 위에 시각화** 했습니다.
+
+이번 편에서 특히 중요한 것은,
+우리가 새 기능을 위해 전혀 새로운 데이터를 만든 것이 아니라는 점입니다.
+
+이미 2-2편에서 장소 검색 자동입력으로 저장해둔 아래 정보가 있었기 때문에,
+이번 지도 기능이 가능해졌습니다.
+
+* 위도
+* 경도
+* 장소명
+* 주소
+* 지역
+
+즉 이번 편은,
+지금까지 쌓아온 데이터 구조를 활용해서
+프로젝트의 완성도를 크게 끌어올린 확장편이라고 볼 수 있습니다.
+
+이제 추억 장소 아카이브는 단순한 카드 목록 서비스가 아니라,
+**지도 위에서 공간적으로 탐색할 수 있는 아카이브 서비스**처럼 보이기 시작했습니다.
+
+다음 7편에서는 이번 전국지도 구조를 이어서,
+**마이페이지 만들기 + 내가 기록한 장소만 지도에 표시하기** 를 구현해보겠습니다.
+
+즉 다음 편부터는,
+전체 장소를 보는 경험에서 한 단계 더 나아가
+**“내 아카이브”를 따로 모아 보는 개인화 화면**을 만들게 됩니다.
+
+---
+
+# Quick Quiz
+
+<MultipleChoiceQuiz
+question="이번 6편에서 `map_places` 를 별도로 만들어 템플릿에 넘긴 가장 큰 이유는 무엇인가요?"
+options={[
+"카카오맵이 CSS 파일만 읽을 수 있기 때문에",
+"지도에서 사용할 최소한의 장소 데이터를 자바스크립트에서 다루기 쉽게 전달하기 위해서",
+"페이지네이션을 자동으로 없애기 위해서",
+"회원가입 기능을 더 쉽게 만들기 위해서"
+]}
+correctIndex={1}
+explanation="지도에서는 id, title, region, latitude, longitude 같은 최소 데이터만 자바스크립트에서 다루면 되므로, 별도의 map_places 구조로 가공해 전달하는 것이 효율적입니다."
+/>
+
+<MultipleChoiceQuiz
+question="좌표가 없는 장소를 지도 마커 대상에서 제외한 가장 적절한 이유는 무엇인가요?"
+options={[
+"지도에서는 위도와 경도가 있어야 정확한 마커 위치를 표시할 수 있기 때문에",
+"좌표가 없으면 자동으로 회원 탈퇴되기 때문에",
+"카카오맵은 제목만으로 마커를 만들 수 없기 때문에",
+"좌표가 없는 데이터는 Django가 자동 삭제하기 때문에"
+]}
+correctIndex={0}
+explanation="지도 마커는 정확한 위치값이 필요하므로, latitude와 longitude가 없는 장소는 마커로 표시할 수 없습니다."
+/>
+
+<a href="https://python-lesson-red.vercel.app/blogs/memory_place(7)" target="_blank">➡️ 다음 교안 보기</a>
