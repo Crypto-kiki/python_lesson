@@ -1,0 +1,3109 @@
+---
+title: "추억 장소 아카이브 만들기(7) 최종편 : 마이페이지 + 내 장소 지도 + 검색/필터 완성하기"
+description: "6편의 전국지도 코드를 그대로 이어받아 로그인한 사용자의 장소만 모아 마이페이지에서 지도와 카드로 보여주고, 검색·필터까지 더해 프로젝트를 최종 완성합니다."
+image: "../../public/blogs/memory_place(7)/cover.png"
+publishedAt: "2026-03-23T10:30:00+09:00"
+updatedAt: "2026-03-23T10:30:00+09:00"
+author: "Baekki"
+isPublished: true
+tags:
+    - Django basic
+    - 추억 장소 아카이브 만들기
+    - Kakao Map
+---
+
+# 추억 장소 아카이브 만들기 7편 (최종편)
+
+<a href="https://python-lesson-red.vercel.app/blogs/memory_place(6)" target="_blank">이전 교안 보기</a>
+
+지난 6편에서는 **카카오맵 전국지도에 저장된 모든 장소를 마커로 표시하는 기능**을 완성했습니다.
+
+즉 지금 프로젝트는 아래 상태까지 와 있습니다.
+
+* 장소 등록 / 수정 / 삭제
+* 카카오 장소 검색 자동입력
+* 작성자(author) 연결
+* 웹 CRUD
+* DRF CRUD
+* 로그인 / 권한 처리
+* 메인페이지 전국지도 표시
+* 전체 장소 보기 페이지 전국지도 표시
+* 모든 장소 마커 표시
+
+이제 마지막으로 필요한 것은,
+**전체 장소 보기** 에서 한 걸음 더 나아가
+**내가 기록한 장소만 모아서 관리하는 화면** 을 만드는 것입니다.
+
+실제 사용자 입장에서 가장 자주 보게 될 화면은 이런 화면입니다.
+
+> “내가 저장한 장소만 다시 보고 싶다.”
+>
+> “추천해둔 장소만 따로 보고 싶다.”
+>
+> “검색해서 예전에 갔던 장소를 빨리 찾고 싶다.”
+
+그래서 이번 최종편에서는,
+6편에서 만든 전국지도 코드를 그대로 재활용하면서 아래를 한 번에 완성하겠습니다.
+
+* 마이페이지 만들기
+* 로그인한 사용자의 장소만 조회하기
+* 내 장소만 전국지도에 마커 표시하기
+* 검색 기능 붙이기
+* 지역 / 추천 여부 필터 붙이기
+* 검색 / 필터 결과를 지도와 카드 목록에 동시에 반영하기
+* 결과가 없을 때 empty state UI 만들기
+
+즉 이번 편이 끝나면,
+추억 장소 아카이브 프로젝트는 **지도 기반 개인 아카이브 서비스** 로 마무리됩니다.
+
+---
+
+## 이번 편에서 완성할 결과물
+
+이번 글을 끝내면 아래 상태까지 완성됩니다.
+
+* `/mypage/` 페이지가 추가된다.
+* 로그인한 사용자만 마이페이지에 접근할 수 있다.
+* 마이페이지에서 내 장소만 카드 목록으로 볼 수 있다.
+* 내 장소만 전국지도에 마커로 표시된다.
+* 장소명 / 주소 / 지역 / 한줄 기록으로 검색할 수 있다.
+* 지역 / 추천 여부 기준으로 필터링할 수 있다.
+* 검색 / 필터 결과가 지도와 카드에 동시에 반영된다.
+* 결과가 없을 때 빈 상태 UI가 자연스럽게 보인다.
+
+---
+
+# 0. 이번 편 전체 흐름 먼저 보기
+
+## 이번 편 실습 순서
+
+1. 왜 마이페이지가 필요한지 이해하기
+2. URL 추가하기
+3. 6편의 `views.py` 흐름을 유지하면서 `MyPageView` 추가하기
+4. 현재 로그인한 사용자의 장소만 가져오기
+5. 검색 / 필터 적용하기
+6. 지도용 `map_places` 데이터 만들기
+7. 마이페이지 템플릿 만들기
+8. 기존 6편 스타일과 어울리도록 CSS 추가하기
+9. 디버깅 포인트 확인하기
+10. 최종 체크리스트 확인하기
+
+이번 편 핵심은,
+**6편 코드 구조를 최대한 유지하면서 필요한 것만 확장** 하는 것입니다.
+
+즉 이미 잘 돌아가던 코드 스타일을 갑자기 크게 바꾸지 않고,
+그 위에 `MyPageView` 와 `my_page.html` 만 자연스럽게 얹는 방식으로 진행하겠습니다.
+
+---
+
+# 1. 왜 마지막에 마이페이지를 만들까요?
+
+6편에서는 “전체 유저의 모든 장소” 를 전국지도에서 볼 수 있게 만들었습니다.
+
+이 기능은 서비스가 풍성해 보이게 해주고,
+지도 위에 마커가 많이 찍히는 재미도 있습니다.
+
+하지만 실제 서비스에서는 사용자가 더 자주 보는 화면이 따로 있습니다.
+바로 **내 기록만 다시 보는 화면** 입니다.
+
+예를 들어 이런 요구가 많습니다.
+
+* 내가 저장한 장소만 다시 보고 싶다.
+* 추천해둔 장소만 모아보고 싶다.
+* 서울에 있는 내 장소만 골라보고 싶다.
+* 예전에 기록한 특정 장소를 검색해서 다시 찾고 싶다.
+
+이걸 만족시키려면,
+이제는 전체 목록과는 별도로 **개인화된 마이페이지** 가 필요합니다.
+
+그리고 이번 편에서 검색 / 필터까지 붙이면,
+프로젝트가 단순 CRUD 예제를 넘어 **서비스다운 흐름** 을 갖추게 됩니다.
+
+---
+
+# 2. `places/urls.py` 에 마이페이지 URL 추가하기
+
+6편 흐름을 그대로 이어서,
+마이페이지 URL 하나만 추가하겠습니다.
+
+```python title="places/urls.py"
+from django.urls import path
+
+from .views import (
+    HomeView,
+    MyPageView,
+    PlaceCreateView,
+    PlaceDeleteView,
+    PlaceDetailView,
+    PlaceListView,
+    PlaceUpdateView,
+    signup,
+)
+
+app_name = 'places'
+
+urlpatterns = [
+    path('', HomeView.as_view(), name='home'),
+    path('signup/', signup, name='signup'),
+    path('places/', PlaceListView.as_view(), name='place_list'),
+    path('places/create/', PlaceCreateView.as_view(), name='place_create'),
+    path('places/<int:pk>/', PlaceDetailView.as_view(), name='place_detail'),
+    path('places/<int:pk>/update/', PlaceUpdateView.as_view(), name='place_update'),
+    path('places/<int:pk>/delete/', PlaceDeleteView.as_view(), name='place_delete'),
+    path('mypage/', MyPageView.as_view(), name='my_page'),
+]
+```
+
+## 왜 `signup` 도 함수형 그대로 가져가나요?
+
+6편 완성본에서는 `signup` 을 함수형 뷰로 사용하고 있었습니다.
+
+이번 7편에서는 6편 코드를 그대로 이어가는 것이 목적이므로,
+회원가입 부분을 새 클래스로 바꾸지 않고 **기존 방식 그대로 유지** 하는 것이 더 자연스럽습니다.
+
+즉 이번 편은 **필요한 부분만 확장하고, 기존 흐름은 흔들지 않는 것** 이 중요합니다.
+
+> 아래 MyPageView를 아직 추가 안한상태라 여기 까지만 입력하시면 오류가 발생하는건 자연스럽습니다.
+
+---
+
+# 3. `places/views.py` 에 `MyPageView` 추가하기
+
+이제 6편의 `views.py` 흐름을 유지한 상태에서,
+맨 아래에 `MyPageView` 를 추가하겠습니다.
+
+이번에는 6편 코드와 정확히 이어지도록 아래 사항을 맞췄습니다.
+
+* `signup` 은 함수형 그대로 유지
+* `AuthorRequiredMixin` 메시지 문구와 redirect 방식 유지
+* `PlaceCreateView`, `PlaceUpdateView` 의 `page_title`, `submit_label`, `kakao_javascript_key` 패턴 유지
+* `PlaceDetailView.get_queryset()` 의 `select_related('author')` 패턴 유지
+* 전체 지도용 `map_places` 만드는 방식도 6편과 같은 스타일로 유지
+
+아래는 **7편 최종 반영 버전** 입니다.
+
+```python title="places/views.py"
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
+from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+
+from .forms import PlaceForm, SignUpForm
+from .models import Place
+
+
+class HomeView(TemplateView):
+    template_name = 'places/home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        featured_places = Place.objects.filter(is_featured=True)[:3]
+        latest_places = Place.objects.select_related('author').all()[:6]
+        map_places = Place.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+        context['featured_places'] = featured_places
+        context['latest_places'] = latest_places
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        return context
+
+
+class PlaceListView(ListView):
+    model = Place
+    template_name = 'places/place_list.html'
+    context_object_name = 'places'
+    paginate_by = 6
+
+    def get_base_queryset(self):
+        return Place.objects.select_related('author').all().order_by('-created_at')
+
+    def get_queryset(self):
+        queryset = self.get_base_queryset()
+
+        q = self.request.GET.get('q', '').strip()
+        region = self.request.GET.get('region', '').strip()
+        featured = self.request.GET.get('featured', '').strip()
+
+        if q:
+            queryset = queryset.filter(
+                Q(title__icontains=q)
+                | Q(address__icontains=q)
+                | Q(region__icontains=q)
+                | Q(memory_line__icontains=q)
+                | Q(author__username__icontains=q)
+            )
+
+        if region:
+            queryset = queryset.filter(region=region)
+
+        if featured == 'true':
+            queryset = queryset.filter(is_featured=True)
+        elif featured == 'false':
+            queryset = queryset.filter(is_featured=False)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        base_queryset = self.get_base_queryset()
+        filtered_queryset = self.get_queryset()
+        map_places = filtered_queryset.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        region_options = (
+            base_queryset.exclude(region__isnull=True)
+            .exclude(region='')
+            .values_list('region', flat=True)
+            .distinct()
+        )
+
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        context['total_count'] = base_queryset.count()
+        context['featured_count'] = base_queryset.filter(is_featured=True).count()
+        context['filtered_count'] = filtered_queryset.count()
+        context['region_options'] = sorted(region_options)
+        context['search_keyword'] = self.request.GET.get('q', '').strip()
+        context['selected_region'] = self.request.GET.get('region', '').strip()
+        context['selected_featured'] = self.request.GET.get('featured', '').strip()
+        return context
+
+
+class PlaceDetailView(DetailView):
+    model = Place
+    template_name = 'places/place_detail.html'
+    context_object_name = 'place'
+
+    def get_queryset(self):
+        return Place.objects.select_related('author').all()
+
+
+class PlaceCreateView(LoginRequiredMixin, CreateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '새로운 추억 장소가 등록되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 추가'
+        context['submit_label'] = '장소 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class AuthorRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        place = self.get_object()
+        return place.author == self.request.user
+
+    def handle_no_permission(self):
+        messages.error(self.request, '본인 글만 수정하거나 삭제할 수 있습니다.')
+        return redirect('places:place_list')
+
+
+class PlaceUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+    context_object_name = 'place'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '추억 장소가 수정되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 수정'
+        context['submit_label'] = '수정 내용 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class PlaceDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
+    model = Place
+    template_name = 'places/place_confirm_delete.html'
+    context_object_name = 'place'
+    success_url = reverse_lazy('places:place_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, '추억 장소가 삭제되었습니다.')
+        return super().delete(request, *args, **kwargs)
+
+
+class MyPageView(LoginRequiredMixin, ListView):
+    model = Place
+    template_name = 'places/my_page.html'
+    context_object_name = 'places'
+    paginate_by = 6
+
+    def get_base_queryset(self):
+        return Place.objects.select_related('author').filter(author=self.request.user).order_by('-created_at')
+
+    def get_queryset(self):
+        queryset = self.get_base_queryset()
+
+        q = self.request.GET.get('q', '').strip()
+        region = self.request.GET.get('region', '').strip()
+        featured = self.request.GET.get('featured', '').strip()
+
+        if q:
+            queryset = queryset.filter(
+                Q(title__icontains=q)
+                | Q(address__icontains=q)
+                | Q(region__icontains=q)
+                | Q(memory_line__icontains=q)
+            )
+
+        if region:
+            queryset = queryset.filter(region=region)
+
+        if featured == 'true':
+            queryset = queryset.filter(is_featured=True)
+        elif featured == 'false':
+            queryset = queryset.filter(is_featured=False)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        base_queryset = self.get_base_queryset()
+        filtered_queryset = self.get_queryset()
+        map_places = filtered_queryset.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        region_options = (
+            base_queryset.exclude(region__isnull=True)
+            .exclude(region='')
+            .values_list('region', flat=True)
+            .distinct()
+        )
+
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        context['total_count'] = base_queryset.count()
+        context['featured_count'] = base_queryset.filter(is_featured=True).count()
+        context['filtered_count'] = filtered_queryset.count()
+        context['region_options'] = sorted(region_options)
+        context['search_keyword'] = self.request.GET.get('q', '').strip()
+        context['selected_region'] = self.request.GET.get('region', '').strip()
+        context['selected_featured'] = self.request.GET.get('featured', '').strip()
+        return context
+
+
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('places:home')
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, '회원가입이 완료되었습니다. 바로 로그인되었습니다.')
+            return redirect('places:home')
+    else:
+        form = SignUpForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+```
+
+---
+
+## 3-1. 왜 검색 대상을 `memory_line` 으로 맞췄나요?
+
+6편 완성본의 템플릿 흐름을 보면 카드에서 핵심 요약 문장으로 사용하던 필드는 `memory_line` 이었습니다.
+
+즉, 검색도 `memory_line` 기준으로 맞추는 편이 더 자연스럽습니다.
+
+그래서 이번 수정본에서는 검색 대상을 아래처럼 정리했습니다.
+
+* `title`
+* `address`
+* `region`
+* `memory_line`
+
+---
+
+## 3-2. 왜 `MyPageView` 만 새로 추가하면 되나요?
+
+이미 6편까지에서 아래 구조는 다 완성되어 있었습니다.
+
+* 장소 모델
+* 로그인 사용자
+* 작성자(author) 연결
+* 지도용 좌표 데이터
+* 카드형 템플릿 패턴
+
+즉 이번 편은 프로젝트를 새로 만드는 것이 아니라,
+**기존 구조 위에 “내 것만 보기” 화면을 하나 더 얹는 작업** 입니다.
+
+그래서 핵심은 기존 코드를 갈아엎는 것이 아니라,
+**현재 로그인한 사용자 기준 QuerySet** 을 잘 만드는 것입니다.
+
+---
+
+# 4. 공통 네비게이션에 마이페이지 링크 추가하기
+
+이제 사용자가 쉽게 이동할 수 있도록,
+공통 네비게이션에 마이페이지 링크를 하나 추가하겠습니다.
+
+```html title="templates/base.html"
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}추억 장소 아카이브{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="{% url 'places:home' %}" class="brand">추억 장소 아카이브</a>
+
+      <nav class="nav-links">
+        <a href="{% url 'places:home' %}">홈</a>
+        <a href="{% url 'places:place_list' %}">전체 장소 보기</a>
+
+        {% if user.is_authenticated %}
+          <a href="{% url 'places:my_page' %}">마이페이지</a>
+          <a href="{% url 'places:place_create' %}">장소 기록 추가</a>
+          <form action="{% url 'logout' %}" method="post" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" class="text-button">로그아웃</button>
+          </form>
+        {% else %}
+          <a href="{% url 'places:signup' %}">회원가입</a>
+          <a href="{% url 'login' %}">로그인</a>
+        {% endif %}
+
+        <a href="/admin/">관리자페이지</a>
+      </nav>
+    </div>
+  </header>
+
+  {% if messages %}
+    <div class="container flash-wrap">
+      {% for message in messages %}
+        <div class="flash-message">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      나만의 장소와 추억을 차곡차곡 기록해두는 작은 아카이브
+    </div>
+  </footer>
+</body>
+</html>
+```
+
+이번 수정의 핵심은,
+기존 네비게이션 흐름은 유지하면서 **로그인 상태일 때만 마이페이지 링크를 보여주는 것** 입니다.
+
+---
+
+# 5. templates 수정하기
+
+## 5-1 `templates/places/place_list.html` 수정하기
+
+```text
+http://127.0.0.1:8000/places/
+```
+
+<Image
+  src="/blogs/memory_place(7)/1.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+
+전체 목록에서도 유저들이 등록한 데이터 기반 필터가 가능하도록 추가 및 수정합니다.
+
+```html title="templates/places/place_list.html"
+{% extends 'base.html' %}
+
+{% block title %}전체 장소 보기 | 추억 장소 아카이브{% endblock %}
+
+{% block content %}
+<section class="list-section">
+  <div class="container">
+    <div class="section-heading list-heading">
+      <div>
+        <span class="eyebrow">ALL MEMORY PLACES</span>
+        <h1>모든 유저의 추억 장소 둘러보기</h1>
+        <p>전체 유저가 기록한 장소를 지도와 카드로 보고, 검색과 필터로 원하는 장소를 찾아보세요.</p>
+      </div>
+      <div class="mypage-action-row">
+        {% if user.is_authenticated %}
+          <a href="{% url 'places:place_create' %}" class="primary-button">새 장소 기록하기</a>
+          <a href="{% url 'places:my_page' %}" class="secondary-button">내 아카이브 보기</a>
+        {% else %}
+          <a href="{% url 'login' %}" class="primary-button">로그인하기</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <article class="stat-card">
+        <p>전체 장소 수</p>
+        <strong>{{ total_count }}</strong>
+        <span>모든 유저가 기록한 전체 장소 수</span>
+      </article>
+      <article class="stat-card">
+        <p>추천 장소 수</p>
+        <strong>{{ featured_count }}</strong>
+        <span>is_featured=True 장소 수</span>
+      </article>
+      <article class="stat-card">
+        <p>현재 검색 결과</p>
+        <strong>{{ filtered_count }}</strong>
+        <span>검색 / 필터 적용 후 결과 수</span>
+      </article>
+    </div>
+
+    <form method="get" class="filter-panel-card">
+      <div class="filter-grid">
+        <div class="form-field wide">
+          <label for="q">검색</label>
+          <input
+            type="text"
+            id="q"
+            name="q"
+            value="{{ search_keyword }}"
+            placeholder="장소명, 주소, 지역, 한줄 기록, 작성자명으로 검색해보세요"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="region">지역</label>
+          <select id="region" name="region">
+            <option value="">전체 지역</option>
+            {% for region in region_options %}
+              <option value="{{ region }}" {% if selected_region == region %}selected{% endif %}>{{ region }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="featured">추천 여부</label>
+          <select id="featured" name="featured">
+            <option value="">전체</option>
+            <option value="true" {% if selected_featured == 'true' %}selected{% endif %}>추천한 장소만</option>
+            <option value="false" {% if selected_featured == 'false' %}selected{% endif %}>추천하지 않은 장소만</option>
+          </select>
+        </div>
+
+        <div class="filter-action-row">
+          <button type="submit" class="primary-button">검색 / 필터 적용</button>
+          <a href="{% url 'places:place_list' %}" class="secondary-button">초기화</a>
+        </div>
+      </div>
+    </form>
+
+    <div class="map-panel-card map-panel-spacing">
+      <div class="map-panel-head">
+        <div>
+          <h2>전체 장소 전국지도</h2>
+          <p>현재 검색 / 필터 결과에 해당하는 모든 유저의 장소만 마커로 표시됩니다.</p>
+        </div>
+        <span class="map-count-badge">총 {{ map_places|length }}개 장소</span>
+      </div>
+      <div id="nationwideMap" class="nationwide-map list-map"></div>
+    </div>
+
+    {% if places %}
+      <div class="place-grid">
+        {% for place in places %}
+          <article class="place-card">
+            <div class="place-card-image-wrap">
+              {% if place.image %}
+                <img src="{{ place.image.url }}" alt="{{ place.title }}" class="place-card-image">
+              {% else %}
+                <div class="place-card-image placeholder-box">이미지 없음</div>
+              {% endif %}
+            </div>
+
+            <div class="place-card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+                {% if place.is_featured %}
+                  <span class="badge gold">추천</span>
+                {% endif %}
+              </div>
+
+              <h2>{{ place.title }}</h2>
+              <p class="memory-line">{{ place.memory_line }}</p>
+
+              <div class="place-meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+
+              <div class="card-action-row">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if is_paginated %}
+        <nav class="pagination" aria-label="전체 장소 목록 페이지 이동">
+          {% if page_obj.has_previous %}
+            <a href="?page=1&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">처음</a>
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">이전</a>
+          {% endif %}
+
+          {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="page-button active">{{ num }}</span>
+            {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+              <a href="?page={{ num }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">다음</a>
+            <a href="?page={{ paginator.num_pages }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">마지막</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state-card">
+        <h2>조건에 맞는 장소가 아직 없습니다.</h2>
+        <p>검색어나 필터를 바꿔보거나, 새로운 장소가 등록되기를 기다려보세요.</p>
+        <div class="empty-action-row">
+          <a href="{% url 'places:place_list' %}" class="secondary-button">필터 초기화</a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'places:place_create' %}" class="primary-button">새 장소 기록하기</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{{ map_places|json_script:'place-list-map-places-data' }}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}"></script>
+<script>
+  const placeListMapContainer = document.getElementById('nationwideMap');
+  const placeListDataElement = document.getElementById('place-list-map-places-data');
+
+  if (placeListMapContainer && placeListDataElement) {
+    const placeListMapPlaces = JSON.parse(placeListDataElement.textContent);
+
+    const placeListMap = new kakao.maps.Map(placeListMapContainer, {
+      center: new kakao.maps.LatLng(36.35, 127.8),
+      level: 13,
+    });
+
+    if (placeListMapPlaces.length === 0) {
+      placeListMapContainer.insertAdjacentHTML(
+        'beforeend',
+        `
+          <div class="map-empty-overlay">
+            <div>
+              <strong>지도에 표시할 장소가 없습니다.</strong>
+              <p>검색 / 필터 조건을 바꿔보세요.</p>
+            </div>
+          </div>
+        `
+      );
+    } else {
+      const bounds = new kakao.maps.LatLngBounds();
+
+      placeListMapPlaces.forEach((place) => {
+        const markerPosition = new kakao.maps.LatLng(place.latitude, place.longitude);
+        const marker = new kakao.maps.Marker({
+          position: markerPosition,
+          map: placeListMap,
+        });
+
+        bounds.extend(markerPosition);
+
+        const infoWindow = new kakao.maps.InfoWindow({
+          content: `
+            <div class="map-info-window">
+              <strong>${place.title}</strong><br>
+              <span>${place.region}</span>
+            </div>
+          `,
+        });
+
+        kakao.maps.event.addListener(marker, 'mouseover', function () {
+          infoWindow.open(placeListMap, marker);
+        });
+
+        kakao.maps.event.addListener(marker, 'mouseout', function () {
+          infoWindow.close();
+        });
+
+        kakao.maps.event.addListener(marker, 'click', function () {
+          window.location.href = `/places/${place.id}/`;
+        });
+      });
+
+      placeListMap.setBounds(bounds);
+    }
+  }
+</script>
+{% endblock %}
+```
+
+## 5-2. `templates/places/my_page.html` 만들기
+
+```text
+http://127.0.0.1:8000/mypage/
+```
+
+<Image
+  src="/blogs/memory_place(7)/2.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+이번에는 6편의 `place_list.html` 과 최대한 비슷한 구조로 마이페이지를 만들겠습니다.
+
+즉 아래 스타일을 그대로 이어갑니다.
+
+* 상단 제목 영역
+* 지도 패널 카드
+* 카드 목록 그리드
+* empty state 카드
+* 페이지네이션
+
+이렇게 하면 6편의 전체 장소 보기 화면과 7편의 마이페이지가
+**같은 서비스 안의 페이지처럼 자연스럽게 연결** 됩니다.
+
+```html title="templates/places/my_page.html"
+{% extends 'base.html' %}
+ 
+{% block title %}마이페이지 | 추억 장소 아카이브{% endblock %}
+ 
+{% block content %}
+<section class="list-section mypage-section">
+  <div class="container">
+    <div class="section-heading list-heading">
+      <div>
+        <span class="eyebrow">MY MEMORY PLACE</span>
+        <h1>{{ user.username }}님의 추억 아카이브</h1>
+        <p>내가 기록한 장소를 지도와 카드로 다시 보고, 검색과 필터로 빠르게 찾아보세요.</p>
+      </div>
+      <div class="mypage-action-row">
+        <a href="{% url 'places:place_create' %}" class="primary-button">새 장소 기록하기</a>
+        <a href="{% url 'places:place_list' %}" class="secondary-button">전체 장소 보기</a>
+      </div>
+    </div>
+ 
+    <div class="stats-grid">
+      <article class="stat-card">
+        <p>내가 기록한 전체 장소</p>
+        <strong>{{ total_count }}</strong>
+      </article>
+      <article class="stat-card">
+        <p>추천한 장소</p>
+        <strong>{{ featured_count }}</strong>
+      </article>
+      <article class="stat-card">
+        <p>현재 검색 결과</p>
+        <strong>{{ filtered_count }}</strong>
+      </article>
+    </div>
+ 
+    <form method="get" class="filter-panel-card">
+      <div class="filter-grid">
+        <div class="form-field wide">
+          <label for="q">검색</label>
+          <input
+            type="text"
+            id="q"
+            name="q"
+            value="{{ search_keyword }}"
+            placeholder="장소명, 주소, 지역, 한줄 기록으로 검색해보세요"
+          >
+        </div>
+ 
+        <div class="form-field">
+          <label for="region">지역</label>
+          <select id="region" name="region">
+            <option value="">전체 지역</option>
+            {% for region in region_options %}
+              <option value="{{ region }}" {% if selected_region == region %}selected{% endif %}>{{ region }}</option>
+            {% endfor %}
+          </select>
+        </div>
+ 
+        <div class="form-field">
+          <label for="featured">추천 여부</label>
+          <select id="featured" name="featured">
+            <option value="">전체</option>
+            <option value="true" {% if selected_featured == 'true' %}selected{% endif %}>추천한 장소만</option>
+            <option value="false" {% if selected_featured == 'false' %}selected{% endif %}>추천하지 않은 장소만</option>
+          </select>
+        </div>
+ 
+        <div class="filter-action-row">
+          <button type="submit" class="primary-button">검색 / 필터 적용</button>
+          <a href="{% url 'places:my_page' %}" class="secondary-button">초기화</a>
+        </div>
+      </div>
+    </form>
+ 
+    <div class="map-panel-card map-panel-spacing">
+      <div class="map-panel-head">
+        <div>
+          <h2>내 장소 전국지도</h2>
+          <p>현재 검색 / 필터 결과에 해당하는 내 장소만 마커로 표시됩니다.</p>
+        </div>
+        <span class="map-count-badge">총 {{ map_places|length }}개 장소</span>
+      </div>
+      <div id="myPageNationwideMap" class="nationwide-map list-map"></div>
+    </div>
+ 
+    {% if places %}
+      <div class="place-grid">
+        {% for place in places %}
+          <article class="place-card">
+            <div class="place-card-image-wrap">
+              {% if place.image %}
+                <img src="{{ place.image.url }}" alt="{{ place.title }}" class="place-card-image">
+              {% else %}
+                <div class="place-card-image placeholder-box">이미지 없음</div>
+              {% endif %}
+            </div>
+ 
+            <div class="place-card-body">
+              <div class="badge-row">
+                <span class="badge">{{ place.emotion }}</span>
+                <span class="badge gray">{{ place.region|default:'지역 미입력' }}</span>
+                {% if place.is_featured %}
+                  <span class="badge gold">추천</span>
+                {% endif %}
+              </div>
+ 
+              <h2>{{ place.title }}</h2>
+              <p class="memory-line">{{ place.memory_line }}</p>
+ 
+              <div class="place-meta">
+                <span>작성자 {{ place.author.username }}</span>
+                <span>{{ place.visited_date|default:'날짜 미기록' }}</span>
+              </div>
+ 
+              <div class="card-action-row multi-action">
+                <a href="{% url 'places:place_detail' place.pk %}" class="card-link-button">자세히 보기</a>
+                <a href="{% url 'places:place_update' place.pk %}" class="secondary-button small-button">수정</a>
+                <a href="{% url 'places:place_delete' place.pk %}" class="danger-button small-button">삭제</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+ 
+      {% if is_paginated %}
+        <nav class="pagination" aria-label="마이페이지 장소 목록 페이지 이동">
+          {% if page_obj.has_previous %}
+            <a href="?page=1&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">처음</a>
+            <a href="?page={{ page_obj.previous_page_number }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">이전</a>
+          {% endif %}
+ 
+          {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="page-button active">{{ num }}</span>
+            {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+              <a href="?page={{ num }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+ 
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">다음</a>
+            <a href="?page={{ paginator.num_pages }}&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}" class="page-button">마지막</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state-card">
+        <h2>조건에 맞는 내 장소가 아직 없습니다.</h2>
+        <p>검색어나 필터를 바꿔보거나, 새로운 장소를 먼저 기록해보세요.</p>
+        <div class="empty-action-row">
+          <a href="{% url 'places:my_page' %}" class="secondary-button">필터 초기화</a>
+          <a href="{% url 'places:place_create' %}" class="primary-button">새 장소 기록하기</a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+ 
+{{ map_places|json_script:'my-page-map-places-data' }}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_javascript_key }}"></script>
+<script>
+  const myPageMapContainer = document.getElementById('myPageNationwideMap');
+  const myPagePlacesDataElement = document.getElementById('my-page-map-places-data');
+ 
+  if (myPageMapContainer && myPagePlacesDataElement) {
+    const myPagePlaces = JSON.parse(myPagePlacesDataElement.textContent);
+ 
+    const myPageMap = new kakao.maps.Map(myPageMapContainer, {
+      center: new kakao.maps.LatLng(36.35, 127.8),
+      level: 13,
+    });
+ 
+    if (myPagePlaces.length === 0) {
+      myPageMapContainer.insertAdjacentHTML(
+        'beforeend',
+        `
+          <div class="map-empty-overlay">
+            <strong>지도에 표시할 장소가 없습니다.</strong>
+            <p>검색 / 필터 조건을 바꾸거나 좌표가 있는 장소를 추가해보세요.</p>
+          </div>
+        `
+      );
+    } else {
+      const bounds = new kakao.maps.LatLngBounds();
+ 
+      myPagePlaces.forEach((place) => {
+        const markerPosition = new kakao.maps.LatLng(place.latitude, place.longitude);
+        const marker = new kakao.maps.Marker({
+          position: markerPosition,
+          map: myPageMap,
+        });
+ 
+        bounds.extend(markerPosition);
+ 
+        const infoWindow = new kakao.maps.InfoWindow({
+          content: `
+            <div class="map-info-window">
+              <strong>${place.title}</strong><br>
+              <span>${place.region}</span>
+            </div>
+          `,
+        });
+ 
+        kakao.maps.event.addListener(marker, 'mouseover', function () {
+          infoWindow.open(myPageMap, marker);
+        });
+ 
+        kakao.maps.event.addListener(marker, 'mouseout', function () {
+          infoWindow.close();
+        });
+ 
+        kakao.maps.event.addListener(marker, 'click', function () {
+          window.location.href = `/places/${place.id}/`;
+        });
+      });
+ 
+      myPageMap.setBounds(bounds);
+    }
+  }
+</script>
+{% endblock %}
+```
+
+---
+
+## 5-3. 왜 `place_list.html` 과 비슷하게 만들었나요?
+
+이유는 단순합니다.
+
+6편에서 이미 전체 장소 보기 페이지가 아래 구조로 완성돼 있었기 때문입니다.
+
+* 상단 소개 영역
+* 지도 패널
+* 카드 그리드
+* 빈 상태 카드
+* 페이지네이션
+
+이 구조를 그대로 가져오면,
+ **새 페이지를 완전히 새로 배우는 느낌이 아니라 기존 패턴을 재활용하는 느낌** 으로 이해할 수 있습니다.
+
+그리고 서비스 입장에서도 화면 통일감이 좋아집니다.
+
+## 5-4. 필터 문제점 수정
+
+<Image
+  src="/blogs/memory_place(7)/3.png"
+  width={400}
+  height={202}
+  alt="Image"
+  sizes="100vw"
+/>
+
+위 이미지에서 보면 서울이 중복되어 나타나고, 카카오맵 검색 적용 이전의 저장했던 데이터는 유저가 직접 입력했기에 각각 다르게 저장했습니다.
+
+(예시 : 강릉, 강원 강릉시)
+
+카카오맵 검색 적용 이후의 저장 데이터는 지역명은 동일하게 저장하더라도 중복되어 나타나는 문제는 수정해줘야 합니다.
+
+따라서, 저장할 때 표준화하고, 이미 저장된 예전 데이터(카카오맵 적용 전)도 필터에서 정상적으로 묶이게 처리하는게 좋습니다.
+
+즉, 핵심은 아래와 같습니다!
+
+* 서울, 서울특별시, 서울 (공백포함) → 전부 서울 로 표준화
+* 강원 강릉시, 강릉시, 강릉 → 전부 강릉 로 표준화
+* 새로 저장되는 데이터는 아예 표준화해서 저장
+* 기존에 DB에 남아 있는 예전 값들도 필터에서는 같은 지역으로 묶어서 조회
+
+같이 추가 및 수정해봅시다!
+
+### 5-4-1. places/utils.py 추가
+
+지역 표준화 전용 헬퍼 파일입니다.
+
+```python title="places/utils.py"
+from django.db.models import Q
+
+REGION_ALIASES = {
+    '서울': ['서울', '서울특별시', '서울시'],
+    '부산': ['부산', '부산광역시', '부산시', '부산 중구'],
+    '강릉': ['강릉', '강릉시', '강원 강릉시'],
+    '태안': ['태안', '태안군', '충남 태안군'],
+    '제주': ['제주', '제주시', '제주특별자치도', '제주도'],
+    '인천': ['인천', '인천광역시', '인천시'],
+    '대구': ['대구', '대구광역시', '대구시'],
+    '대전': ['대전', '대전광역시', '대전시'],
+    '광주': ['광주', '광주광역시', '광주시'],
+    '울산': ['울산', '울산광역시', '울산시'],
+    '세종': ['세종', '세종시', '세종특별자치시'],
+}
+
+
+def normalize_region(region: str) -> str:
+    if not region:
+        return ''
+
+    cleaned = region.strip()
+
+    for standard_name, aliases in REGION_ALIASES.items():
+        if cleaned in aliases:
+            return standard_name
+
+    return cleaned
+
+
+def get_region_filter_q(selected_region: str) -> Q:
+    normalized = normalize_region(selected_region)
+
+    if not normalized:
+        return Q()
+
+    aliases = REGION_ALIASES.get(normalized, [normalized])
+
+    query = Q()
+    for alias in aliases:
+        query |= Q(region__iexact=alias.strip())
+
+    return query
+
+
+def get_normalized_region_options(region_values):
+    normalized_set = {
+        normalize_region(region)
+        for region in region_values
+        if region and region.strip()
+    }
+    return sorted(normalized_set)
+```
+
+### 5-4-2. places/forms.py
+
+아래 코드 중 
+
+```python
+clean_region(self): 
+```
+부분에서 이제 사용자가
+
+서울특별시, 서울, "서울 " 처럼 입력해도 저장되기 전에 서울 로 바뀝니다.
+
+```python title="places/forms.py"
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+from .models import Place
+from .utils import normalize_region
+
+
+class SignUpForm(UserCreationForm):
+    email = forms.EmailField(required=True, label='이메일')
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')
+        labels = {
+            'username': '아이디',
+        }
+
+
+class PlaceForm(forms.ModelForm):
+    class Meta:
+        model = Place
+        fields = [
+            'title',
+            'address',
+            'region',
+            'memory_line',
+            'description',
+            'emotion',
+            'image',
+            'visited_date',
+            'latitude',
+            'longitude',
+            'is_featured',
+        ]
+        labels = {
+            'title': '장소명',
+            'address': '주소',
+            'region': '지역',
+            'memory_line': '한 줄 추억',
+            'description': '상세 설명',
+            'emotion': '감정',
+            'image': '대표 이미지',
+            'visited_date': '방문 날짜',
+            'latitude': '위도',
+            'longitude': '경도',
+            'is_featured': '추천 장소 여부',
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={'placeholder': '예: 서울숲'}),
+            'address': forms.TextInput(attrs={'placeholder': '예: 서울 성동구 뚝섬로 273'}),
+            'region': forms.TextInput(attrs={'placeholder': '예: 서울'}),
+            'memory_line': forms.TextInput(attrs={'placeholder': '예: 처음 같이 산책했던 곳'}),
+            'description': forms.Textarea(attrs={'rows': 5, 'placeholder': '그 장소에 대한 자세한 추억을 남겨보세요.'}),
+            'visited_date': forms.DateInput(attrs={'type': 'date'}),
+            'latitude': forms.NumberInput(attrs={'step': '0.0000001', 'placeholder': '예: 37.5665000'}),
+            'longitude': forms.NumberInput(attrs={'step': '0.0000001', 'placeholder': '예: 126.9780000'}),
+        }
+
+    def clean_region(self):
+        region = self.cleaned_data.get('region', '')
+        return normalize_region(region)
+```
+
+### 5-4-3. places/views.py
+
+아래 코드는 다음과 같이 처리합니다.
+
+* /places/ 전체 장소 보기에서 지역 필터 중복 제거
+* /mypage/ 에서도 지역 필터 중복 제거
+* 예전 데이터에 서울특별시, 서울, 서울 가 섞여 있어도 필터에서 서울 하나로 보이게 처리
+* 사용자가 서울 선택 시 기존 데이터까지 전부 같이 검색
+
+```python title="places/views.py"
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
+from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+
+from .forms import PlaceForm, SignUpForm
+from .models import Place
+from .utils import get_normalized_region_options, get_region_filter_q
+
+
+class HomeView(TemplateView):
+    template_name = 'places/home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        featured_places = Place.objects.filter(is_featured=True)[:3]
+        latest_places = Place.objects.select_related('author').all()[:6]
+        map_places = Place.objects.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+        context['featured_places'] = featured_places
+        context['latest_places'] = latest_places
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        return context
+
+
+class PlaceListView(ListView):
+    model = Place
+    template_name = 'places/place_list.html'
+    context_object_name = 'places'
+    paginate_by = 6
+
+    def get_base_queryset(self):
+        return Place.objects.select_related('author').all().order_by('-created_at')
+
+    def get_queryset(self):
+        queryset = self.get_base_queryset()
+
+        q = self.request.GET.get('q', '').strip()
+        region = self.request.GET.get('region', '').strip()
+        featured = self.request.GET.get('featured', '').strip()
+
+        if q:
+            queryset = queryset.filter(
+                Q(title__icontains=q)
+                | Q(address__icontains=q)
+                | Q(region__icontains=q)
+                | Q(memory_line__icontains=q)
+                | Q(author__username__icontains=q)
+            )
+
+        if region:
+            queryset = queryset.filter(get_region_filter_q(region))
+
+        if featured == 'true':
+            queryset = queryset.filter(is_featured=True)
+        elif featured == 'false':
+            queryset = queryset.filter(is_featured=False)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        base_queryset = self.get_base_queryset()
+        filtered_queryset = self.get_queryset()
+        map_places = filtered_queryset.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+        raw_region_values = (
+            base_queryset.exclude(region__isnull=True)
+            .exclude(region='')
+            .values_list('region', flat=True)
+            .distinct()
+        )
+
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        context['total_count'] = base_queryset.count()
+        context['featured_count'] = base_queryset.filter(is_featured=True).count()
+        context['filtered_count'] = filtered_queryset.count()
+        context['region_options'] = get_normalized_region_options(raw_region_values)
+        context['search_keyword'] = self.request.GET.get('q', '').strip()
+        context['selected_region'] = self.request.GET.get('region', '').strip()
+        context['selected_featured'] = self.request.GET.get('featured', '').strip()
+        return context
+
+
+class PlaceDetailView(DetailView):
+    model = Place
+    template_name = 'places/place_detail.html'
+    context_object_name = 'place'
+
+    def get_queryset(self):
+        return Place.objects.select_related('author').all()
+
+
+class PlaceCreateView(LoginRequiredMixin, CreateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '새로운 추억 장소가 등록되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 추가'
+        context['submit_label'] = '장소 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class AuthorRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        place = self.get_object()
+        return place.author == self.request.user
+
+    def handle_no_permission(self):
+        messages.error(self.request, '본인 글만 수정하거나 삭제할 수 있습니다.')
+        return redirect('places:place_list')
+
+
+class PlaceUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
+    model = Place
+    form_class = PlaceForm
+    template_name = 'places/place_form.html'
+    context_object_name = 'place'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, '추억 장소가 수정되었습니다.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('places:place_detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '장소 기록 수정'
+        context['submit_label'] = '수정 내용 저장하기'
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        return context
+
+
+class PlaceDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
+    model = Place
+    template_name = 'places/place_confirm_delete.html'
+    context_object_name = 'place'
+    success_url = reverse_lazy('places:place_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, '추억 장소가 삭제되었습니다.')
+        return super().delete(request, *args, **kwargs)
+
+
+class MyPageView(LoginRequiredMixin, ListView):
+    model = Place
+    template_name = 'places/my_page.html'
+    context_object_name = 'places'
+    paginate_by = 6
+
+    def get_base_queryset(self):
+        return Place.objects.select_related('author').filter(author=self.request.user).order_by('-created_at')
+
+    def get_queryset(self):
+        queryset = self.get_base_queryset()
+
+        q = self.request.GET.get('q', '').strip()
+        region = self.request.GET.get('region', '').strip()
+        featured = self.request.GET.get('featured', '').strip()
+
+        if q:
+            queryset = queryset.filter(
+                Q(title__icontains=q)
+                | Q(address__icontains=q)
+                | Q(region__icontains=q)
+                | Q(memory_line__icontains=q)
+            )
+
+        if region:
+            queryset = queryset.filter(get_region_filter_q(region))
+
+        if featured == 'true':
+            queryset = queryset.filter(is_featured=True)
+        elif featured == 'false':
+            queryset = queryset.filter(is_featured=False)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        base_queryset = self.get_base_queryset()
+        filtered_queryset = self.get_queryset()
+        map_places = filtered_queryset.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+        raw_region_values = (
+            base_queryset.exclude(region__isnull=True)
+            .exclude(region='')
+            .values_list('region', flat=True)
+            .distinct()
+        )
+
+        context['kakao_javascript_key'] = settings.KAKAO_JAVASCRIPT_KEY
+        context['map_places'] = [
+            {
+                'id': place.id,
+                'title': place.title,
+                'region': place.region or '지역 정보 없음',
+                'address': place.address or '주소 정보 없음',
+                'latitude': float(place.latitude),
+                'longitude': float(place.longitude),
+            }
+            for place in map_places
+        ]
+        context['total_count'] = base_queryset.count()
+        context['featured_count'] = base_queryset.filter(is_featured=True).count()
+        context['filtered_count'] = filtered_queryset.count()
+        context['region_options'] = get_normalized_region_options(raw_region_values)
+        context['search_keyword'] = self.request.GET.get('q', '').strip()
+        context['selected_region'] = self.request.GET.get('region', '').strip()
+        context['selected_featured'] = self.request.GET.get('featured', '').strip()
+        return context
+
+
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('places:home')
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, '회원가입이 완료되었습니다. 바로 로그인되었습니다.')
+            return redirect('places:home')
+    else:
+        form = SignUpForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+```
+
+<Image
+  src="/blogs/memory_place(7)/4.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+---
+
+# 6. `static/css/style.css` 에 7편용 스타일 추가하기
+
+이번 CSS도 기존 6편 스타일을 해치지 않도록,
+**기존 클래스는 그대로 두고 필요한 클래스만 아래쪽에 추가** 하는 방식으로 진행하겠습니다.
+
+```css title="static/css/style.css"
+.mypage-section {
+  padding-top: 52px;
+}
+
+.mypage-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 28px 0;
+}
+
+.stat-card {
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.stat-card p {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.stat-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 34px;
+  color: #0f172a;
+}
+
+.stat-card span {
+  color: #475569;
+  font-size: 14px;
+}
+
+.filter-panel-card {
+  margin-bottom: 28px;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: #fff;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+.filter-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.badge.gold {
+  background: rgba(251, 191, 36, 0.18);
+  color: #b45309;
+}
+
+.secondary-button,
+.danger-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.secondary-button:hover,
+.danger-button:hover {
+  transform: translateY(-2px);
+}
+
+.secondary-button {
+  background: #fff;
+  color: #334155;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.danger-button {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid rgba(244, 63, 94, 0.18);
+}
+
+.small-button {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.card-action-row.multi-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.empty-action-row {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.map-empty-overlay {
+  position: absolute;
+  inset: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.82);
+  color: #334155;
+  pointer-events: none;
+}
+
+.map-empty-overlay strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.map-empty-overlay p {
+  margin: 0;
+  color: #64748b;
+}
+
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid,
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-action-row {
+    width: 100%;
+  }
+}
+```
+
+---
+
+# 7. 검색 / 필터 결과가 지도와 카드에 같이 반영되는 구조 이해하기
+
+이번 편 핵심은,
+**지도와 카드가 같은 결과를 보고 있다는 점** 입니다.
+
+흐름은 아래와 같습니다.
+
+```
+사용자가 검색 / 필터 입력
+↓
+GET 파라미터로 MyPageView 요청
+↓
+get_queryset() 에서 현재 로그인 사용자 + 조건 적용
+↓
+필터링된 queryset 생성
+↓
+카드 목록은 이 queryset 으로 렌더링
+↓
+같은 queryset 에서 좌표 있는 데이터만 추려 map_places 생성
+↓
+지도 마커도 같은 결과를 기반으로 표시
+```
+
+즉 카드 따로, 지도 따로가 아니라
+**한 번 필터링된 결과를 두 방식으로 보여주는 구조** 입니다.
+
+이 구조를 잘 이해해두면,
+나중에 다른 프로젝트에서도 목록 + 지도, 목록 + 차트, 목록 + 달력 연동을 만들 때 훨씬 쉬워집니다.
+
+---
+
+# 8. 자주 발생하는 오류와 디버깅 포인트
+
+## 8-1. 검색이 안 돼요
+
+확인할 것:
+
+* `from django.db.models import Q` 를 추가했는지
+* `memory_line` 필드명이 실제 모델과 일치하는지
+* 템플릿의 input `name="q"` 가 맞는지
+
+---
+
+## 8-2. 지역 필터 옵션이 안 보여요
+
+확인할 것:
+
+* 저장된 장소의 `region` 값이 실제로 있는지
+* `region=''` 또는 `NULL` 값만 있는 것은 아닌지
+* `region_options` 컨텍스트가 전달되는지
+
+---
+
+## 8-3. 카드 목록은 보이는데 지도에는 아무것도 안 나와요
+
+확인할 것:
+
+* 해당 장소들에 `latitude`, `longitude` 값이 있는지
+* 검색 / 필터 결과가 0건이 아닌지
+* 카카오 자바스크립트 키가 정상인지
+
+이번 구현에서는 좌표가 없는 장소는 지도에서 제외됩니다.
+
+즉 카드 목록은 보여도,
+지도에는 안 나올 수 있습니다.
+
+---
+
+## 8-4. 마커 클릭 시 상세 페이지로 이동하지 않아요
+
+확인할 것:
+
+```javascript
+window.location.href = `/places/${place.id}/`;
+```
+
+이 경로가 현재 URL 구조와 맞는지 확인하세요.
+
+---
+
+## 8-5. 페이지네이션을 넘기면 검색 조건이 사라져요
+
+페이지네이션 링크에 아래 QueryString 이 같이 붙어 있어야 합니다.
+
+```html
+&q={{ search_keyword }}&region={{ selected_region }}&featured={{ selected_featured }}
+```
+
+이 부분이 없으면 다음 페이지에서 조건이 초기화됩니다.
+
+---
+
+# 9. 최종 체크리스트
+
+* ✅ `places/urls.py` 에 `mypage/` URL 이 추가되었다.
+* ✅ `signup` 은 6편과 같은 함수형 뷰 구조를 유지했다.
+* ✅ `MyPageView` 가 추가되었다.
+* ✅ 로그인한 사용자만 마이페이지에 접근할 수 있다.
+* ✅ 내 장소만 조회된다.
+* ✅ `memory_line` 기준 검색이 동작한다.
+* ✅ 지역 필터가 동작한다.
+* ✅ 추천 여부 필터가 동작한다.
+* ✅ 지도와 카드 목록이 같은 결과를 반영한다.
+* ✅ 빈 결과일 때 empty state UI가 보인다.
+
+<Image
+  src="/blogs/memory_place(7)/5.png"
+  width={718}
+  height={404}
+  alt="Image"
+  sizes="100vw"
+/>
+
+* ✅ 마커 클릭 시 상세 페이지로 이동한다.
+
+---
+
+# 10. 마무리
+
+이번 7편에서는 6편의 전국지도 코드를 그대로 확장해서,
+마이페이지에서 **내가 기록한 장소만 지도와 카드 목록으로 보는 기능** 을 완성했습니다.
+
+그리고 검색 / 필터까지 더해서,
+장소가 많아져도 원하는 기록을 다시 찾기 쉬운 구조를 만들었습니다.
+
+특히 이번 편의 핵심은,
+기존 6편 코드를 크게 흔들지 않고도
+**현재 로그인한 사용자 기준 화면** 으로 자연스럽게 확장했다는 점입니다.
+
+여기까지 완성했다면,
+추억 장소 아카이브 프로젝트는 단순 CRUD 실습을 넘어
+**지도 기반 개인 아카이브 서비스** 로 충분히 완성도 있게 마무리된 것입니다.
+
+수고하셨습니다 🙂
+
+---
+
+# QuizQuiz
+
+<MultipleChoiceQuiz
+question="이번 7편에서 `MyPageView` 를 추가할 때 가장 중요한 기준은 무엇이었나요?"
+options={[
+"6편 코드를 전부 새 구조로 갈아엎는 것",
+"6편 흐름을 유지하면서 현재 로그인한 사용자 기준 화면만 자연스럽게 확장하는 것",
+"카카오맵 API를 다른 지도 API로 교체하는 것",
+"회원가입 기능을 클래스형 뷰로 바꾸는 것"
+]}
+correctIndex={1}
+explanation="이번 최종편은 6편 완성본과 정확히 이어지는 것이 중요했기 때문에, 기존 구조를 크게 바꾸지 않고 현재 로그인한 사용자 기준 기능만 확장하는 방향으로 진행했습니다."
+/>
+
+<MultipleChoiceQuiz
+question="이번 편에서 검색 결과가 지도와 카드에 동시에 반영되는 가장 큰 이유는 무엇인가요?"
+options={[
+"지도 API가 자동으로 DB를 읽어오기 때문에",
+"템플릿이 QuerySet 을 직접 수정하기 때문에",
+"같은 필터링 QuerySet 을 카드 목록과 `map_places` 생성에 함께 사용했기 때문에",
+"페이지네이션이 자동으로 동기화해주기 때문에"
+]}
+correctIndex={2}
+explanation="이번 구조에서는 `get_queryset()` 으로 만든 결과를 카드 목록에도 사용하고, 좌표가 있는 데이터만 추려 `map_places` 를 만들기 때문에 지도와 카드가 같은 결과를 보여줍니다."
+/>
+
+### 기타. CSS 코드 전문
+
+```css title="static/css/style.css"
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #1f2937;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.container {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.narrow-container {
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+/* navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.navbar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  gap: 16px;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: 800;
+  color: #4338ca;
+  flex-shrink: 0;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  color: #374151;
+}
+
+.nav-links a,
+.nav-links .inline-form {
+  display: inline-flex;
+  align-items: center;
+}
+
+.inline-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.logout-button,
+.text-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4338ca 0%, #7c3aed 100%);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.18);
+}
+
+.logout-button:hover,
+.nav-links a:hover {
+  color: #4338ca;
+}
+
+/* hero */
+.hero {
+  padding: 72px 0 40px;
+}
+
+.hero-box {
+  background: linear-gradient(135deg, #4338ca 0%, #7c3aed 100%);
+  color: white;
+  border-radius: 28px;
+  padding: 48px;
+  box-shadow: 0 20px 60px rgba(79, 70, 229, 0.25);
+}
+
+.hero-box h1 {
+  margin: 0 0 14px;
+  font-size: 42px;
+  line-height: 1.2;
+}
+
+.hero-box p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.7;
+  opacity: 0.92;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.hero-primary,
+.hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hero-primary {
+  background: white;
+  color: #4338ca;
+}
+
+.hero-secondary {
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.hero-primary:hover,
+.hero-secondary:hover {
+  transform: translateY(-2px);
+}
+
+/* common section */
+.section,
+.list-section,
+.detail-section,
+.auth-section {
+  padding: 56px 0 80px;
+}
+
+.auth-section {
+  background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
+}
+
+.place-form-section {
+  background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+}
+
+.section-header,
+.section-heading,
+.list-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.section-subtitle {
+  color: #6b7280;
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+/* card grid */
+.grid,
+.place-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card,
+.place-card,
+.detail-image-card,
+.detail-content-card,
+.panel-card,
+.empty-state-card,
+.map-panel-card,
+.stat-card,
+.filter-panel-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.card,
+.place-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-image,
+.place-card-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  background: #e5e7eb;
+}
+
+.place-card-image-wrap {
+  overflow: hidden;
+}
+
+.image-placeholder,
+.placeholder-box {
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c7d2fe 0%, #ddd6fe 100%);
+  color: #4338ca;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  padding: 20px;
+}
+
+.detail-image-card .placeholder-box {
+  min-height: 520px;
+}
+
+.card-body,
+.place-card-body,
+.detail-content-card {
+  padding: 20px;
+}
+
+.detail-content-card {
+  padding: 30px;
+}
+
+.badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge.gray {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.badge.gold {
+  background: rgba(251, 191, 36, 0.18);
+  color: #b45309;
+}
+
+.card-title,
+.place-card-body h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.card-text,
+.memory-line {
+  margin: 0 0 14px;
+  color: #4b5563;
+  line-height: 1.7;
+  min-height: 54px;
+}
+
+.meta,
+.place-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.card-action-row {
+  margin-top: 16px;
+}
+
+.card-action-row.multi-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* empty state */
+.empty-box,
+.empty-state-box,
+.empty-state-card {
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-box,
+.empty-state-card {
+  padding: 40px;
+}
+
+.empty-box {
+  border: 1px dashed #cbd5e1;
+  border-radius: 24px;
+  background: white;
+}
+
+.empty-state-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  padding: 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 18px;
+  background: white;
+  line-height: 1.7;
+}
+
+.empty-state-card h2 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  color: #111827;
+}
+
+.empty-state-card p {
+  margin: 0 0 18px;
+  line-height: 1.7;
+}
+
+.empty-action-row {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* footer */
+.footer {
+  padding: 40px 0 60px;
+  color: #6b7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* flash */
+.flash-wrap {
+  margin-top: 18px;
+}
+
+.flash-message {
+  background: #ecfeff;
+  color: #155e75;
+  border: 1px solid #a5f3fc;
+  padding: 14px 18px;
+  border-radius: 16px;
+  box-shadow: 0 10px 20px rgba(8, 145, 178, 0.08);
+}
+
+/* auth / panel */
+.panel-card {
+  border: 1px solid #d1d5db;
+  border-radius: 28px;
+  padding: 36px 32px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+.panel-head {
+  margin-bottom: 24px;
+}
+
+.panel-head h1 {
+  margin: 0 0 12px;
+  font-size: 36px;
+  line-height: 1.2;
+  color: #1e3a8a;
+}
+
+.panel-head p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* forms */
+.form-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.form-field label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select,
+.place-search-input {
+  width: 100%;
+  border: 1px solid #c7d2fe;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 15px;
+  background: #fefefe;
+  color: #111827;
+  transition: all 0.2s ease;
+}
+
+.place-search-input {
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: white;
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus,
+.place-search-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+.help-text {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.errorlist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
+
+.form-section-label {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* buttons */
+.primary-button,
+.secondary-button,
+.danger-button,
+.card-link-button,
+button.primary-button.full-width {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 16px;
+  padding: 13px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.primary-button,
+button.primary-button.full-width {
+  border: none;
+  background: linear-gradient(135deg, #4338ca 0%, #7c3aed 100%);
+  color: white;
+  box-shadow: 0 14px 30px rgba(79, 70, 229, 0.2);
+}
+
+.secondary-button {
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+}
+
+.danger-button {
+  border: 1px solid rgba(244, 63, 94, 0.18);
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.card-link-button {
+  width: 100%;
+  border: none;
+  background: #f5f3ff;
+  color: #5b21b6;
+  margin-top: 16px;
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.danger-button:hover,
+.card-link-button:hover,
+button.primary-button.full-width:hover {
+  transform: translateY(-2px);
+}
+
+.small-button {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+  border-radius: 12px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* detail */
+.detail-section {
+  padding: 52px 0 80px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.detail-image-card,
+.detail-content-card {
+  border-radius: 28px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
+}
+
+.detail-image {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  object-fit: cover;
+}
+
+.detail-title {
+  margin: 10px 0 10px;
+  font-size: 36px;
+  line-height: 1.2;
+}
+
+.detail-memory-line {
+  margin: 0 0 22px;
+  font-size: 18px;
+  color: #374151;
+  line-height: 1.7;
+}
+
+.detail-meta-list {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.detail-meta-list > div {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.detail-meta-list strong {
+  color: #111827;
+}
+
+.detail-meta-list span {
+  color: #4b5563;
+}
+
+.detail-description-box {
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.detail-description-box h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.detail-description-box p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.8;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.delete-panel {
+  border: 1px solid #fecaca;
+}
+
+/* place search */
+.place-form-panel {
+  display: grid;
+  gap: 24px;
+}
+
+.search-helper-box {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.search-helper-box h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.search-helper-box p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.place-search-bar {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.search-button {
+  width: 100%;
+}
+
+.search-tip-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.search-tip-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: white;
+  color: #475569;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.result-list {
+  display: grid;
+  gap: 14px;
+}
+
+.result-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-2px);
+  border-color: #818cf8;
+  box-shadow: 0 16px 30px rgba(99, 102, 241, 0.12);
+}
+
+.result-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.result-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.result-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.result-category,
+.result-phone {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.result-address {
+  color: #334155;
+  line-height: 1.6;
+}
+
+.coordinate-field {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* modal */
+.search-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.search-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.search-modal-dialog {
+  position: relative;
+  width: min(760px, calc(100% - 32px));
+  max-height: 80vh;
+  margin: 60px auto;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.22);
+  z-index: 1001;
+}
+
+.search-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.search-modal-header h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.search-modal-header p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.modal-close-button {
+  border: none;
+  background: #f3f4f6;
+  color: #374151;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.search-modal-body {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+  max-height: calc(80vh - 100px);
+}
+
+/* map */
+.map-section {
+  padding-top: 16px;
+}
+
+.map-panel-card {
+  padding: 24px;
+  border-radius: 28px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
+}
+
+.map-panel-spacing {
+  margin-bottom: 28px;
+}
+
+.map-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.map-panel-head h2,
+.map-panel-head h3 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.map-panel-head p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.map-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.nationwide-map {
+  width: 100%;
+  height: 520px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.list-map {
+  height: 460px;
+}
+
+.map-info-window {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1f2937;
+}
+
+.map-info-window strong {
+  font-size: 14px;
+  color: #111827;
+}
+
+.map-empty-overlay {
+  position: absolute;
+  inset: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.82);
+  color: #334155;
+  pointer-events: none;
+}
+
+.map-empty-overlay strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.map-empty-overlay p {
+  margin: 0;
+  color: #64748b;
+}
+
+/* mypage */
+.mypage-section {
+  padding-top: 52px;
+}
+
+.mypage-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 28px 0;
+}
+
+.stat-card {
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.stat-card p {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.stat-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 34px;
+  color: #0f172a;
+}
+
+.stat-card span {
+  color: #475569;
+  font-size: 14px;
+}
+
+.filter-panel-card {
+  margin-bottom: 28px;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+/* pagination */
+.pagination {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.page-button {
+  min-width: 42px;
+  height: 42px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid #dbe4ff;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.page-button:hover {
+  transform: translateY(-2px);
+  border-color: #a5b4fc;
+}
+
+.page-button.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 14px 26px rgba(99, 102, 241, 0.25);
+}
+
+/* responsive */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .grid,
+  .place-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-box {
+    padding: 36px;
+  }
+
+  .hero-box h1 {
+    font-size: 34px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-image,
+  .detail-image-card .placeholder-box {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid,
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mypage-action-row {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .place-search-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .result-card-top {
+    align-items: flex-start;
+  }
+
+  .section-header,
+  .section-heading,
+  .list-heading,
+  .map-panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .grid,
+  .place-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding-top: 36px;
+  }
+
+  .hero-box {
+    padding: 28px;
+    border-radius: 22px;
+  }
+
+  .hero-box h1 {
+    font-size: 28px;
+  }
+
+  .panel-card {
+    padding: 24px;
+    border-radius: 22px;
+  }
+
+  .panel-head h1 {
+    font-size: 28px;
+  }
+
+  .action-row {
+    flex-direction: column;
+  }
+
+  .detail-content-card {
+    padding: 22px;
+  }
+
+  .detail-title {
+    font-size: 28px;
+  }
+
+  .page-button {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+
+  .nationwide-map {
+    height: 380px;
+  }
+
+  .list-map {
+    height: 340px;
+  }
+}
+```
