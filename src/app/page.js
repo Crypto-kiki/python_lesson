@@ -23,8 +23,8 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center">
       <HomeCoverSection blog={homeCoverBlog} />
-      <StudentGit students={students} />
       <FeaturedPosts blogs={featuredLessons} fallbackBlog={homeCoverBlog} />
+      <StudentGit students={students} />
       <RecentPosts blogs={latestUpdatedLessons} />
     </main>
   );

@@ -4,12 +4,11 @@ const StudentGit = ({ students = [] }) => {
   if (!students.length) return null;
 
   return (
-    <section className="w-full max-w-7xl px-5 mt-10">
-      <h2 className="inline-block font-bold capitalize text-xl md:text-2xl mb-4">
+    <section className="w-full h-full mt-16 sm:mt-24 md:mt-32 px-5 sm:px-10 md:px-24 sxl:px-32">
+      <h2 className="w-full inline-block font-bold capitalize text-2xl md:text-4xl text-dark dark:text-light">
         오늘 공부했어요
       </h2>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-6">
         {students.map((student) => (
           <article
             key={student.github}
