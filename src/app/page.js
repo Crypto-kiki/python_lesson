@@ -5,6 +5,9 @@ import HomeCoverSection from "../components/Home/HomeCoverSection";
 import FeaturedPosts from "../components/Home/FeaturedPosts";
 import RecentPosts from "../components/Home/RecentPosts";
 import { sortBlogs, sortBlogsByUpdatedAt } from "@/src/utils";
+import StudentGit from "@/src/components/Blog/StudentGit";
+import { students } from "@/src/utils/students_git_address";
+
 
 const FEATURED_LESSON_COUNT = 3;
 const LATEST_UPDATE_COUNT = 6;
@@ -20,6 +23,7 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center">
       <HomeCoverSection blog={homeCoverBlog} />
+      <StudentGit students={students} />
       <FeaturedPosts blogs={featuredLessons} fallbackBlog={homeCoverBlog} />
       <RecentPosts blogs={latestUpdatedLessons} />
     </main>
