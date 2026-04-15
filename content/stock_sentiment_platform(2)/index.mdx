@@ -1,0 +1,1268 @@
+---
+title: "주식 커뮤니티 감정분석 플랫폼 (2) : 종목 목록, 상세 페이지, 종목별 게시글 연결하기"
+description: "1편에서 만든 주식 감성 플랫폼의 기본 구조를 바탕으로, 종목 목록 페이지와 상세 페이지를 만들고 종목별 게시글 데이터를 연결해보는 실습입니다. Django의 ForeignKey 관계가 실제 화면에서 어떻게 보이는지 확실하게 이해합니다."
+image: "../../public/blogs/memory_place(7)/cover.png"
+publishedAt: "2026-04-01"
+updatedAt: "2026-04-01"
+author: "Baekki"
+isPublished: true
+tags:
+    - Django basic
+    - 주식 커뮤니티 감정분석 플랫폼
+---
+
+# 주식 커뮤니티 감정분석 플랫폼 (2) : 종목 목록, 상세 페이지, 종목별 게시글 연결하기
+
+## 이번 편에서 할 일
+
+지난 1편에서는 `stock_sentiment_platform` 프로젝트의 **전체 골격**을 만들었습니다.
+즉, 프로젝트/앱 생성, 모델 설계, 관리자 등록, 공통 레이아웃, 홈 화면까지 준비했죠.
+
+이번 2편에서는 그다음 단계로 넘어갑니다.
+이제는 **실제 데이터가 화면에 어떻게 보이는지**를 만들어볼 차례입니다.
+
+* 종목 목록 페이지 만들기
+* 종목 상세 페이지 만들기
+* 특정 종목에 연결된 게시글 목록 보여주기
+* `ForeignKey` 관계가 화면에서 어떻게 동작하는지 이해하기
+* 다음 편에서 크롤링/수집 기능을 붙일 수 있도록 데이터 구조를 안정적으로 정리하기
+
+즉, 이번 편은 단순히 화면 하나 더 만드는 것이 아닙니다.
+**“모델 관계 → View → URL → Template → 화면 출력”** 흐름을 이해해야 합니다!
+
+---
+
+## 1. 왜 이번 편이 중요한가요?
+
+많은 초보자분들이 Django 모델은 어떻게든 만듭니다.
+하지만 막상 수업을 진행해보면 아래 부분에서 자주 헷갈립니다.
+
+* `ForeignKey`를 만들었는데 화면에서 어떻게 꺼내야 하는지 모르겠다.
+* 종목 1개와 게시글 여러 개 관계를 코드에서 어떻게 연결하는지 모르겠다.
+* 목록 페이지와 상세 페이지를 왜 나눠서 만드는지 감이 안 온다.
+* 관리자 페이지에 넣은 데이터가 템플릿에서 어떻게 보이는지 흐름이 잘 안 잡힌다.
+
+그래서 이번 편에서는 이 흐름을 파악 할 수 있습니다!
+
+예를 들어,
+
+* 삼성전자라는 종목이 있고
+* 그 종목에 연결된 커뮤니티 글이 여러 개 있으며
+* 상세 페이지에 들어가면
+
+  * 종목명
+  * 종목코드
+  * 시장 정보
+  * 설명
+  * 최근 게시글 목록
+
+이 한 화면에 자연스럽게 보이도록 만드는 것이 목표입니다.
+
+이 작업이 끝나면 이후에 크롤링 데이터를 저장하든,
+DRF API를 붙이든,
+감정 분석 결과를 연동하든,
+모든 기능이 훨씬 쉬워집니다.
+
+---
+
+## 2. 이번 편 완성 후 화면 흐름
+
+이번 편을 끝내면 대략 아래처럼 동작하게 됩니다.
+
+1. 홈 화면에서 `종목 보기` 메뉴를 누른다.
+2. 종목 목록 페이지에서 여러 종목 카드를 본다.
+3. 특정 종목 카드를 클릭한다.
+4. 종목 상세 페이지에서
+
+   * 종목 기본 정보
+   * 해당 종목과 연결된 게시글 목록
+   * 게시글 작성일 / 작성자 / 감성 결과(있는 경우)
+     를 확인한다.
+
+즉, 데이터가 단순히 DB에만 있는 것이 아니라,
+**유저가 직접 눈으로 이해할 수 있는 형태로 정리되는 것**입니다.
+
+---
+
+## 3. 이번 편에서 수정/추가할 파일 전체 보기
+
+이번 편에서 주로 다룰 파일은 아래와 같습니다.
+
+```bash title="프로젝트 구조 (이번 편 기준)"
+stock_sentiment_platform/
+├── manage.py
+├── config/
+│   ├── settings.py
+│   ├── urls.py
+│   └── ...
+├── stocks/
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   └── admin.py
+├── community/
+│   ├── models.py
+│   └── admin.py
+├── templates/
+│   ├── base.html
+│   └── stocks/
+│       ├── home.html
+│       ├── stock_list.html
+│       └── stock_detail.html
+└── static/
+    └── css/
+        └── style.css
+```
+
+이번 편에서는 모델을 새로 크게 뜯어고치기보다,
+**이미 만든 모델을 실제 서비스 화면에 연결하는 작업**이 중심입니다.
+
+---
+
+## 4. 먼저 모델 관계를 다시 이해해봅시다
+
+1편에서 우리는 아래와 같은 구조를 만들었습니다.
+
+* `Stock` : 종목 정보
+* `CommunityPost` : 종목 관련 커뮤니티 게시글
+* `DailySentiment` : 날짜별 감성 분석 집계
+* `DailyPrice` : 날짜별 가격 데이터
+
+이번 편에서 가장 많이 다루는 것은 이 둘입니다.
+
+* `Stock`
+* `CommunityPost`
+
+그리고 핵심 관계는 다음입니다.
+
+* 하나의 `Stock`은 여러 개의 `CommunityPost`를 가질 수 있다.
+* 하나의 `CommunityPost`는 하나의 `Stock`에 속한다.
+
+즉,
+
+**1 : N 관계**입니다.
+
+Django에서는 이런 구조를 보통 `ForeignKey`로 만듭니다.
+
+예를 들면,
+`CommunityPost` 모델 안에 아래처럼 들어가 있을 겁니다.
+
+```python title="community/models.py (개념 예시)"
+stock = models.ForeignKey(
+    Stock,
+    on_delete=models.CASCADE,
+    related_name="posts"
+    verbose_name='종목'
+)
+```
+
+이 코드의 의미는 다음과 같습니다.
+
+* 게시글은 하나의 종목에 연결된다.
+* 종목이 삭제되면 해당 종목에 연결된 게시글도 함께 삭제된다.
+* 종목 객체에서 `stock.posts.all()` 같은 방식으로 연결된 게시글들을 꺼낼 수 있다.
+
+여기서 `related_name="posts"`가 특히 중요합니다.
+
+왜냐하면 종목 상세 페이지에서 아래처럼 쓰기 좋아지기 때문입니다.
+
+```python title="예시"
+stock.posts.all()
+```
+
+즉, 이번 편은 사실상 이 관계를 **템플릿에서 자연스럽게 활용하는 연습**이라고 보시면 됩니다.
+
+---
+
+## 5. 관리자 페이지에서 먼저 샘플 데이터를 넣어주세요
+
+화면을 만들기 전에, 먼저 데이터가 있어야 페이지가 비어 보이지 않습니다.
+그래서 이번 편에서는 DB에 직접 테스트용 데이터를 넣고 시작하는 것이 좋습니다.
+
+### 추천 샘플 데이터
+
+#### Stock 예시
+
+* 삼성전자 / 005930 / KOSPI
+* SK하이닉스 / 000660 / KOSPI
+* NAVER / 035420 / KOSPI
+* Apple / AAPL / NASDAQ
+* Tesla / TSLA / NASDAQ
+
+#### CommunityPost 예시
+
+* 삼성전자 관련 게시글 2~3개
+* SK하이닉스 관련 게시글 2개
+* Tesla 관련 게시글 2개
+
+이렇게 넣어두면 목록/상세 페이지에서 관계가 잘 보입니다.
+
+### 관리자 페이지 접속
+
+```bash
+python manage.py runserver
+```
+
+브라우저에서 아래 주소로 들어갑니다.
+
+```text
+http://127.0.0.1:8000/admin/
+```
+
+여기서 종목과 게시글 샘플 데이터를 몇 개 넣어주세요.
+
+---
+
+## 6. stocks/views.py 작성하기
+
+이제 종목 목록과 상세 페이지를 담당할 View를 작성하겠습니다.
+
+이번에는 Django 기본 제너릭 뷰를 사용하면 아주 편합니다.
+
+* 목록 페이지 → `ListView`
+* 상세 페이지 → `DetailView`
+
+이렇게 나누면 코드가 깔끔해지고,
+초보자도 “목록용 / 상세용” 역할을 쉽게 이해할 수 있습니다.
+
+```python title="stocks/views.py"
+from django.views.generic import TemplateView, ListView, DetailView
+from .models import Stock
+
+
+class HomeView(TemplateView):
+    template_name = "stocks/home.html"
+
+
+class StockListView(ListView):
+    model = Stock
+    template_name = "stocks/stock_list.html"
+    context_object_name = "stocks"
+    ordering = ["market", "symbol"]
+
+
+class StockDetailView(DetailView):
+    model = Stock
+    template_name = "stocks/stock_detail.html"
+    context_object_name = "stock"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["posts"] = self.object.posts.all().order_by("-created_at")
+        return context
+```
+
+---
+
+## 7. stocks/views.py 코드 설명
+
+### 7-1. `HomeView`
+
+이건 1편에서 만들었던 홈 화면입니다.
+계속 유지해줍니다.
+
+### 7-2. `StockListView`
+
+```python
+class StockListView(ListView):
+```
+
+이 코드는 “종목 목록을 보여주는 페이지”라는 뜻입니다.
+
+```python
+model = Stock
+```
+
+어떤 모델 데이터를 가져올지 지정합니다.
+즉, `Stock` 테이블에 있는 데이터를 조회하겠다는 뜻입니다.
+
+```python
+template_name = "stocks/stock_list.html"
+```
+
+이 데이터를 어떤 HTML 템플릿에 전달할지 정합니다.
+
+```python
+context_object_name = "stocks"
+```
+
+템플릿에서 사용할 변수 이름입니다.
+즉, `stock_list.html` 안에서는 `stocks`라는 이름으로 목록을 꺼낼 수 있습니다.
+
+```python
+ordering = ["market", "symbol"]
+```
+
+종목들을 시장 기준, 심볼 기준으로 정렬합니다.
+KOSPI, NASDAQ처럼 묶여서 보이고, 같은 시장 안에서는 코드 순으로 정리됩니다.
+
+### 7-3. `StockDetailView`
+
+상세 페이지는 특정 종목 하나를 보여줍니다.
+
+```python
+class StockDetailView(DetailView):
+```
+
+하나의 객체를 자세히 보여주는 전용 뷰입니다.
+
+```python
+context_object_name = "stock"
+```
+
+템플릿에서 `stock`이라는 이름으로 객체를 사용할 수 있게 합니다.
+
+### 7-4. `get_context_data()`가 중요한 이유
+
+상세 페이지에서는 종목 정보만 보여주면 끝이 아닙니다.
+그 종목과 연결된 게시글도 함께 보여줘야 하죠.
+
+그래서 아래 코드가 들어갑니다.
+
+```python
+context["posts"] = self.object.posts.all().order_by("-created_at")
+```
+
+이 코드 의미는 다음과 같습니다.
+
+* 현재 상세 페이지의 종목 객체는 `self.object`
+* 그 종목에 연결된 게시글은 `self.object.posts.all()`
+* 최신 글이 위로 오도록 `-created_at` 내림차순 정렬
+
+즉,
+**“이 종목에 달린 게시글들을 상세 페이지로 같이 보내라”**는 뜻입니다.
+
+이 부분이 이번 편의 핵심입니다.
+
+---
+
+## 8. stocks/urls.py 만들기
+
+이제 종목 전용 URL 설정 파일을 만듭니다.
+
+```python title="stocks/urls.py"
+from django.urls import path
+from .views import HomeView, StockListView, StockDetailView
+
+app_name = "stocks"
+
+urlpatterns = [
+    path("", HomeView.as_view(), name="home"),
+    path("list/", StockListView.as_view(), name="stock_list"),
+    path("<int:pk>/", StockDetailView.as_view(), name="stock_detail"),
+]
+```
+
+---
+
+## 9. stocks/urls.py 설명
+
+### `path("", HomeView.as_view(), name="home")`
+
+* 메인 홈 화면입니다.
+* `/` 주소로 접속했을 때 홈이 열립니다.
+
+### `path("list/", StockListView.as_view(), name="stock_list")`
+
+* 종목 목록 페이지입니다.
+* `/list/` 주소로 접속하면 전체 종목 목록을 볼 수 있습니다.
+
+### `path("<int:pk>/", StockDetailView.as_view(), name="stock_detail")`
+
+* 특정 종목 상세 페이지입니다.
+* 예: `/3/`
+* 여기서 `pk`는 종목의 기본키(PK, id)입니다.
+
+즉, 종목마다 서로 다른 상세 페이지가 자동으로 생깁니다.
+
+---
+
+## 10. 프로젝트 메인 URL 연결 확인하기
+
+이제 프로젝트 전체 URL에서 `stocks.urls`가 연결되어 있어야 합니다.
+
+```python title="stock_sentiment_platform/urls.py"
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("stocks.urls")),
+]
+```
+
+### 설명
+
+여기서 중요한 점은,
+홈 화면도 종목 목록도 종목 상세도 모두 `stocks.urls` 안에서 관리한다는 것입니다.
+
+초반 프로젝트에서는 이렇게 한 앱에서 메인 화면 흐름을 통합해서 관리하는 것이 오히려 이해하기 쉽습니다.
+
+나중에 기능이 많아지면 `community.urls`, `analytics.urls` 등으로 분리하면 됩니다.
+
+---
+
+## 11. 종목 목록 템플릿 만들기
+
+이제 실제 화면을 만들어보겠습니다.
+
+```html title="templates/stocks/stock_list.html"
+{% extends "base.html" %}
+
+{% block title %}종목 목록 | stock_sentiment_platform{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero__text">
+    <span class="page-badge">Stock Directory</span>
+    <h1>종목 목록</h1>
+    <p>
+      현재 플랫폼에 등록된 종목들을 확인해보세요.
+      각 종목 상세 페이지에서 종목별 커뮤니티 게시글 흐름도 함께 볼 수 있습니다.
+    </p>
+  </div>
+</section>
+
+<section class="stock-grid-section">
+  {% if stocks %}
+    <div class="stock-grid">
+      {% for stock in stocks %}
+        <a href="{% url 'stocks:stock_detail' stock.pk %}" class="stock-card">
+          <div class="stock-card__top">
+            <span class="stock-market">{{ stock.market }}</span>
+            <span class="stock-symbol">{{ stock.symbol }}</span>
+          </div>
+          <h2>{{ stock.name }}</h2>
+          <p class="stock-description">
+            {{ stock.description|default:"아직 종목 설명이 등록되지 않았습니다." }}
+          </p>
+          <div class="stock-card__bottom">
+            <span>상세 보기</span>
+            <span>→</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-box">
+      <h3>등록된 종목이 아직 없습니다.</h3>
+      <p>관리자 페이지에서 종목 데이터를 먼저 추가해보세요.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+```
+
+---
+
+## 12. 종목 목록 템플릿 설명
+
+이 페이지에서는 전체 종목을 카드 형태로 보여줍니다.
+
+### 핵심 포인트 1. 링크 전체를 카드로 감싸기
+
+```html
+<a href="{% url 'stocks:stock_detail' stock.pk %}" class="stock-card">
+```
+
+이 방식은 UX적으로 좋습니다.
+카드 아무 곳이나 눌러도 상세 페이지로 이동하기 때문입니다.
+
+### 핵심 포인트 2. `stock.pk`를 URL에 전달
+
+종목마다 고유 id가 있으므로,
+해당 id를 상세 URL로 넘기면 Django가 정확한 객체를 찾아줍니다.
+
+### 핵심 포인트 3. 데이터가 없을 때 예외 처리
+
+```html
+{% if stocks %}
+```
+
+이런 조건문을 넣어주면,
+데이터가 비어 있어도 화면이 깨지지 않고 안내 문구가 보입니다.
+
+이런 처리 습관이 굉장히 중요합니다.
+
+---
+
+## 13. 종목 상세 템플릿 만들기
+
+이제 종목 하나와 그 종목에 연결된 게시글을 보여줄 상세 페이지를 만들어봅시다.
+
+```html title="templates/stocks/stock_detail.html"
+{% extends "base.html" %}
+
+{% block title %}{{ stock.name }} | stock_sentiment_platform{% endblock %}
+
+{% block content %}
+<section class="detail-hero">
+  <div class="detail-hero__left">
+    <span class="page-badge">Stock Detail</span>
+    <h1>{{ stock.name }}</h1>
+    <div class="detail-meta-row">
+      <span class="detail-chip">시장: {{ stock.market }}</span>
+      <span class="detail-chip">종목코드: {{ stock.symbol }}</span>
+    </div>
+    <p class="detail-description">
+      {{ stock.description|default:"아직 종목 설명이 없습니다." }}
+    </p>
+  </div>
+  <div class="detail-hero__right">
+    <div class="summary-card">
+      <h3>현재 화면에서 보는 것</h3>
+      <ul>
+        <li>선택한 종목의 기본 정보</li>
+        <li>해당 종목과 연결된 게시글 목록</li>
+        <li>다음 편에서 감성 분석으로 확장될 자리</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="post-section">
+  <div class="section-head">
+    <div>
+      <span class="section-kicker">Community Posts</span>
+      <h2>{{ stock.name }} 관련 게시글</h2>
+    </div>
+    <a href="{% url 'stocks:stock_list' %}" class="line-button">목록으로 돌아가기</a>
+  </div>
+
+  {% if posts %}
+    <div class="post-list">
+      {% for post in posts %}
+        <article class="post-card">
+          <div class="post-card__head">
+            <h3>{{ post.title }}</h3>
+            <span class="post-date">{{ post.created_at|date:"Y-m-d H:i" }}</span>
+          </div>
+
+          <div class="post-meta-row">
+            {% if post.author %}
+              <span class="post-chip">작성자: {{ post.author }}</span>
+            {% endif %}
+
+            {% if post.sentiment_label %}
+              <span class="post-chip">감성: {{ post.sentiment_label }}</span>
+            {% else %}
+              <span class="post-chip post-chip--muted">감성 분석 전</span>
+            {% endif %}
+          </div>
+
+          <p class="post-content">{{ post.content }}</p>
+
+          {% if post.source_url %}
+            <a href="{{ post.source_url }}" target="_blank" class="post-link">원문 링크 보기</a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-box">
+      <h3>아직 연결된 게시글이 없습니다.</h3>
+      <p>다음 편에서 크롤링 데이터를 넣으면 이 공간이 실제 데이터로 채워집니다.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+```
+
+---
+
+## 14. 종목 상세 템플릿 설명
+
+이 템플릿은 이번 편의 핵심 결과물입니다.
+
+### 14-1. 상단 영역
+
+상단에는 종목 기본 정보를 보여줍니다.
+
+* 종목명
+* 시장
+* 종목코드
+* 종목 설명
+
+즉, “지금 어떤 종목 페이지에 들어와 있는지”를 한눈에 알 수 있게 해줍니다.
+
+### 14-2. `posts` 반복문
+
+```html
+{% for post in posts %}
+```
+
+이 부분이 바로 View에서 넘긴 `context["posts"]`를 출력하는 부분입니다.
+
+즉,
+
+* View에서 게시글 목록을 준비하고
+* Template에서 반복문으로 꺼내서 보여주는 구조
+
+입니다.
+
+### 14-3. 감성 결과가 아직 없을 수도 있음
+
+처음에는 게시글마다 감성 결과가 비어 있을 수 있습니다.
+그래서 아래처럼 조건문을 사용했습니다.
+
+```html
+{% if post.sentiment_label %}
+```
+
+이렇게 하면 아직 분석이 안 된 글은
+`감성 분석 전` 이라고 자연스럽게 표시할 수 있습니다.
+
+이런 식으로 미래 기능을 고려한 템플릿을 미리 만들어두면,
+나중에 감정 분석 기능을 붙였을 때 수정량이 줄어듭니다.
+
+---
+
+## 15. base.html 네비게이션 조금 보강하기
+
+1편의 `base.html`에서 네비게이션에 종목 목록으로 가는 링크를 추가해주면 훨씬 자연스럽습니다.
+
+```html title="templates/base.html"
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}stock_sentiment_platform{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="{% url 'stocks:home' %}" class="brand">stock_sentiment_platform</a>
+      <nav class="nav-menu">
+        <a href="{% url 'stocks:home' %}">홈</a>
+        <a href="{% url 'stocks:stock_list' %}">종목 보기</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
+```
+
+---
+
+## 16. CSS 전체 보강하기
+
+이번 편에서 목록/상세 페이지가 추가되었기 때문에 CSS도 함께 확장해야 합니다.
+
+아래 코드는 1편 스타일을 이어받으면서,
+좀 더 데이터 플랫폼 같은 느낌으로 정리한 예시입니다.
+
+```css title="static/css/style.css"
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  background: linear-gradient(180deg, #f7f8fc 0%, #eef2f7 100%);
+  color: #1f2937;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.container {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 72px;
+}
+
+.brand {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.nav-menu a {
+  color: #475569;
+  font-weight: 600;
+}
+
+.nav-menu a:hover {
+  color: #111827;
+}
+
+.main-content {
+  padding: 48px 0 80px;
+}
+
+.hero,
+.page-hero,
+.detail-hero {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 28px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.06);
+}
+
+.page-hero,
+.detail-hero {
+  padding: 40px;
+  margin-bottom: 28px;
+}
+
+.detail-hero {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+}
+
+.page-badge,
+.section-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.page-hero h1,
+.detail-hero h1 {
+  margin: 16px 0 12px;
+  font-size: 2.2rem;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.page-hero p,
+.detail-description {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.7;
+  font-size: 1.02rem;
+}
+
+.stock-grid-section,
+.post-section {
+  margin-top: 28px;
+}
+
+.stock-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.stock-card {
+  display: block;
+  padding: 24px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.stock-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+  border-color: rgba(100, 116, 139, 0.25);
+}
+
+.stock-card__top,
+.stock-card__bottom,
+.detail-meta-row,
+.post-meta-row,
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stock-market,
+.stock-symbol,
+.detail-chip,
+.post-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.post-chip--muted {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.stock-card h2 {
+  margin: 18px 0 10px;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.stock-description {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.65;
+  min-height: 72px;
+}
+
+.stock-card__bottom {
+  margin-top: 20px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.summary-card,
+.empty-box,
+.post-card {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+}
+
+.summary-card {
+  padding: 24px;
+}
+
+.summary-card h3 {
+  margin-top: 0;
+  margin-bottom: 14px;
+  font-size: 1.08rem;
+}
+
+.summary-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+.section-head {
+  margin-bottom: 18px;
+}
+
+.section-head h2 {
+  margin: 10px 0 0;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+}
+
+.line-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  font-weight: 700;
+}
+
+.line-button:hover {
+  background: #f8fafc;
+}
+
+.post-list {
+  display: grid;
+  gap: 18px;
+}
+
+.post-card {
+  padding: 24px;
+}
+
+.post-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.post-card__head h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.post-date {
+  color: #64748b;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.post-content {
+  margin: 16px 0 0;
+  color: #374151;
+  line-height: 1.8;
+}
+
+.post-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.empty-box {
+  padding: 36px;
+  text-align: center;
+}
+
+.empty-box h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.empty-box p {
+  margin: 0;
+  color: #64748b;
+}
+
+@media (max-width: 960px) {
+  .stock-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-inner {
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 0;
+  }
+
+  .main-content {
+    padding: 28px 0 60px;
+  }
+
+  .page-hero,
+  .detail-hero,
+  .post-card,
+  .summary-card,
+  .empty-box,
+  .stock-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .stock-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-hero h1,
+  .detail-hero h1 {
+    font-size: 1.7rem;
+  }
+
+  .post-card__head {
+    flex-direction: column;
+  }
+}
+```
+
+---
+
+## 17. CSS 설명
+
+이번 CSS의 방향은 다음과 같습니다.
+
+* 너무 AI 서비스처럼 보이지 않게 하기
+* 대신 데이터 플랫폼/리서치 서비스 느낌은 살리기
+* 카드형 레이아웃으로 종목과 게시글을 보기 쉽게 만들기
+* 모바일에서도 무너지지 않게 반응형 처리하기
+
+### 포인트 1. 카드형 UI
+
+`stock-card`, `post-card`, `summary-card`를 분리해두면
+각 영역이 명확하게 보입니다.
+
+### 포인트 2. pill 스타일 정보 표시
+
+시장, 종목코드, 감성 상태 같은 값은
+작은 칩 형태로 보여주면 훨씬 정돈되어 보입니다.
+
+### 포인트 3. 빈 데이터 화면도 깔끔하게
+
+아무 데이터가 없을 때 그냥 공백이면 서비스가 이상해 보입니다.
+그래서 `empty-box`를 따로 만들어 안내 문구를 보여주었습니다.
+
+---
+
+## 18. 실행 후 확인 순서
+
+이제 아래 순서대로 확인해보세요.
+
+### 1단계. 서버 실행
+
+```bash title="macOS/Linux"
+python manage.py runserver
+```
+
+```bash title="Windows"
+python manage.py runserver
+```
+
+### 2단계. 홈 화면 접속
+
+```text
+http://127.0.0.1:8000/
+```
+
+### 3단계. 종목 목록 접속
+
+```text
+http://127.0.0.1:8000/list/
+```
+
+### 4단계. 종목 상세 접속
+
+종목 카드 클릭 또는 아래처럼 직접 접근할 수 있습니다.
+
+```text
+http://127.0.0.1:8000/1/
+```
+
+숫자 1은 실제 종목 PK에 따라 달라질 수 있습니다.
+
+---
+
+## 19. 자주 만나는 오류 포인트
+
+### 오류 1. `Reverse for 'stock_detail' not found`
+
+이 경우는 보통 URL name이 맞지 않을 때 발생합니다.
+
+확인할 것:
+
+* `stocks/urls.py`에 `name="stock_detail"`이 있는지
+* 템플릿에서 `{% url 'stocks:stock_detail' stock.pk %}`로 썼는지
+* `app_name = "stocks"`가 있는지
+
+### 오류 2. `'Stock' object has no attribute 'posts'`
+
+이 경우는 `CommunityPost` 모델의 `ForeignKey`에
+`related_name="posts"`가 없을 가능성이 큽니다.
+
+즉, 아래 부분을 확인해야 합니다.
+
+```python
+stock = models.ForeignKey(
+    Stock,
+    on_delete=models.CASCADE,
+    related_name="posts"
+)
+```
+
+만약 `related_name`을 다르게 썼다면,
+`self.object.posts.all()`도 그 이름에 맞게 바꿔야 합니다.
+
+### 오류 3. 상세 페이지는 열리는데 게시글이 안 보임
+
+이 경우는 보통 두 가지입니다.
+
+1. 해당 종목에 연결된 게시글이 실제로 없음
+2. 게시글이 다른 종목에 연결되어 있음
+
+관리자 페이지에서 `CommunityPost`를 열어서,
+정말 원하는 종목에 연결했는지 확인해보세요.
+
+### 오류 4. CSS가 적용되지 않음
+
+확인 포인트:
+
+* `settings.py`에 `STATICFILES_DIRS`가 있는지
+* `base.html`에 `{% load static %}`가 있는지
+* `<link rel="stylesheet" href="{% static 'css/style.css' %}">` 경로가 맞는지
+* 실제 파일 위치가 `static/css/style.css`인지
+
+---
+
+## 20. 이번 편에서 꼭 이해해야 하는 핵심 개념 정리
+
+### 1. ListView와 DetailView의 역할 차이
+
+* `ListView`는 여러 개 데이터를 보여줄 때
+* `DetailView`는 하나의 데이터를 자세히 보여줄 때
+
+### 2. ForeignKey 관계를 템플릿으로 꺼내는 방식
+
+* 종목 하나 → 게시글 여러 개
+* 상세 페이지에서 `self.object.posts.all()`로 연결 데이터 조회
+
+### 3. URL과 pk 연결 방식
+
+* 종목마다 고유 id가 있으므로
+* `<int:pk>` 패턴으로 각 상세 페이지를 쉽게 만들 수 있음
+
+### 4. 비어 있는 데이터도 화면에서 친절하게 처리해야 함
+
+* 서비스는 “데이터가 없을 때”가 더 중요할 때가 많음
+* 그래서 `{% if posts %}` 같은 조건문이 중요함
+
+---
+
+## 21. 체크리스트
+
+아래 항목이 모두 되면 이번 편은 성공입니다.
+
+* [ ] 관리자 페이지에서 종목 데이터를 3개 이상 넣었다.
+* [ ] 관리자 페이지에서 게시글 데이터를 종목별로 연결해 넣었다.
+* [ ] `/list/` 주소에서 종목 목록이 보인다.
+* [ ] 카드 클릭 시 종목 상세 페이지로 이동한다.
+* [ ] 상세 페이지에서 해당 종목의 게시글만 보인다.
+* [ ] 게시글이 없으면 안내 문구가 나온다.
+* [ ] CSS가 정상 적용되어 카드형 UI로 보인다.
+* [ ] `ForeignKey`와 `related_name`의 역할을 설명할 수 있다.
+
+---
+
+## 22. 다음 편 예고
+
+이번 편까지 하면,
+이제 종목과 게시글 관계를 화면에서 확인할 수 있게 되었습니다.
+
+다음 편에서는 이 구조 위에 본격적으로 **데이터 수집 흐름**을 붙일 수 있습니다.
+예를 들면 아래 방향으로 확장할 수 있습니다.
+
+* 커뮤니티 게시글 수집 기능 붙이기
+* 수집한 데이터를 `CommunityPost`에 저장하기
+* 날짜별로 어떤 종목의 여론이 많았는지 누적하기
+* 이후 FastAPI 감성 분석 서버와 연결할 준비하기
+
+즉, 2편은 화면 만들기 편이지만,
+사실상 이후 모든 자동화 기능의 발판입니다.
+
+---
+
+## 23. 마무리
+
+이번 편에서는 Django 프로젝트에서 아주 중요한 기본기를 다졌습니다.
+
+* 모델 관계를 실제 페이지에 연결했고
+* 목록/상세 구조를 만들었으며
+* 종목별 게시글 연결도 확인했습니다.
+
+이 단계가 탄탄해야 나중에 크롤링을 붙여도,
+DRF를 붙여도,
+FastAPI 감성 분석을 붙여도,
+전체 구조가 흔들리지 않습니다.
+
+초보자 입장에서는 “이게 별거 아닌 화면처럼 보일 수도” 있지만,
+실제로는 여기서 Django의 핵심 흐름이 거의 다 연결됩니다.
+
+그러니 이번 편은 코드만 따라 치지 말고,
+아래 질문에 스스로 답할 수 있는지 꼭 확인해보세요.
+
+* 왜 목록 페이지와 상세 페이지를 나누는가?
+* 왜 종목 상세 페이지에서 게시글을 함께 보여주는가?
+* 왜 `related_name`이 필요한가?
+* 왜 비어 있는 데이터도 처리해야 하는가?
+
+이 질문들에 답할 수 있다면,
+이번 편은 제대로 이해한 것입니다.
+
+---
+
+## 24. Quiz Quiz
+
+### Q1. `ListView`는 언제 사용하나요?
+
+A. 객체 하나를 자세히 보여줄 때
+B. 여러 개 객체를 목록으로 보여줄 때
+C. 폼 데이터를 저장할 때
+D. 관리자 페이지를 만들 때
+
+정답: **B**
+
+---
+
+### Q2. `DetailView`에서 현재 보고 있는 객체는 보통 무엇으로 접근하나요?
+
+A. `self.data`
+B. `self.model`
+C. `self.object`
+D. `self.result`
+
+정답: **C**
+
+---
+
+### Q3. `related_name="posts"`를 설정하면 종목 객체에서 연결 게시글을 어떻게 조회할 수 있나요?
+
+A. `stock.post_list()`
+B. `stock.posts.all()`
+C. `stock.community.get()`
+D. `stock.related.posts()`
+
+정답: **B**
+
+---
+
+### Q4. 템플릿에서 데이터가 비어 있을 때를 처리하는 이유로 가장 적절한 것은?
+
+A. 코드 길이를 늘리기 위해
+B. CSS를 더 많이 쓰기 위해
+C. 빈 화면이나 오류처럼 보이지 않게 하기 위해
+D. 관리자 페이지를 대신 만들기 위해
+
+정답: **C**
+
+---
+
+### Q5. 이번 편의 핵심 목표로 가장 알맞은 것은?
+
+A. AI 모델 훈련 완료
+B. 웹소켓 채팅 기능 구현
+C. 종목 목록/상세와 종목별 게시글 연결 이해
+D. 배포 자동화 구현
+
+정답: **C**
+
+---
+
+## 25. 한 줄 요약
+
+이번 편은 `Stock`과 `CommunityPost`의 관계를 실제 화면에 연결해보면서,
+Django의 목록/상세 페이지 구조와 `ForeignKey` 흐름을 확실히 익히는 단계입니다.

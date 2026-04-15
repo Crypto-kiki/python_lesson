@@ -1,0 +1,1435 @@
+---
+title: "주식 커뮤니티 감정분석 플랫폼 (1) : 프로젝트 시작과 데이터 모델 설계"
+description: "네이버 종목토론방 기반 주식 커뮤니티 감정분석 플랫폼의 첫 번째 시간입니다. 이번 편에서는 프로젝트의 전체 흐름을 이해하고, Django 프로젝트 생성부터 종목/게시글/일별 분석 데이터를 저장할 모델 설계까지 차근차근 완성합니다."
+image: "../../public/blogs/memory_place(1)/cover.png"
+publishedAt: "2026-03-31"
+updatedAt: "2026-03-31"
+author: "Baekki"
+isPublished: true
+tags:
+    - Django basic
+    - 주식 커뮤니티 감정분석 플랫폼
+---
+
+# Django + DRF + FastAPI로 만드는 주식 커뮤니티 감정분석 플랫폼 (1)
+
+## 프로젝트 소개
+
+이번 시리즈에서는 **네이버 종목토론방의 글을 주기적으로 수집**하고, 그 데이터를 바탕으로 **종목별 커뮤니티 분위기(긍정/중립/부정)**를 분석한 뒤, **실제 종가와 비교**해보는 웹 서비스를 만들어봅니다.
+
+조금 더 쉽게 말하면, 이런 흐름입니다.
+
+* 코스피100, 나스닥100 같은 주요 종목을 관리합니다.
+* 각 종목의 네이버 종목토론방 글을 주기적으로 수집합니다.
+* 그 글들이 대체로 긍정적인지, 중립적인지, 부정적인지 분석합니다.
+* 그날 실제 종가가 상승으로 마감했는지, 하락으로 마감했는지도 저장합니다.
+* 마지막에는 “커뮤니티가 긍정적으로 본 종목이 실제로도 올랐는가?” 같은 비교 대시보드를 만들어봅니다.
+
+즉, 이 프로젝트는 단순 게시판이 아닙니다.
+
+* **Django**로 웹 서비스와 데이터 저장 구조를 만들고,
+* **DRF**로 수집된 데이터와 분석 결과를 API로 제공하고,
+* **FastAPI**로 감정분석 전용 AI 서버를 분리해,
+* 나중에는 실사용형에 가까운 구조까지 경험하는 프로젝트입니다.
+
+---
+
+## 이번 편에서 할 일
+
+이번 1편은 프로젝트의 **기초 뼈대**를 만드는 시간입니다.
+
+이번 편에서 실습 할 내용은 다음과 같습니다.
+
+* Django 프로젝트 생성
+* 앱 생성 및 settings 등록
+* 프로젝트 전체 흐름 이해
+* 어떤 데이터를 저장할지 모델 설계
+* admin 등록
+* 기본 목록 페이지 구성
+* 공통 레이아웃과 첫 화면 만들기
+
+이번 편의 핵심은 기능을 많이 만드는 것이 아닙니다.
+
+**“이 프로젝트가 어떤 데이터를 다루고, 왜 이런 테이블 구조가 필요한지”**를 명확히 이해하는 것이 가장 중요합니다.
+
+이 부분이 흔들리면 뒤에서 크롤링, 감정분석, DRF, FastAPI를 붙일 때 전부 꼬이게 됩니다.
+
+---
+
+## 1. 프로젝트 전체 흐름 먼저 이해하기
+
+코드를 바로 치기 전에, 이 프로젝트가 어떤 순서로 돌아가는지부터 먼저 머릿속에 정리하겠습니다.
+
+### 서비스 동작 흐름
+
+1. **종목 목록을 관리한다.**
+
+   * 예: 삼성전자, SK하이닉스, 애플, 엔비디아
+   * 종목코드, 시장 구분, 네이버 토론 URL 등을 저장
+
+2. **주기적으로 네이버 종목토론방을 확인한다.**
+
+   * 모든 글을 매번 다 긁는 것이 아니라 목록 페이지를 먼저 보고, 새 글이 있으면 그 글만 상세 수집
+
+3. **수집한 게시글을 DB에 저장한다.**
+
+   * 제목, 작성자, 작성 시각, 본문, 조회수, 추천/비추천 수 등
+
+4. **하루 단위로 게시글을 모아서 감정분석한다.**
+
+   * 긍정 몇 개
+   * 중립 몇 개
+   * 부정 몇 개
+   * 대표 키워드 / 대표 문장
+
+5. **그날 종가와 비교한다.**
+
+   * 상승 / 보합 / 하락
+   * 커뮤니티의 분위기와 실제 결과가 맞았는지 기록
+
+6. **웹 화면과 API로 보여준다.**
+
+   * Django 템플릿: 종목 목록, 종목 상세, 게시글 목록, 대시보드
+   * DRF API: 수집 결과, 일별 분석 결과 JSON 제공
+
+이 흐름을 이해하면, 이번 편에서 왜 테이블을 여러 개로 나누는지 자연스럽게 이해할 수 있습니다.
+
+---
+
+## 2. 프로젝트 구조를 어떻게 나눌까?
+
+이번 프로젝트는 처음부터 역할을 조금 나눠서 가는 것이 좋습니다.
+
+앱을 이런 식으로 나눠보겠습니다.
+
+* `stocks`
+
+  * 종목 자체를 관리하는 앱
+  * 종목명, 종목코드, 시장 구분, 네이버 URL 등
+
+* `community`
+
+  * 커뮤니티 게시글을 저장하는 앱
+  * 종목토론방 글 원문과 메타데이터 저장
+
+* `analytics`
+
+  * 일별 감정분석/종가 비교 결과 저장
+  * 나중에 대시보드 데이터도 이 앱에서 많이 다루게 됨
+
+이렇게 나누는 이유는 단순합니다.
+
+### 왜 앱을 나누는가?
+
+#### 1) 데이터 성격이 다릅니다.
+
+* 종목 정보는 비교적 정적입니다.
+* 게시글은 계속 쌓이는 동적 데이터입니다.
+* 감정분석 결과는 집계 데이터입니다.
+
+#### 2) 나중에 유지보수가 쉬워집니다.
+
+지금은 작아 보여도, 나중에 다음 기능이 들어갑니다.
+
+* 종목 추가/비활성화
+* 게시글 재수집
+* 감정분석 재실행
+* 종가 데이터 재저장
+* 대시보드 성능 개선
+
+이런 작업을 하다 보면 역할 분리가 되어 있는 구조가 훨씬 편합니다.
+
+---
+
+## 3. 개발 환경 준비하기
+
+이번 편은 Django 프로젝트부터 시작하겠습니다.
+
+아래와 같은 작업 폴더를 만든다고 가정하겠습니다.
+
+```text title="프로젝트 구조(예상)"
+stock_sentiment_platform/
+└── backend/
+```
+
+`backend` 폴더 안에서 Django 프로젝트를 진행하겠습니다.
+
+### macOS / Linux
+
+```bash title="terminal"
+mkdir stock_sentiment_platform
+cd stock_sentiment_platform
+mkdir backend
+cd backend
+uv venv
+source .venv/bin/activate
+uv pip install django
+```
+
+### Windows (PowerShell)
+
+```powershell title="terminal"
+mkdir stock_sentiment_platform
+cd stock_sentiment_platform
+mkdir backend
+cd backend
+uv venv
+.venv\Scripts\Activate.ps1
+uv pip install django
+```
+
+설치가 끝났다면 Django 프로젝트를 생성합니다.
+
+### macOS / Linux / Windows 공통
+
+```bash title="terminal"
+django-admin startproject config .
+python manage.py startapp stocks
+python manage.py startapp community
+python manage.py startapp analytics
+```
+
+이제 폴더 구조는 대략 이렇게 됩니다.
+
+```text title="backend 폴더 구조"
+backend/
+├── .venv/
+├── manage.py
+├── config/
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── stocks/
+├── community/
+└── analytics/
+```
+
+---
+
+## 4. settings.py에 앱 등록하기
+
+Django에서 앱을 만들었다고 끝이 아닙니다.
+
+이제 프로젝트 설정 파일에 “이 앱들을 쓸 거야”라고 등록해줘야 합니다.
+
+```python title="config/settings.py"
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    'stocks',
+    'community',
+    'analytics',
+]
+```
+
+### 왜 이 작업을 해야 하나요?
+
+Django는 앱을 자동으로 다 인식하지 않습니다.
+
+`INSTALLED_APPS`에 등록해야 다음 작업들이 가능해집니다.
+
+* 모델 마이그레이션 반영
+* admin 등록 반영
+* 앱 내부 templates 탐색
+* 앱 관련 설정 로딩
+
+즉, **앱 생성 → settings.py 등록**은 거의 세트라고 생각하면 됩니다.
+
+---
+
+## 5. 이번 프로젝트의 핵심 모델 설계하기
+
+이제 가장 중요한 부분입니다.
+
+이번 프로젝트는 단순히 “게시글 하나 저장하는 앱”이 아닙니다.
+그래서 어떤 데이터를 어떤 테이블로 나눠 저장할지 먼저 아주 꼼꼼하게 설계해야 합니다.
+
+이번 편에서는 아래 4개의 핵심 모델을 만들겠습니다.
+
+* `Stock`
+* `CommunityPost`
+* `DailySentiment`
+* `DailyPrice`
+
+---
+
+## 6. Stock 모델 만들기
+
+먼저 종목 정보를 저장하는 모델입니다.
+
+각 게시글은 결국 **어떤 종목에 대한 글인지**가 연결되어야 합니다.
+그래서 종목 테이블이 가장 먼저 필요합니다.
+
+```python title="stocks/models.py"
+from django.db import models
+
+
+class Stock(models.Model):
+    MARKET_CHOICES = [
+        ('KOSPI', '코스피'),
+        ('NASDAQ', '나스닥'),
+    ]
+
+    name = models.CharField(max_length=100, verbose_name='종목명')
+    code = models.CharField(max_length=30, unique=True, verbose_name='종목코드')
+    market = models.CharField(max_length=20, choices=MARKET_CHOICES, verbose_name='시장 구분')
+    naver_discussion_url = models.URLField(blank=True, verbose_name='네이버 종목토론 URL')
+    is_active = models.BooleanField(default=True, verbose_name='활성 여부')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일')
+
+    class Meta:
+        verbose_name = '종목'
+        verbose_name_plural = '종목 목록'
+        ordering = ['market', 'name']
+
+    def __str__(self):
+        return f'[{self.market}] {self.name} ({self.code})'
+```
+
+### 필드 설명
+
+#### `name`
+
+사람이 보는 종목 이름입니다.
+예: 삼성전자, SK하이닉스, Apple, NVIDIA
+
+#### `code`
+
+종목을 구분하는 핵심 값입니다.
+예: `005930`, `000660`, `AAPL`, `NVDA`
+
+이 프로젝트에서는 종목명보다 종목코드가 더 중요합니다.
+왜냐하면 이름은 바뀌거나 비슷할 수 있지만, 코드가 식별자로 쓰이기 때문입니다.
+
+#### `market`
+
+코스피인지, 나스닥인지 구분합니다.
+나중에 국내/해외 수집 로직이 다를 수 있기 때문에 이 필드는 중요합니다.
+
+#### `naver_discussion_url`
+
+나중에 크롤러가 사용할 네이버 종목토론 URL입니다.
+처음부터 저장해두면 관리가 편합니다.
+
+#### `is_active`
+
+수집 대상에서 제외할 종목을 관리할 때 유용합니다.
+예를 들어 테스트용 종목을 잠시 비활성화할 수 있습니다.
+
+---
+
+## 7. CommunityPost 모델 만들기
+
+이제 실제로 네이버 종목토론방에서 가져온 게시글을 저장할 모델입니다.
+
+```python title="community/models.py"
+from django.db import models
+from stocks.models import Stock
+
+
+class CommunityPost(models.Model):
+    stock = models.ForeignKey(
+        Stock,
+        on_delete=models.CASCADE,
+        related_name='posts',
+        verbose_name='종목'
+    )
+    source = models.CharField(default='NAVER_DISCUSSION', max_length=50, verbose_name='수집 출처')
+    external_post_id = models.CharField(max_length=100, blank=True, verbose_name='외부 게시글 ID')
+    title = models.CharField(max_length=255, verbose_name='제목')
+    author_name = models.CharField(max_length=100, blank=True, verbose_name='작성자')
+    posted_at = models.DateTimeField(null=True, blank=True, verbose_name='작성 시각')
+    content = models.TextField(blank=True, verbose_name='본문')
+    view_count = models.PositiveIntegerField(default=0, verbose_name='조회수')
+    like_count = models.IntegerField(default=0, verbose_name='추천수')
+    dislike_count = models.IntegerField(default=0, verbose_name='비추천수')
+    comment_count = models.PositiveIntegerField(default=0, verbose_name='댓글 수')
+    original_url = models.URLField(unique=True, verbose_name='원본 URL')
+    crawled_at = models.DateTimeField(auto_now_add=True, verbose_name='수집 시각')
+
+    class Meta:
+        verbose_name = '커뮤니티 게시글'
+        verbose_name_plural = '커뮤니티 게시글 목록'
+        ordering = ['-posted_at', '-id']
+
+    def __str__(self):
+        return f'{self.stock.name} - {self.title}'
+```
+
+### 왜 이런 필드가 필요한가요?
+
+#### `stock`
+
+이 글이 어느 종목에 대한 글인지 연결합니다.
+이 값이 있어야 나중에 종목별 감정분석을 할 수 있습니다.
+
+#### `source`
+
+이번 프로젝트는 일단 네이버 종목토론방 기준이지만, 나중에는 디시나 다른 커뮤니티를 붙일 수도 있습니다.
+그래서 출처 필드를 두는 것이 좋습니다.
+
+#### `external_post_id`
+
+외부 사이트의 게시글 번호를 저장할 수 있는 필드입니다.
+있으면 중복 체크나 디버깅에 좋습니다.
+
+#### `title` / `content`
+
+감정분석의 핵심 텍스트 데이터입니다.
+어떤 프로젝트는 제목만 분석하고, 어떤 프로젝트는 제목+본문을 합쳐 분석하기도 합니다.
+둘 다 저장해두는 것이 좋습니다.
+
+#### `posted_at`
+
+게시글이 실제로 작성된 시각입니다.
+크롤링한 시각(`crawled_at`)과 다릅니다.
+이 차이를 구분해야 일별 분석이 정확해집니다.
+
+#### `original_url`
+
+아주 중요합니다.
+보통 크롤링 프로젝트에서 **중복 저장 방지의 가장 쉬운 기준**이 URL입니다.
+그래서 `unique=True`를 줬습니다.
+
+#### `crawled_at`
+
+언제 우리 시스템이 이 글을 가져왔는지 기록합니다.
+나중에 배치 점검할 때 굉장히 유용합니다.
+
+---
+
+## 8. DailySentiment 모델 만들기
+
+이제 감정분석 결과를 하루 단위로 저장할 테이블입니다.
+
+예를 들어 삼성전자 게시글을 하루 동안 100개 모았다고 해봅시다.
+그 100개를 분석해서,
+
+* 긍정 50개
+* 중립 30개
+* 부정 20개
+
+이런 식으로 저장할 모델입니다.
+
+```python title="analytics/models.py"
+from django.db import models
+from stocks.models import Stock
+
+
+class DailySentiment(models.Model):
+    SENTIMENT_CHOICES = [
+        ('POSITIVE', '긍정 우세'),
+        ('NEUTRAL', '중립 우세'),
+        ('NEGATIVE', '부정 우세'),
+    ]
+
+    stock = models.ForeignKey(
+        Stock,
+        on_delete=models.CASCADE,
+        related_name='daily_sentiments',
+        verbose_name='종목'
+    )
+    target_date = models.DateField(verbose_name='분석 기준 날짜')
+    total_posts = models.PositiveIntegerField(default=0, verbose_name='총 게시글 수')
+    positive_count = models.PositiveIntegerField(default=0, verbose_name='긍정 게시글 수')
+    neutral_count = models.PositiveIntegerField(default=0, verbose_name='중립 게시글 수')
+    negative_count = models.PositiveIntegerField(default=0, verbose_name='부정 게시글 수')
+    dominant_sentiment = models.CharField(
+        max_length=20,
+        choices=SENTIMENT_CHOICES,
+        blank=True,
+        verbose_name='우세 감정'
+    )
+    summary = models.TextField(blank=True, verbose_name='요약 문장')
+    keywords = models.TextField(blank=True, verbose_name='핵심 키워드')
+    analysis_created_at = models.DateTimeField(auto_now_add=True, verbose_name='분석 생성 시각')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정 시각')
+
+    class Meta:
+        verbose_name = '일별 감정분석'
+        verbose_name_plural = '일별 감정분석 목록'
+        ordering = ['-target_date', 'stock__name']
+        unique_together = ('stock', 'target_date')
+
+    def __str__(self):
+        return f'{self.stock.name} - {self.target_date} 감정분석'
+```
+
+### 왜 일별 테이블이 따로 필요한가요?
+
+“게시글 테이블에 감정 결과만 붙이면 되는 거 아닌가요?”
+라고 생각할 수 있습니다.
+
+하지만 이 프로젝트의 최종 목표는 **글 하나 분석**이 아니라,
+**하루 단위 종목 분위기 집계**입니다.
+
+즉,
+
+* 게시글 원문 데이터와
+* 일별 종목 집계 데이터
+
+는 성격이 완전히 다릅니다.
+
+게시글은 원천 데이터,
+일별 감정분석은 집계 데이터입니다.
+
+이 둘을 분리해야 나중에
+
+* 대시보드 성능
+* 재분석
+* 날짜별 비교
+* 종가 비교
+  같은 기능이 쉬워집니다.
+
+---
+
+## 9. DailyPrice 모델 추가
+
+감정분석만 하면 반쪽짜리입니다.
+이번 프로젝트는 실제 종가와 비교하는 것이 핵심이기 때문에, 종가 데이터도 따로 저장해야 합니다.
+
+```python title="analytics/models.py"
+class DailyPrice(models.Model):
+    PRICE_DIRECTION_CHOICES = [
+        ('UP', '상승'),
+        ('FLAT', '보합'),
+        ('DOWN', '하락'),
+    ]
+
+    stock = models.ForeignKey(
+        Stock,
+        on_delete=models.CASCADE,
+        related_name='daily_prices',
+        verbose_name='종목'
+    )
+    target_date = models.DateField(verbose_name='기준 날짜')
+    close_price = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='종가')
+    change_rate = models.DecimalField(max_digits=8, decimal_places=2, default=0, verbose_name='등락률(%)')
+    direction = models.CharField(
+        max_length=10,
+        choices=PRICE_DIRECTION_CHOICES,
+        blank=True,
+        verbose_name='종가 방향'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일')
+
+    class Meta:
+        verbose_name = '일별 종가 데이터'
+        verbose_name_plural = '일별 종가 데이터 목록'
+        ordering = ['-target_date', 'stock__name']
+        unique_together = ('stock', 'target_date')
+
+    def __str__(self):
+        return f'{self.stock.name} - {self.target_date} 종가'
+```
+
+### 이 테이블은 왜 따로 둘까요?
+
+왜냐하면 종가 데이터는 감정분석과 출처도 다르고, 갱신 방식도 다르기 때문입니다.
+
+* 감정분석은 게시글 원문을 바탕으로 계산됩니다.
+* 종가 데이터는 시장 가격 데이터를 바탕으로 저장됩니다.
+
+즉, 둘은 성격이 전혀 다릅니다.
+
+그리고 나중에 이런 비교를 하게 됩니다.
+
+* 감정 우세: 긍정
+* 실제 종가 방향: 상승
+* 결과: 일치
+
+이 비교를 하려면 일단 감정 테이블과 가격 테이블이 각자 독립적으로 잘 저장되어 있어야 합니다.
+
+---
+
+## 10. 감정분석은 어떤 방식으로 할까?
+
+이번 프로젝트에서 가장 많이 궁금해하는 부분이 바로 이겁니다.
+
+“감정분석이면 similarity나 embedding을 꼭 써야 하나요?”
+
+결론부터 말하면, **이번 프로젝트의 1차 목표는 분류(classification)**입니다.
+즉, 게시글 하나를 보고
+
+* 긍정
+* 중립
+* 부정
+
+중 어디에 가까운지 판단하는 것이 핵심입니다.
+
+그래서 **기본 축은 분류 모델**이 되어야 합니다.
+
+### 그럼 embedding이나 similarity는 안 쓰나요?
+
+안 쓰는 것은 아닙니다.
+다만 역할이 다릅니다.
+
+#### 1) 감정 라벨 분류
+
+이건 가장 직접적으로는 **텍스트 분류 모델**이 담당합니다.
+즉, 문장을 입력하면 positive / neutral / negative 중 하나를 예측하는 구조입니다.
+
+#### 2) 키워드 군집화 / 유사 게시글 묶기
+
+여기서는 embedding이 유용합니다.
+예를 들어 비슷한 말들을 묶거나,
+대표 게시글을 고르거나,
+유사한 문장을 묶어 요약할 때 embedding 기반 접근이 도움이 됩니다.
+
+#### 3) 대표 문장 선택
+
+하루치 게시글이 많을 때, 전체 분위기를 가장 잘 보여주는 문장을 뽑고 싶다면 similarity를 활용할 수 있습니다.
+
+즉, 이 프로젝트에서는 아래처럼 생각하면 좋습니다.
+
+* **감정 라벨링의 중심**: 분류 모델
+* **유사 글 묶기 / 대표 글 찾기 / 키워드 구조화**: embedding, similarity
+
+### 이번 시리즈에서는 어떤 흐름으로 갈까요?
+
+이번 시리즈에서는 설명 흐름을 너무 복잡하게 만들지 않기 위해,
+처음에는 **FastAPI에서 감정 분류 모델로 positive / neutral / negative를 반환**하는 구조로 갑니다.
+
+그리고 나중에 확장 포인트로 아래를 붙이기 좋게 설계할 예정입니다.
+
+* embedding 기반 유사 글 묶기
+* 대표 게시글 선택
+* 종목별 자주 등장한 표현 추출
+* 날짜별 분위기 변화 비교
+
+즉, **처음부터 similarity만으로 감정을 판정하는 구조는 가지 않겠습니다.**
+
+이번 프로젝트의 1차 목표는 어디까지나
+**“실제로 돌아가는 감정분석 서비스”**를 만드는 것이고,
+그 다음에 embedding / similarity를 확장 포인트로 붙이는 것이 더 자연스럽습니다.
+
+---
+
+## 11. analytics/models.py 최종 코드 정리
+
+앞에서 `DailySentiment`, `DailyPrice`를 나눠서 봤으니, 실제 파일 전체 코드는 아래처럼 정리하면 됩니다.
+
+```python title="analytics/models.py"
+from django.db import models
+from stocks.models import Stock
+
+
+class DailySentiment(models.Model):
+    SENTIMENT_CHOICES = [
+        ('POSITIVE', '긍정 우세'),
+        ('NEUTRAL', '중립 우세'),
+        ('NEGATIVE', '부정 우세'),
+    ]
+
+    stock = models.ForeignKey(
+        Stock,
+        on_delete=models.CASCADE,
+        related_name='daily_sentiments',
+        verbose_name='종목'
+    )
+    target_date = models.DateField(verbose_name='분석 기준 날짜')
+    total_posts = models.PositiveIntegerField(default=0, verbose_name='총 게시글 수')
+    positive_count = models.PositiveIntegerField(default=0, verbose_name='긍정 게시글 수')
+    neutral_count = models.PositiveIntegerField(default=0, verbose_name='중립 게시글 수')
+    negative_count = models.PositiveIntegerField(default=0, verbose_name='부정 게시글 수')
+    dominant_sentiment = models.CharField(
+        max_length=20,
+        choices=SENTIMENT_CHOICES,
+        blank=True,
+        verbose_name='우세 감정'
+    )
+    summary = models.TextField(blank=True, verbose_name='요약 문장')
+    keywords = models.TextField(blank=True, verbose_name='핵심 키워드')
+    analysis_created_at = models.DateTimeField(auto_now_add=True, verbose_name='분석 생성 시각')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정 시각')
+
+    class Meta:
+        verbose_name = '일별 감정분석'
+        verbose_name_plural = '일별 감정분석 목록'
+        ordering = ['-target_date', 'stock__name']
+        unique_together = ('stock', 'target_date')
+
+    def __str__(self):
+        return f'{self.stock.name} - {self.target_date} 감정분석'
+
+
+class DailyPrice(models.Model):
+    PRICE_DIRECTION_CHOICES = [
+        ('UP', '상승'),
+        ('FLAT', '보합'),
+        ('DOWN', '하락'),
+    ]
+
+    stock = models.ForeignKey(
+        Stock,
+        on_delete=models.CASCADE,
+        related_name='daily_prices',
+        verbose_name='종목'
+    )
+    target_date = models.DateField(verbose_name='기준 날짜')
+    close_price = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='종가')
+    change_rate = models.DecimalField(max_digits=8, decimal_places=2, default=0, verbose_name='등락률(%)')
+    direction = models.CharField(
+        max_length=10,
+        choices=PRICE_DIRECTION_CHOICES,
+        blank=True,
+        verbose_name='종가 방향'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일')
+
+    class Meta:
+        verbose_name = '일별 종가 데이터'
+        verbose_name_plural = '일별 종가 데이터 목록'
+        ordering = ['-target_date', 'stock__name']
+        unique_together = ('stock', 'target_date')
+
+    def __str__(self):
+        return f'{self.stock.name} - {self.target_date} 종가'
+```
+
+---
+
+## 12. 마이그레이션 진행하기
+
+모델을 만들었으면 이제 DB에 반영해야 합니다.
+
+```bash title="terminal"
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### 왜 migrate를 해야 하나요?
+
+모델 파일에 클래스만 작성했다고 DB 테이블이 자동 생성되지는 않습니다.
+
+Django는
+
+1. 모델 변경 사항 감지
+2. migration 파일 생성
+3. 실제 DB 반영
+
+이 순서로 동작합니다.
+
+그래서 항상 모델 작성 후에는 아래 흐름을 기억해야 합니다.
+
+* `makemigrations`
+* `migrate`
+
+이 두 명령어는 항상 외워두세요!
+
+---
+
+## 13. admin에 모델 등록하기
+
+이제 관리자 페이지에서 종목, 게시글, 일별 분석 데이터를 직접 확인할 수 있도록 등록하겠습니다.
+
+### stocks/admin.py
+
+```python title="stocks/admin.py"
+from django.contrib import admin
+from .models import Stock
+
+
+@admin.register(Stock)
+class StockAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'code', 'market', 'is_active', 'created_at')
+    list_filter = ('market', 'is_active')
+    search_fields = ('name', 'code')
+```
+
+### community/admin.py
+
+```python title="community/admin.py"
+from django.contrib import admin
+from .models import CommunityPost
+
+
+@admin.register(CommunityPost)
+class CommunityPostAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'stock', 'title', 'author_name', 'posted_at',
+        'view_count', 'like_count', 'dislike_count', 'crawled_at'
+    )
+    list_filter = ('stock__market', 'stock', 'source')
+    search_fields = ('title', 'content', 'author_name', 'stock__name', 'stock__code')
+    ordering = ('-posted_at', '-id')
+```
+
+### analytics/admin.py
+
+```python title="analytics/admin.py"
+from django.contrib import admin
+from .models import DailySentiment, DailyPrice
+
+
+@admin.register(DailySentiment)
+class DailySentimentAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'stock', 'target_date', 'total_posts',
+        'positive_count', 'neutral_count', 'negative_count', 'dominant_sentiment'
+    )
+    list_filter = ('target_date', 'stock__market', 'dominant_sentiment')
+    search_fields = ('stock__name', 'stock__code', 'keywords')
+    ordering = ('-target_date', 'stock__name')
+
+
+@admin.register(DailyPrice)
+class DailyPriceAdmin(admin.ModelAdmin):
+    list_display = ('id', 'stock', 'target_date', 'close_price', 'change_rate', 'direction')
+    list_filter = ('target_date', 'stock__market', 'direction')
+    search_fields = ('stock__name', 'stock__code')
+    ordering = ('-target_date', 'stock__name')
+```
+
+### 왜 admin을 꼭 해보는가?
+
+dmin을 단순한 “관리자 화면” 정도로만 생각하는 경우가 많습니다.
+하지만 실제로는 아주 훌륭한 검증 도구입니다.
+
+특히 이번 프로젝트에서는 admin이 중요합니다.
+
+* 종목 데이터가 잘 들어갔는지
+* 게시글 크롤링이 잘 저장됐는지
+* 감정분석 결과가 잘 쌓이는지
+* 종가 데이터가 날짜별로 잘 저장됐는지
+
+이걸 가장 먼저 눈으로 확인할 수 있기 때문입니다.
+
+---
+
+## 14. 슈퍼유저 만들기
+
+관리자 페이지를 사용하려면 슈퍼유저를 생성해야 합니다.
+
+```bash title="terminal"
+python manage.py createsuperuser
+```
+
+아이디, 이메일, 비밀번호를 입력하고 나면 관리자 계정이 생성됩니다.
+
+---
+
+## 15. 기본 홈 화면 만들기
+
+이제 브라우저에서 프로젝트가 “그래도 뭔가 서비스처럼” 보이도록 첫 화면을 만들어보겠습니다.
+
+이번 편에서는 복잡한 기능보다, 공통 레이아웃과 홈 화면을 먼저 깔끔하게 구성하겠습니다.
+
+먼저 앱 URL과 프로젝트 URL을 연결하겠습니다.
+
+### stocks/urls.py
+
+```python title="stocks/urls.py"
+from django.urls import path
+from .views import HomeView
+
+app_name = 'stocks'
+
+urlpatterns = [
+    path('', HomeView.as_view(), name='home'),
+]
+```
+
+### stocks/views.py
+
+```python title="stocks/views.py"
+from django.views.generic import TemplateView
+from .models import Stock
+
+
+class HomeView(TemplateView):
+    template_name = 'stocks/home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['stock_count'] = Stock.objects.count()
+        context['active_stock_count'] = Stock.objects.filter(is_active=True).count()
+        context['kospi_count'] = Stock.objects.filter(market='KOSPI').count()
+        context['nasdaq_count'] = Stock.objects.filter(market='NASDAQ').count()
+        return context
+```
+
+### config/urls.py
+
+```python title="config/urls.py"
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('stocks.urls')),
+]
+```
+
+---
+
+## 16. 템플릿과 정적 파일 구조 만들기
+
+### templates / static 폴더 만들기
+
+```text title="templates, static 폴더 구조"
+backend/
+├── templates/
+│   ├── base.html
+│   └── stocks/
+│       └── home.html
+└── static/
+    └── css/
+        └── style.css
+```
+
+그리고 `settings.py`에서 템플릿 폴더와 static 사용을 함께 확인합니다.
+
+```python title="config/settings.py"
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+```
+
+---
+
+## 17. base.html 만들기
+
+공통 레이아웃을 먼저 만드는 습관은 정말 중요합니다.
+
+처음부터 모든 페이지가 각자 따로 놀게 만들면,
+나중에 디자인 수정할 때 너무 힘들어집니다.
+
+그래서 이번에도 `base.html`을 먼저 만들고, 각 페이지가 이 레이아웃을 상속받도록 하겠습니다.
+
+### templates/base.html
+
+```html title="templates/base.html"
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}stock_sentiment_platform{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="/" class="brand">stock_sentiment_platform</a>
+      <nav class="nav-links">
+        <a href="/">홈</a>
+        <a href="#">종목 목록</a>
+        <a href="#">게시글 탐색</a>
+        <a href="#">감정 대시보드</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      Django + DRF + FastAPI 기반 주식 커뮤니티 감정분석 프로젝트
+    </div>
+  </footer>
+</body>
+</html>
+```
+
+---
+
+## 18. style.css 만들기
+
+### static/css/style.css
+
+```css title="static/css/style.css"
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  background: #f6f7fb;
+  color: #1f2937;
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.container {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.navbar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.brand {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #111827;
+}
+
+.nav-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: #4b5563;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-links a:hover {
+  background: #eef2ff;
+  color: #111827;
+}
+
+.page {
+  padding: 44px 0 80px;
+}
+
+.footer {
+  padding: 28px 0 50px;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 24px;
+  align-items: stretch;
+  margin-top: 12px;
+}
+
+.hero-card,
+.stats-card,
+.feature-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.hero-card {
+  padding: 40px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.hero h1 {
+  margin: 0 0 16px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  color: #111827;
+}
+
+.hero p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 18px;
+  border-radius: 14px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.btn-primary {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+}
+
+.stats-card {
+  padding: 28px;
+}
+
+.stats-card h2 {
+  margin: 0 0 20px;
+  font-size: 1.08rem;
+  color: #111827;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.stat-item {
+  padding: 18px;
+  border-radius: 18px;
+  background: #f9fafb;
+  border: 1px solid #eceff3;
+}
+
+.stat-label {
+  display: block;
+  color: #6b7280;
+  font-size: 0.92rem;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.03em;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.section-title {
+  margin: 0 0 16px;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+  color: #111827;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.feature-card {
+  padding: 24px;
+}
+
+.feature-card h3 {
+  margin: 0 0 12px;
+  font-size: 1.08rem;
+  color: #111827;
+}
+
+.feature-card p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+@media (max-width: 980px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .hero-card,
+  .stats-card,
+  .feature-card {
+    padding: 22px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+---
+
+## 19. home.html 만들기
+
+이제 홈 화면을 구성하겠습니다.
+
+### templates/stocks/home.html
+
+```html title="templates/stocks/home.html"
+{% extends 'base.html' %}
+
+{% block title %}stock_sentiment_platform | 홈{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-card">
+    <div class="hero-badge">실사용형 프로젝트 · 크롤링 + 감정분석 + 대시보드</div>
+    <h1>주식 커뮤니티의 분위기를
+      데이터로 읽는 플랫폼</h1>
+    <p>
+      네이버 종목토론방의 게시글을 주기적으로 수집하고,
+      종목별 긍정·중립·부정 비율을 분석한 뒤 실제 종가 방향과 비교해보는 프로젝트입니다.
+      이번 1편에서는 프로젝트의 전체 구조를 이해하고, 데이터를 저장할 핵심 모델 설계를 완료합니다.
+    </p>
+
+    <div class="hero-actions">
+      <a href="/admin/" class="btn btn-primary">관리자 페이지로 이동</a>
+      <a href="#" class="btn btn-secondary">다음 편에서 크롤링 붙이기</a>
+    </div>
+  </div>
+
+  <div class="stats-card">
+    <div>
+      <h2>현재 프로젝트 현황</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label">전체 종목 수</span>
+          <strong class="stat-value">{{ stock_count }}</strong>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">활성 종목 수</span>
+          <strong class="stat-value">{{ active_stock_count }}</strong>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">코스피 종목 수</span>
+          <strong class="stat-value">{{ kospi_count }}</strong>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">나스닥 종목 수</span>
+          <strong class="stat-value">{{ nasdaq_count }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">이번 프로젝트에서 배우게 되는 것</h2>
+  <div class="feature-grid">
+    <article class="feature-card">
+      <h3>1. Django 기초를 실서비스 구조로 이해하기</h3>
+      <p>
+        프로젝트 생성, 앱 분리, 모델 설계, admin, 템플릿 구조를 단순 예제가 아니라
+        실제 데이터 수집형 서비스 구조에 맞춰 경험하게 됩니다.
+      </p>
+    </article>
+
+    <article class="feature-card">
+      <h3>2. 커뮤니티 데이터 수집 흐름 익히기</h3>
+      <p>
+        다음 편부터는 네이버 종목토론방 글을 일정 주기로 수집하고,
+        중복 저장을 방지하는 실사용형 크롤링 구조를 붙이게 됩니다.
+      </p>
+    </article>
+
+    <article class="feature-card">
+      <h3>3. 감정분석과 종가 비교까지 연결하기</h3>
+      <p>
+        FastAPI AI 서버를 통해 감정분석을 수행하고,
+        최종적으로는 커뮤니티 분위기와 실제 종가 방향의 일치 여부를 확인하게 됩니다.
+      </p>
+    </article>
+  </div>
+</section>
+{% endblock %}
+```
+
+---
+
+## 20. runserver로 확인하기
+
+이제 서버를 실행해서 첫 화면을 확인해봅시다.
+
+```bash title="terminal"
+python manage.py runserver
+```
+
+브라우저에서 아래 주소로 접속합니다.
+
+```text title="주소"
+http://127.0.0.1:8000/
+```
+
+그리고 관리자 페이지는 아래 주소입니다.
+
+```text title="주소"
+http://127.0.0.1:8000/admin/
+```
+
+### 이번 단계에서 꼭 확인할 것
+
+* 홈 화면이 깨지지 않고 잘 보이는지
+* 네비게이션과 카드 UI가 정상적으로 보이는지
+* 관리자 페이지 접속이 되는지
+* Stock, CommunityPost, DailySentiment, DailyPrice 모델이 admin에 보이는지
+
+아직 종목 데이터가 없기 때문에 숫자는 0으로 보일 수 있습니다.
+이건 정상입니다.
+
+이번 편은 “데이터 입력과 수집”이 아니라, **구조를 만드는 편**이기 때문입니다.
+
+---
+
+## 21. 자주 만나는 오류 포인트
+
+### 1) `No module named 'stocks'`
+
+앱을 만들었지만 `INSTALLED_APPS` 등록이 빠졌을 가능성이 큽니다.
+
+### 2) `TemplateDoesNotExist`
+
+`templates` 폴더 경로나 `TEMPLATES['DIRS']` 설정을 다시 확인하세요.
+
+### 3) 관리자 페이지에 모델이 안 보임
+
+`admin.py` 등록이 빠졌거나, 서버를 재시작하지 않았을 수 있습니다.
+
+### 4) 마이그레이션 오류
+
+모델을 수정했는데 `makemigrations`, `migrate`를 다시 하지 않은 경우가 많습니다.
+
+### 5) 홈 화면은 뜨는데 CSS가 적용되지 않음
+
+이번 교안은 HTML과 CSS를 분리했기 때문에, `base.html`에 `{% load static %}`가 있는지,
+그리고 `<link rel="stylesheet" href="{% static 'css/style.css' %}">`가 정확히 들어갔는지 확인하세요.
+
+또한 `static/css/style.css` 경로가 실제 파일 구조와 일치하는지도 꼭 확인해야 합니다.
+
+---
+
+## 22. 이번 편 체크리스트
+
+* ✅ Django 프로젝트를 생성했다.
+* ✅ `stocks`, `community`, `analytics` 앱을 만들었다.
+* ✅ `INSTALLED_APPS`에 앱 등록을 했다.
+* ✅ `Stock` 모델을 만들었다.
+* ✅ `CommunityPost` 모델을 만들었다.
+* ✅ `DailySentiment`, `DailyPrice` 모델을 만들었다.
+* ✅ `makemigrations`, `migrate`를 실행했다.
+* ✅ admin에 모델을 등록했다.
+* ✅ `createsuperuser`로 관리자 계정을 만들었다.
+* ✅ `base.html`, `style.css`, `home.html`을 만들었다.
+* ✅ `runserver`로 첫 화면을 확인했다.
+
+---
+
+## 23. 마무리
+
+이번 1편에서는 이 프로젝트의 가장 중요한 기초를 만들었습니다.
+
+우리는 단순히 “게시판 같은 화면 하나”를 만든 것이 아니라,
+앞으로 붙게 될 기능들을 감당할 수 있는 구조를 먼저 설계했습니다.
+
+이번 편에서 꼭 기억해야 할 핵심은 이겁니다.
+
+* 종목 정보는 `Stock`
+* 수집한 원문은 `CommunityPost`
+* 하루 단위 감정 집계는 `DailySentiment`
+* 실제 종가 데이터는 `DailyPrice`
+
+즉,
+**원천 데이터와 집계 데이터를 분리해서 설계하는 것**이 이번 편의 가장 중요한 포인트입니다.
+
+그리고 감정분석 역시 처음부터 모든 AI 기법을 한 번에 다 넣는 것이 아니라,
+**먼저는 분류 기반 감정분석이 중심**이고,
+그 다음에 embedding / similarity를 확장 포인트로 붙인다는 흐름을 기억하면 됩니다.
+
+다음 편에서는 본격적으로 **네이버 종목토론방 크롤링**을 붙여보겠습니다.
+그때부터는 종목별 토론글을 실제로 수집하고, 중복 저장을 방지하는 구조까지 만들게 됩니다.
+
+---
+
+## 다음 편 예고
+
+다음 편에서는 아래 내용을 진행합니다.
+
+* 종목 마스터 데이터 준비
+* 네이버 종목토론방 목록 페이지 수집
+* 상세 글 수집
+* 새 글만 저장하는 구조 만들기
+* management command로 자동 수집 실행하기
