@@ -1500,11 +1500,17 @@ http://127.0.0.1:8000/
 
 그러면 1편 기준 메인 페이지가 보여야 합니다.
 
+<Image
+  src="/blogs/community_app(1)/2.png"
+  width={360}
+  height={200}
+  alt="Image"
+  sizes="100vw"
+/>
+
 ---
 
 # 15단계. 관리자 계정 만들기
-
-지금 당장 많이 쓰지는 않더라도, 관리자 페이지는 프로젝트 초반부터 사용할 준비를 해두는 것이 좋습니다.
 
 ```bash title="터미널"
 python manage.py createsuperuser
@@ -1517,9 +1523,6 @@ python manage.py createsuperuser
 ```text
 http://127.0.0.1:8000/admin/
 ```
-
-지금은 아직 등록한 모델이 거의 없어서 볼 것이 많지 않지만,
-3편부터 카테고리와 게시글을 admin에서 다루게 됩니다.
 
 ---
 
@@ -1581,15 +1584,11 @@ community-board-project/
 └── media/
 ```
 
-이 구조가 아주 중요합니다.
-
-왜냐하면 앞으로 2편부터는 이 위에 기능을 하나씩 덧붙이기만 하면 되기 때문입니다.
-
 ---
 
-# 17단계. 이번 편 핵심 정리
+# 17단계. 정리
 
-이번 1편에서는 기능을 많이 구현하지 않았습니다.
+1편에서는 기능을 많이 구현하지 않았습니다.
 하지만 프로젝트 전체에서 가장 중요한 토대를 만들었습니다.
 
 ## 이번 편에서 완료한 것
@@ -1605,7 +1604,7 @@ community-board-project/
 * 프로젝트 전체 URL 구조 설정
 * 관리자 진입 준비 완료
 
-## 이번 편에서 아직 안 만든 것
+## 아직 안 만든 것
 
 * 회원가입 / 로그인
 * 게시글 모델
@@ -1615,27 +1614,6 @@ community-board-project/
 * 검색 / 필터 / 페이지네이션
 * DRF API
 
-즉, 지금은 **껍데기와 공통 구조**를 완성한 상태입니다.
-
----
-
-# 왜 1편에서 DRF를 바로 많이 안 쓰는가?
-
-이번 프로젝트는 마지막에 DRF와 Generic API View까지 붙일 예정입니다.
-하지만 최민석 학생 수준을 고려하면,
-처음부터 API 중심으로 들어가면 전체 흐름을 놓칠 가능성이 큽니다.
-
-그래서 먼저
-
-* 템플릿 구조
-* 공통 레이아웃
-* URL 구조
-* 프로젝트 설정
-
-을 통해 “사이트가 어떻게 구성되는지”를 눈으로 먼저 이해하게 하는 것이 중요합니다.
-
-그리고 7편에서 DRF를 붙이면,
-학생은 이미 알고 있는 게시글 / 댓글 데이터를 API 형태로 다시 보게 되므로 이해가 훨씬 쉽습니다.
 
 ---
 
@@ -1663,42 +1641,21 @@ community-board-project/
 
 아래 항목이 모두 완료되었다면 1편은 정상적으로 끝난 것입니다.
 
-* [ ] 가상환경을 만들고 활성화했다.
-* [ ] Django, Pillow, django-environ, djangorestframework를 설치했다.
-* [ ] `config` 프로젝트를 생성했다.
-* [ ] `accounts`, `posts`, `interactions` 앱을 생성했다.
-* [ ] `templates`, `static/css`, `static/js`, `media` 폴더를 만들었다.
-* [ ] `.env` 파일을 만들고 SECRET_KEY, DEBUG를 작성했다.
-* [ ] `config/settings.py`를 교안대로 수정했다.
-* [ ] `config/views.py`에 `HomeView`를 작성했다.
-* [ ] 각 앱의 `urls.py` 파일을 만들었다.
-* [ ] `config/urls.py`를 교안대로 수정했다.
-* [ ] `templates/base.html`을 만들었다.
-* [ ] `templates/home.html`을 만들었다.
-* [ ] `static/css/style.css`를 만들었다.
-* [ ] `python manage.py migrate` 실행에 성공했다.
-* [ ] `python manage.py runserver` 후 메인 페이지가 정상 표시되었다.
-* [ ] `python manage.py createsuperuser`로 관리자 계정을 만들었다.
+* ✅ 가상환경을 만들고 활성화했다.
+* ✅ Django, Pillow, django-environ, djangorestframework를 설치했다.
+* ✅ `config` 프로젝트를 생성했다.
+* ✅ `accounts`, `posts`, `interactions` 앱을 생성했다.
+* ✅ `templates`, `static/css`, `static/js`, `media` 폴더를 만들었다.
+* ✅ `.env` 파일을 만들고 SECRET_KEY, DEBUG를 작성했다.
+* ✅ `config/settings.py`를 교안대로 수정했다.
+* ✅ `config/views.py`에 `HomeView`를 작성했다.
+* ✅ 각 앱의 `urls.py` 파일을 만들었다.
+* ✅ `config/urls.py`를 교안대로 수정했다.
+* ✅ `templates/base.html`을 만들었다.
+* ✅ `templates/home.html`을 만들었다.
+* ✅ `static/css/style.css`를 만들었다.
+* ✅ `python manage.py migrate` 실행에 성공했다.
+* ✅ `python manage.py runserver` 후 메인 페이지가 정상 표시되었다.
+* ✅ `python manage.py createsuperuser`로 관리자 계정을 만들었다.
 
 ---
-
-# 마무리
-
-이번 1편은 화려한 기능을 만드는 편은 아니지만,
-프로젝트 전체의 토대를 가장 탄탄하게 만드는 편입니다.
-
-이 구조를 잘 잡아두면 이후 편에서
-
-* 회원가입 / 로그인
-* 게시글 CRUD
-* 댓글 / 좋아요
-* 파일 업로드
-* 검색 / 필터 / 페이지네이션
-* DRF API
-
-를 훨씬 안정적으로 붙일 수 있습니다.
-
-특히 지금 작성한 `base.html`, `style.css`, `config/urls.py`, `settings.py`는 앞으로 거의 모든 편에서 계속 재사용됩니다.
-
-즉, 이번 편은 단순한 시작이 아니라,
-**커뮤니티 게시판 프로젝트 전체를 떠받치는 기본 뼈대 완성**이라고 이해하시면 됩니다.
