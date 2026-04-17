@@ -1,0 +1,2076 @@
+---
+title: "Django 기초 - 공부시간 기록기 만들기(4)"
+description: "기존 공부시간 기록기를 서비스형 앱으로 확장하며 회원가입, 로그인/로그아웃, 사용자별 공부기록, 작성자 권한 처리."
+image: "../../public/blogs/study_time_tracker(4)/cover.png"
+publishedAt: "2026-04-17T13:00:00+09:00"
+updatedAt: "2026-04-17T13:00:00+09:00"
+author: "Baekki"
+isPublished: true
+tags:
+    - Django basic
+    - Authentication
+    - 공부시간 기록기 만들기
+---
+
+# Django 기초 - 공부시간 기록기 만들기(4) : 실습 앱에서 서비스로, 회원가입과 사용자별 공부기록 만들기
+
+이번 4편에서는 1~3편에서 만든 **공부시간 기록기 CRUD + 제너릭 View + DRF API 구조**를 바탕으로,
+이제 이 프로젝트를 **진짜 서비스처럼 보이게 만드는 첫 단계**를 진행합니다.
+
+지금까지의 공부시간 기록기는 브라우저에서 기록을 등록하고 수정하고 삭제하는 실습 앱에 가까웠습니다.
+그런데 실제 서비스라면 보통 아래 질문이 생깁니다.
+
+* 누가 작성한 기록인가?
+* 로그인한 사람의 기록만 따로 보여줄 수 있는가?
+* 아무나 남의 글을 수정하거나 삭제할 수 있으면 안 되지 않는가?
+* 홈 화면이 단순 목록이 아니라 서비스 첫 화면처럼 보여야 하지 않는가?
+
+이번 편은 바로 그 부분을 해결합니다.
+
+핵심 흐름은 아래와 같습니다.
+
+```
+기존 CRUD 실습 앱 완성
+→ 회원 기능 추가
+→ Study와 User 연결
+→ 로그인한 사용자의 기록만 관리
+→ 작성자만 수정/삭제 가능
+→ 홈 화면과 메뉴를 서비스형으로 개편
+```
+
+이번 편이 끝나면, **회원이 로그인해서 자신의 학습 기록을 관리하는 서비스형 프로젝트**로 바뀌게 됩니다.
+
+---
+
+# 0. 이번 교안의 목표
+
+| 목표                    | 설명                                   |
+| --------------------- | ------------------------------------ |
+| 인증(Authentication) 이해 | 회원가입, 로그인, 로그아웃이 왜 필요한지 이해           |
+| 사용자별 데이터 분리           | Study 데이터가 누구의 것인지 연결하고, 내 기록만 따로 관리 |
+| 권한 처리 이해              | 작성자만 수정/삭제 가능하도록 제한                  |
+| 서비스형 화면 구성            | 단순 실습 UI가 아니라 실제 서비스처럼 첫 화면과 메뉴 구성   |
+
+즉 이번 편에서 꼭 머릿속에 남겨야 하는 흐름은 아래입니다.
+
+```
+기록 데이터만 있는 앱
+→ 사용자를 붙인다
+→ 데이터 소유자가 생긴다
+→ 내 데이터 / 남의 데이터 개념이 생긴다
+→ 권한 처리가 필요해진다
+→ 서비스형 구조가 된다
+```
+
+이 흐름이 이해되면 이후 5편, 6편, 7편에서 붙일
+검색 / 필터 / 회고 / 첨부파일 / AI 요약 기능도 훨씬 자연스럽게 연결할 수 있습니다.
+
+---
+
+# 1. 이번 편에서 만들 최종 결과 먼저 보기
+
+이번 4편이 끝나면 아래가 가능해야 합니다.
+
+## 이번 편에서 완성할 것
+
+| 영역      | 기능                        |
+| ------- | ------------------------- |
+| 회원 기능   | 회원가입, 로그인, 로그아웃           |
+| 모델 구조   | Study와 User 연결            |
+| 목록 구조   | 로그인한 사용자의 공부기록만 보기        |
+| 권한      | 작성자만 수정/삭제 가능             |
+| 홈 화면    | 서비스형 소개 + 로그인 상태별 버튼 구성   |
+| 대시보드 감성 | 내 기록 수, 누적 공부시간, 최근 기록 보기 |
+
+## 최종 사용 흐름
+
+```
+회원가입
+→ 로그인
+→ 공부 기록 작성
+→ 내 기록 목록 확인
+→ 내가 쓴 기록만 수정/삭제
+→ 로그아웃
+```
+
+---
+
+# 2. 이번 실습 순서 먼저 보기
+
+이번 4편은 아래 순서로 진행합니다.
+
+```
+1. 3편까지의 현재 상태 점검
+2. 왜 회원 기능이 필요한지 이해
+3. User와 Study 연결 설계
+4. Study 모델에 author 추가
+5. 마이그레이션 진행
+6. 회원가입 폼과 View 만들기
+7. 로그인 / 로그아웃 연결
+8. 공통 base.html에 네비게이션 추가
+9. 홈 화면을 서비스형으로 개편
+10. Study 생성 시 작성자 자동 연결
+11. 목록에서 로그인한 사용자의 기록만 보이게 변경
+12. 상세 / 수정 / 삭제 권한 처리
+13. 템플릿에서 작성자 기준 버튼 제어
+14. 관리자 페이지 확인
+15. 전체 흐름 테스트
+16. 다음 편 연결 포인트 정리
+```
+
+## 왜 이 순서인가?
+
+* 회원가입/로그인을 하려면 사용자 개념이 먼저 필요합니다.
+* 사용자 개념을 붙이려면 Study 모델이 User와 연결되어야 합니다.
+* 모델이 연결되어야 작성자 권한 처리가 가능합니다.
+* 로그인한 사용자 기준으로 목록과 버튼을 제어해야 서비스처럼 동작합니다.
+* 마지막에 홈 화면과 메뉴를 다듬어야 “실습 앱 → 서비스 앱” 전환이 눈에 보입니다.
+
+즉 아래 흐름으로 가는 것입니다.
+
+```
+데이터 구조 준비
+→ 인증 기능 연결
+→ 권한 처리
+→ UI/UX 정리
+```
+
+---
+
+# 3. 3편까지의 현재 상태 먼저 점검하기
+
+이번 교안은 3편이 끝난 상태를 기준으로 진행합니다.
+
+## 지금 프로젝트가 갖추고 있어야 할 것
+
+* `Study` 모델이 존재한다.
+* 제너릭 View 기준 CRUD가 동작한다.
+* `study_list.html`, `study_detail.html`, `study_form.html`, `study_confirm_delete.html`이 존재한다.
+* 목록 페이지에 페이지네이션이 적용되어 있다.
+* DRF용 Serializer / ViewSet / Router 구조가 존재한다.
+* 브라우저에서 CRUD가 정상 동작한다.
+
+## 현재 `Study` 모델 상태 복습
+
+3편 기준 `Study` 모델은 아래 구조입니다.
+
+```python title="study/models.py"
+from django.db import models
+
+
+class Study(models.Model):
+    CATEGORY_CHOICES = [
+        ('python', 'Python'),
+        ('django', 'Django'),
+        ('algorithm', '알고리즘'),
+        ('database', 'Database'),
+        ('etc', '기타'),
+    ]
+
+    title = models.CharField(max_length=200, verbose_name='공부 제목')
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='django', verbose_name='카테고리')
+    study_date = models.DateField(verbose_name='공부 날짜')
+    hours = models.PositiveIntegerField(default=0, verbose_name='시간')
+    minutes = models.PositiveIntegerField(default=0, verbose_name='분')
+    memo = models.TextField(blank=True, verbose_name='메모')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-study_date', '-created_at']
+        verbose_name = '공부 기록'
+        verbose_name_plural = '공부 기록들'
+
+    def __str__(self):
+        return f'{self.title} ({self.study_date})'
+
+    @property
+    def total_minutes(self):
+        return self.hours * 60 + self.minutes
+```
+
+지금 이 모델에는 중요한 정보가 하나 빠져 있습니다.
+
+바로:
+
+> 이 공부기록이 누구 것인가?
+
+실제 서비스에서는 이 정보가 반드시 필요합니다.
+
+---
+
+# 4. 왜 이제 회원 기능이 필요한가?
+
+구조를 이해하지 못한다면 아래처럼 생각할 수 있습니다.
+
+> 그냥 기록만 저장하면 되는 거 아닌가요?
+
+실습 단계에서는 맞습니다.
+그런데 서비스 단계에서는 문제가 생깁니다.
+
+예를 들어 현재 구조에서는 아래 문제가 있습니다.
+
+* 모든 사용자가 같은 기록 목록을 보게 될 수 있습니다.
+* 어떤 기록이 누구의 것인지 알 수 없습니다.
+* URL만 알면 남의 기록 수정/삭제가 가능할 수 있습니다.
+* “내 공부 통계”, “내 최근 기록”, “내 회고” 같은 화면을 만들기 어렵습니다.
+
+즉 서비스로 가려면 반드시 아래 구조가 필요합니다.
+
+```
+사용자(User)
+↕
+공부기록(Study)
+```
+
+이제부터는 `Study`가 혼자 존재하는 것이 아니라,
+**어떤 사용자가 작성한 Study인지 연결된 상태**로 가야 합니다.
+
+---
+
+# 5. User와 Study를 어떻게 연결할까?
+
+Django는 기본적으로 인증용 `User` 모델을 제공합니다.
+우리는 이 기본 User를 그대로 활용해도 충분합니다.
+
+즉 이번 편에서는 별도의 커스텀 유저 모델까지는 가지 않고,
+기본 User를 이용해 아래처럼 연결합니다.
+
+```
+User 1명
+→ Study 여러 개 작성 가능
+```
+
+즉 관계는 아래와 같습니다.
+
+```
+User : Study = 1 : N
+```
+
+Django 모델에서는 이런 연결을 `ForeignKey`로 표현합니다.
+
+---
+
+# 6. Study 모델에 author 필드 추가하기
+
+이제 `Study` 모델에 작성자를 나타내는 `author` 필드를 추가합니다.
+
+```python title="study/models.py"
+from django.conf import settings
+from django.db import models
+
+
+class Study(models.Model):
+    CATEGORY_CHOICES = [
+        ('python', 'Python'),
+        ('django', 'Django'),
+        ('algorithm', '알고리즘'),
+        ('database', 'Database'),
+        ('etc', '기타'),
+    ]
+
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='studies',
+        verbose_name='작성자',
+        null=True,
+        blank=True,
+    )
+    title = models.CharField(max_length=200, verbose_name='공부 제목')
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='django', verbose_name='카테고리')
+    study_date = models.DateField(verbose_name='공부 날짜')
+    hours = models.PositiveIntegerField(default=0, verbose_name='시간')
+    minutes = models.PositiveIntegerField(default=0, verbose_name='분')
+    memo = models.TextField(blank=True, verbose_name='메모')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-study_date', '-created_at']
+        verbose_name = '공부 기록'
+        verbose_name_plural = '공부 기록들'
+
+    def __str__(self):
+        writer = self.author.username if self.author else '작성자 없음'
+        return f'{self.title} - {writer}'
+
+    @property
+    def total_minutes(self):
+        return self.hours * 60 + self.minutes
+```
+
+## 코드 설명
+
+### `settings.AUTH_USER_MODEL`
+
+Django의 사용자 모델을 참조하는 안전한 방식입니다.
+기본 User를 쓰더라도 앞으로 확장 가능성을 고려하면 이 방식이 좋습니다.
+
+### `on_delete=models.CASCADE`
+
+작성자가 삭제되면 그 사용자의 공부기록도 함께 삭제되도록 합니다.
+
+### `related_name='studies'`
+
+이제 사용자 객체에서 아래처럼 접근할 수 있습니다.
+
+```
+user.studies.all()
+```
+
+즉 “이 사용자가 작성한 모든 공부기록”을 쉽게 꺼낼 수 있게 됩니다.
+
+### 왜 처음엔 `null=True, blank=True`를 넣는가?
+
+기존 데이터가 이미 DB에 들어 있을 수 있기 때문입니다.
+바로 필수값으로 만들면 마이그레이션 시 기존 데이터 때문에 충돌할 수 있습니다.
+
+실습 및 테스트 단계에서는 먼저 안전하게 필드를 추가한 뒤,
+이후 생성 로직에서 자동으로 작성자를 넣는 식으로 진행하는 것이 이해하기 쉽습니다.
+
+---
+
+# 7. 마이그레이션 진행하기
+
+모델을 수정했으니 마이그레이션을 진행합니다.
+
+macOS / Linux:
+
+```bash title="terminal"
+python manage.py makemigrations
+python manage.py migrate
+```
+
+Windows:
+
+```bash title="terminal"
+python manage.py makemigrations
+python manage.py migrate
+```
+
+## 여기서 꼭 이해할 것
+
+우리가 방금 한 일은 단순 파이썬 코드 수정이 아닙니다.
+DB 테이블 구조에 `author_id` 컬럼을 추가하는 작업입니다.
+
+즉 Django 흐름은 여전히 아래와 같습니다.
+
+```
+models.py 수정
+→ makemigrations
+→ migrate
+→ DB 구조 반영
+```
+
+---
+
+# 8. 관리자 페이지에 작성자 보이게 정리하기
+
+모델에 author가 추가되었으니 관리자 화면에서도 보이면 좋습니다.
+
+```python title="study/admin.py"
+from django.contrib import admin
+from .models import Study
+
+
+@admin.register(Study)
+class StudyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'author', 'category', 'study_date', 'hours', 'minutes', 'created_at')
+    list_filter = ('category', 'study_date', 'author')
+    search_fields = ('title', 'memo', 'author__username')
+    ordering = ('-study_date', '-created_at')
+```
+
+## 왜 admin도 함께 손보는가?
+
+관리자 페이지는 개발자가 데이터 상태를 확인하는 가장 빠른 도구입니다.
+특히 회원 기능을 붙인 뒤에는 아래를 확인하고 싶어집니다.
+
+* 어떤 기록에 작성자가 연결되었는가?
+* 작성자 없이 남아 있는 데이터는 없는가?
+* 특정 사용자의 기록이 잘 저장되는가?
+
+즉 admin은 단순 부가 기능이 아니라,
+**개발 중 현재 상태를 눈으로 확인하는 관리 도구**입니다.
+
+---
+
+# 9. 회원가입 기능을 위한 앱을 추가할까?
+
+회원 기능은 보통 기존 `study` 앱 안에 같이 넣을 수도 있고,
+`accounts` 같은 별도 앱으로 분리할 수도 있습니다.
+
+이번 교안에서는 구조를 조금 더 서비스답게 만들기 위해,
+**`accounts` 앱을 새로 만들어 회원 기능을 분리**해보겠습니다.
+
+이 방식의 장점은 아래와 같습니다.
+
+* 회원 기능과 공부기록 기능의 역할이 분리됩니다.
+* 나중에 프로필, 비밀번호 변경, 마이페이지 등을 붙이기 쉽습니다.
+* 실무에서도 인증/회원 관련 코드를 별도로 두는 경우가 많습니다.
+
+---
+
+# 10. accounts 앱 생성하기
+
+macOS / Linux:
+
+```bash title="terminal"
+python manage.py startapp accounts
+```
+
+Windows:
+
+```bash title="terminal"
+python manage.py startapp accounts
+```
+
+앱을 만들었으면 `settings.py`에 등록합니다.
+
+```python title="config/settings.py"
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'study',
+    'accounts',
+]
+```
+
+---
+
+# 11. 로그인/로그아웃 후 이동할 URL 설정하기
+
+인증 기능을 쓸 때는 로그인 성공 후 어디로 갈지,
+로그아웃 후 어디로 갈지를 미리 정해두면 편합니다.
+
+```python title="config/settings.py"
+LOGIN_REDIRECT_URL = 'study:list'
+LOGOUT_REDIRECT_URL = 'study:home'
+LOGIN_URL = 'accounts:login'
+```
+
+## 각각 의미
+
+* `LOGIN_REDIRECT_URL` : 로그인 성공 후 이동할 페이지
+* `LOGOUT_REDIRECT_URL` : 로그아웃 후 이동할 페이지
+* `LOGIN_URL` : 로그인 필요 페이지 접근 시 이동할 로그인 URL
+
+이 설정을 해두면 `LoginRequiredMixin`이나 `@login_required` 같은 기능과도 자연스럽게 연결됩니다.
+
+---
+
+# 12. 회원가입 폼 만들기
+
+Django는 기본 User 모델용 회원가입 폼으로 `UserCreationForm`을 제공합니다.
+이번 편에서는 이 폼을 상속해서 조금 더 보기 좋은 형태로 사용하겠습니다.
+
+```python title="accounts/forms.py"
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+
+class SignUpForm(UserCreationForm):
+    email = forms.EmailField(required=True, label='이메일')
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')
+        labels = {
+            'username': '아이디',
+        }
+```
+
+## 왜 `UserCreationForm`을 쓰는가?
+
+회원가입에는 단순 입력 필드만 있는 것이 아닙니다.
+
+* 비밀번호 2번 입력 확인
+* 비밀번호 유효성 검사
+* 사용자 생성 처리
+
+같은 기능이 필요합니다.
+
+이걸 처음부터 직접 짜는 것보다,
+Django가 이미 제공하는 `UserCreationForm`을 활용하는 것이 훨씬 좋습니다.
+
+---
+
+# 13. 회원가입 View 만들기
+
+회원가입은 제너릭 View 중 `CreateView`와 아주 잘 어울립니다.
+왜냐하면 “폼 보여주기 + 저장하기” 패턴이기 때문입니다.
+
+```python title="accounts/views.py"
+from django.contrib.auth.views import LoginView, LogoutView
+from django.urls import reverse_lazy
+from django.views.generic import CreateView
+from .forms import SignUpForm
+
+
+class SignUpView(CreateView):
+    form_class = SignUpForm
+    template_name = 'accounts/signup.html'
+    success_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '회원가입'
+        return context
+
+
+class CustomLoginView(LoginView):
+    template_name = 'accounts/login.html'
+    redirect_authenticated_user = True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '로그인'
+        return context
+
+
+class CustomLogoutView(LogoutView):
+    pass
+```
+
+## 코드 설명
+
+### `SignUpView(CreateView)`
+
+회원가입도 결국 새로운 User를 만드는 작업이므로 CreateView와 잘 맞습니다.
+
+### `CustomLoginView(LoginView)`
+
+Django 기본 로그인 기능을 템플릿만 연결해서 사용합니다.
+
+### `redirect_authenticated_user = True`
+
+이미 로그인한 사용자가 로그인 페이지로 들어오면,
+굳이 다시 로그인 폼을 보지 않고 적절한 페이지로 보내주는 옵션입니다.
+
+---
+
+# 14. accounts URL 만들기
+
+이제 회원 관련 URL을 따로 정리합니다.
+
+```python title="accounts/urls.py"
+from django.urls import path
+from .views import CustomLoginView, CustomLogoutView, SignUpView
+
+app_name = 'accounts'
+
+urlpatterns = [
+    path('signup/', SignUpView.as_view(), name='signup'),
+    path('login/', CustomLoginView.as_view(), name='login'),
+    path('logout/', CustomLogoutView.as_view(), name='logout'),
+]
+```
+
+그리고 프로젝트 URL에도 연결합니다.
+
+```python title="config/urls.py"
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('study.urls')),
+    path('accounts/', include('accounts.urls')),
+    path('api/', include('study.api_urls')),
+]
+```
+
+## 왜 `study.urls`를 루트에 두는가?
+
+이번 프로젝트는 공부시간 기록기가 메인 서비스이기 때문입니다.
+따라서 홈 화면과 메인 목록은 `study` 앱이 담당하고,
+회원 관련 경로만 `/accounts/` 아래로 분리하면 읽기 좋습니다.
+
+---
+
+# 15. 홈 화면을 서비스형으로 만들기
+
+이제 단순한 목록 페이지 하나만 덜렁 있는 구조보다,
+서비스 첫 화면 같은 `home` 페이지를 따로 두는 편이 좋습니다.
+
+이번 편에서는 아래처럼 역할을 나눕니다.
+
+* `/` : 서비스 소개형 홈 화면
+* `/studies/` : 로그인한 사용자의 공부기록 목록
+
+이렇게 하면 사용자는 처음 들어왔을 때 서비스 설명을 보고,
+로그인 후에는 자연스럽게 자신의 기록 목록으로 이동할 수 있습니다.
+
+---
+
+# 16. 홈 화면 View 추가하기
+
+`study` 앱에 홈 화면용 View를 추가합니다.
+
+```python title="study/views_generic.py"
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+from .forms import StudyForm
+from .models import Study
+
+
+class HomeView(TemplateView):
+    template_name = 'study/home.html'
+
+
+class StudyListGenericView(LoginRequiredMixin, ListView):
+    model = Study
+    template_name = 'study/study_list.html'
+    context_object_name = 'page_obj'
+    paginate_by = 5
+
+    def get_queryset(self):
+        return Study.objects.filter(author=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        studies = Study.objects.filter(author=self.request.user)
+        total_count = studies.count()
+        total_minutes = sum(study.total_minutes for study in studies)
+        context['total_count'] = total_count
+        context['total_hours'] = total_minutes // 60
+        context['remain_minutes'] = total_minutes % 60
+        context['recent_studies'] = studies[:3]
+        return context
+
+
+class StudyDetailGenericView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = Study
+    template_name = 'study/study_detail.html'
+    context_object_name = 'study'
+
+    def test_func(self):
+        return self.get_object().author == self.request.user
+
+
+class StudyCreateGenericView(LoginRequiredMixin, CreateView):
+    model = Study
+    form_class = StudyForm
+    template_name = 'study/study_form.html'
+    success_url = reverse_lazy('study:list')
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '공부 기록 작성'
+        return context
+
+
+class StudyUpdateGenericView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Study
+    form_class = StudyForm
+    template_name = 'study/study_form.html'
+
+    def test_func(self):
+        return self.get_object().author == self.request.user
+
+    def get_success_url(self):
+        return reverse_lazy('study:detail', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '공부 기록 수정'
+        return context
+
+
+class StudyDeleteGenericView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Study
+    template_name = 'study/study_confirm_delete.html'
+    success_url = reverse_lazy('study:list')
+    context_object_name = 'study'
+
+    def test_func(self):
+        return self.get_object().author == self.request.user
+```
+
+## 이번 코드에서 꼭 이해할 핵심
+
+### `LoginRequiredMixin`
+
+로그인하지 않은 사용자는 접근할 수 없게 합니다.
+
+즉:
+
+* 내 목록 보기
+* 상세 보기
+* 작성
+* 수정
+* 삭제
+
+모두 로그인 사용자만 사용할 수 있게 됩니다.
+
+### `UserPassesTestMixin`
+
+추가 권한 검사를 넣을 수 있는 믹스인입니다.
+이번 편에서는 “작성자 본인만 접근 가능” 조건을 넣습니다.
+
+### `test_func()`
+
+현재 요청 사용자와 해당 Study의 작성자가 같은지 검사합니다.
+
+```python
+return self.get_object().author == self.request.user
+```
+
+이 한 줄이 바로 **작성자 권한 처리의 핵심**입니다.
+
+### `get_queryset()`
+
+목록에서는 로그인한 사용자의 데이터만 보여주기 위해 queryset을 제한합니다.
+
+즉 이제 전체 Study가 아니라,
+
+```python
+Study.objects.filter(author=self.request.user)
+```
+
+만 보여줍니다.
+
+### `form_valid()`
+
+CreateView에서 저장 직전에 작성자를 자동으로 넣습니다.
+사용자가 폼에서 author를 직접 입력하면 안 되기 때문입니다.
+
+---
+
+# 17. study URL도 서비스 구조에 맞게 수정하기
+
+이제 홈 화면과 공부기록 목록을 분리한 URL 구조로 바꿉니다.
+
+```python title="study/urls.py"
+from django.urls import path
+from .views_generic import (
+    HomeView,
+    StudyCreateGenericView,
+    StudyDeleteGenericView,
+    StudyDetailGenericView,
+    StudyListGenericView,
+    StudyUpdateGenericView,
+)
+
+app_name = 'study'
+
+urlpatterns = [
+    path('', HomeView.as_view(), name='home'),
+    path('studies/', StudyListGenericView.as_view(), name='list'),
+    path('studies/create/', StudyCreateGenericView.as_view(), name='create'),
+    path('studies/<int:pk>/', StudyDetailGenericView.as_view(), name='detail'),
+    path('studies/<int:pk>/update/', StudyUpdateGenericView.as_view(), name='update'),
+    path('studies/<int:pk>/delete/', StudyDeleteGenericView.as_view(), name='delete'),
+]
+```
+
+## 왜 이 구조가 더 좋은가?
+
+3편까지는 `''`가 곧 목록 페이지였을 가능성이 큽니다.
+하지만 서비스가 되면 보통 아래처럼 분리하는 것이 좋습니다.
+
+* 홈: 소개 / 안내 / CTA 버튼
+* 목록: 실제 데이터 관리 화면
+
+즉 URL 구조도 서비스의 역할에 맞게 나뉘어야 합니다.
+
+---
+
+# 18. 템플릿 폴더 구조 다시 정리하기
+
+이번 편에서 사용할 템플릿은 아래처럼 정리하면 좋습니다.
+
+```text
+templates/
+├── accounts/
+│   ├── login.html
+│   └── signup.html
+└── study/
+    ├── base.html
+    ├── home.html
+    ├── study_list.html
+    ├── study_detail.html
+    ├── study_form.html
+    └── study_confirm_delete.html
+```
+
+실습 중 템플릿 위치가 꼬이면 Django가 템플릿을 못 찾는 경우가 많으니,
+폴더 구조를 꼭 한 번 눈으로 확인하세요.
+
+---
+
+# 19. 공통 레이아웃 base.html을 서비스형으로 바꾸기
+
+기존 base.html도 회원 기능에 맞게 바꾸는 것이 좋습니다.
+아래 예시는 로그인 여부에 따라 메뉴가 달라지고,
+상단에 서비스 느낌의 네비게이션이 보이도록 정리한 버전입니다.
+
+```html title="templates/study/base.html"
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}공부시간 기록기{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="{% url 'study:home' %}" class="brand">Study Tracker</a>
+ 
+            <nav class="main-nav">
+                <a href="{% url 'study:home' %}">홈</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'study:list' %}">내 기록</a>
+                    <a href="{% url 'study:create' %}">기록 작성</a>
+                    <form method="post" action="{% url 'accounts:logout' %}" class="logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-button">로그아웃</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}">로그인</a>
+                    <a href="{% url 'accounts:signup' %}">회원가입</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+ 
+    <main class="page-container">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
+```
+
+## 여기서 중요한 포인트
+
+### 왜 로그아웃은 form으로 처리하나?
+
+Django의 로그아웃은 보안상 POST 요청으로 처리하는 흐름이 더 안전합니다.
+그래서 단순 링크보다 form + POST 방식을 사용하는 습관이 좋습니다.
+
+---
+
+# 20. 서비스 첫 화면 home.html 만들기
+
+이제 홈 화면을 단순 문구가 아니라,
+공부시간 기록기 서비스 소개형 화면으로 만들어봅시다.
+
+```html title="templates/study/home.html"
+{% extends 'study/base.html' %}
+
+{% block title %}공부시간 기록기 홈{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="hero-copy">
+        <span class="hero-badge">Study Service</span>
+        <h1>공부를 기록하고, 흐름을 쌓고, 내 루틴을 남겨보세요.</h1>
+        <p>
+            오늘 무엇을 공부했는지 기록하고,
+            쌓인 학습 시간을 확인하면서 나만의 공부 루틴을 만들어보세요.
+        </p>
+
+        <div class="hero-actions">
+            {% if user.is_authenticated %}
+                <a href="{% url 'study:list' %}" class="btn btn-dark">내 기록 보러가기</a>
+                <a href="{% url 'study:create' %}" class="btn btn-light">새 기록 작성</a>
+            {% else %}
+                <a href="{% url 'accounts:signup' %}" class="btn btn-dark">회원가입</a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-light">로그인</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="hero-card">
+        <div class="mini-stat">
+            <span>기록 습관</span>
+            <strong>매일 조금씩</strong>
+        </div>
+        <div class="mini-stat">
+            <span>학습 정리</span>
+            <strong>내 흐름을 한눈에</strong>
+        </div>
+        <div class="mini-stat">
+            <span>다음 단계</span>
+            <strong>회고 · 요약 · 분석</strong>
+        </div>
+    </div>
+</section>
+
+<section class="feature-grid">
+    <article class="feature-card">
+        <h2>오늘의 공부를 기록</h2>
+        <p>제목, 날짜, 시간, 메모를 남기며 학습 흔적을 차곡차곡 쌓을 수 있습니다.</p>
+    </article>
+    <article class="feature-card">
+        <h2>내 기록만 깔끔하게 관리</h2>
+        <p>로그인한 사용자 기준으로 내 공부기록만 모아보고 관리할 수 있습니다.</p>
+    </article>
+    <article class="feature-card">
+        <h2>다음 편 확장 준비</h2>
+        <p>검색, 필터, 회고, AI 요약 기능으로 이어질 수 있는 구조를 준비합니다.</p>
+    </article>
+</section>
+{% endblock %}
+```
+
+---
+
+# 21. 회원가입 페이지 템플릿 만들기
+
+```html title="templates/accounts/signup.html"
+{% extends 'study/base.html' %}
+
+{% block title %}회원가입{% endblock %}
+
+{% block content %}
+<section class="form-section narrow">
+    <div class="section-head">
+        <span class="section-badge">Accounts</span>
+        <h1>{{ page_title }}</h1>
+        <p>아이디와 비밀번호를 설정하고 공부기록 서비스를 시작해보세요.</p>
+    </div>
+
+    <form method="post" class="study-form-card">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-dark">회원가입 완료</button>
+            <a href="{% url 'study:home' %}" class="btn btn-light">홈으로</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+```
+
+---
+
+# 22. 로그인 페이지 템플릿 만들기
+
+```html title="templates/accounts/login.html"
+{% extends 'study/base.html' %}
+
+{% block title %}로그인{% endblock %}
+
+{% block content %}
+<section class="form-section narrow">
+    <div class="section-head">
+        <span class="section-badge">Accounts</span>
+        <h1>{{ page_title }}</h1>
+        <p>로그인 후 내 공부기록과 누적 학습 흐름을 확인해보세요.</p>
+    </div>
+
+    <form method="post" class="study-form-card">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-dark">로그인</button>
+            <a href="{% url 'accounts:signup' %}" class="btn btn-light">회원가입</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+```
+
+---
+
+# 23. 기존 study_list.html도 사용자 중심으로 바꾸기
+
+이제 목록 페이지는 전체 서비스 화면이 아니라,
+**로그인한 사용자의 학습 대시보드**처럼 보이는 것이 더 자연스럽습니다.
+
+```html title="templates/study/study_list.html"
+{% extends 'study/base.html' %}
+ 
+{% block title %}내 공부기록{% endblock %}
+ 
+{% block content %}
+<section class="dashboard-hero">
+    <div>
+        <span class="section-badge">My Dashboard</span>
+        <h1>{{ user.username }}님의 공부기록</h1>
+        <p>내가 작성한 공부기록만 모아서 확인할 수 있습니다.</p>
+    </div>
+    <a href="{% url 'study:create' %}" class="btn btn-dark">새 기록 작성</a>
+</section>
+ 
+<section class="stats-grid">
+    <article class="stat-card">
+        <span>총 기록 수</span>
+        <strong>{{ total_count }}개</strong>
+    </article>
+    <article class="stat-card">
+        <span>누적 공부시간</span>
+        <strong>{{ total_hours }}시간 {{ remain_minutes }}분</strong>
+    </article>
+    <article class="stat-card">
+        <span>최근 기록</span>
+        <strong>{{ recent_studies|length }}개 확인</strong>
+    </article>
+</section>
+ 
+<section class="record-section">
+    <div class="section-head row-between">
+        <div>
+            <span class="section-badge">Records</span>
+            <h2>공부기록 목록</h2>
+        </div>
+    </div>
+ 
+    {% if studies %}
+        <div class="record-list">
+            {% for study in studies %}
+                <article class="record-card">
+                    <div class="record-top">
+                        <span class="category-pill">{{ study.get_category_display }}</span>
+                        <span class="record-date">{{ study.study_date }}</span>
+                    </div>
+                    <h3>{{ study.title }}</h3>
+                    <p class="record-time">{{ study.hours }}시간 {{ study.minutes }}분</p>
+                    {% if study.memo %}
+                        <p class="record-memo">{{ study.memo|truncatechars:100 }}</p>
+                    {% else %}
+                        <p class="record-memo empty">아직 메모가 없습니다.</p>
+                    {% endif %}
+                    <div class="card-actions">
+                        <a href="{% url 'study:detail' study.pk %}" class="btn btn-light">상세보기</a>
+                        <a href="{% url 'study:update' study.pk %}" class="btn btn-light">수정</a>
+                        <a href="{% url 'study:delete' study.pk %}" class="btn btn-light danger">삭제</a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+ 
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1">처음</a>
+                <a href="?page={{ page_obj.previous_page_number }}">이전</a>
+            {% endif %}
+ 
+            <span class="current-page">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+ 
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">다음</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}">마지막</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="empty-box">
+            <h3>아직 작성한 공부기록이 없습니다.</h3>
+            <p>첫 공부기록을 작성해서 나만의 학습 흐름을 만들어보세요.</p>
+            <a href="{% url 'study:create' %}" class="btn btn-dark">첫 기록 작성하기</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
+```
+
+## 여기서 꼭 볼 포인트
+
+3편과 달리 이제 이 목록은 “전체 데이터 목록”이 아니라,
+**내 학습 대시보드 역할**을 하게 됩니다.
+
+즉 UI 문구도 그에 맞게 바뀌어야 합니다.
+
+---
+
+# 24. study_detail.html에서 작성자 정보 보여주기
+
+상세 페이지도 작성자 기준으로 조금 더 풍부하게 바꾸면 좋습니다.
+
+```html title="templates/study/study_detail.html"
+{% extends 'study/base.html' %}
+
+{% block title %}공부기록 상세{% endblock %}
+
+{% block content %}
+<section class="detail-section">
+    <div class="detail-card">
+        <div class="detail-top">
+            <span class="category-pill">{{ study.get_category_display }}</span>
+            <span class="record-date">{{ study.study_date }}</span>
+        </div>
+
+        <h1>{{ study.title }}</h1>
+
+        <ul class="detail-meta">
+            <li><strong>작성자</strong> {{ study.author.username }}</li>
+            <li><strong>공부시간</strong> {{ study.hours }}시간 {{ study.minutes }}분</li>
+            <li><strong>작성일</strong> {{ study.created_at|date:'Y-m-d H:i' }}</li>
+            <li><strong>수정일</strong> {{ study.updated_at|date:'Y-m-d H:i' }}</li>
+        </ul>
+
+        <div class="detail-memo-box">
+            <h2>메모</h2>
+            {% if study.memo %}
+                <p>{{ study.memo|linebreaksbr }}</p>
+            {% else %}
+                <p class="empty">작성된 메모가 없습니다.</p>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'study:list' %}" class="btn btn-light">목록으로</a>
+            {% if request.user == study.author %}
+                <a href="{% url 'study:update' study.pk %}" class="btn btn-light">수정</a>
+                <a href="{% url 'study:delete' study.pk %}" class="btn btn-dark">삭제</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+```
+
+## 왜 템플릿에서도 한 번 더 검사하나?
+
+이미 View에서 권한 검사를 하고 있지만,
+템플릿에서도 작성자일 때만 수정/삭제 버튼을 보여주면 UX가 더 자연스럽습니다.
+
+즉:
+
+* View: 진짜 보안/권한 처리
+* Template: 사용자에게 보이는 버튼 제어
+
+둘 다 역할이 다릅니다.
+
+---
+
+# 25. study_form.html도 문구를 조금 다듬기
+
+```html title="templates/study/study_form.html"
+{% extends 'study/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="form-section">
+    <div class="section-head">
+        <span class="section-badge">Study Record</span>
+        <h1>{{ page_title }}</h1>
+        <p>오늘 공부한 내용을 기록하고 학습 흐름을 이어가세요.</p>
+    </div>
+
+    <form method="post" class="study-form-card">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-dark">저장하기</button>
+            <a href="{% url 'study:list' %}" class="btn btn-light">목록으로</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+```
+
+---
+
+# 26. study_confirm_delete.html도 서비스 톤에 맞추기
+
+```html title="templates/study/study_confirm_delete.html"
+{% extends 'study/base.html' %}
+
+{% block title %}공부기록 삭제{% endblock %}
+
+{% block content %}
+<section class="form-section narrow">
+    <div class="section-head">
+        <span class="section-badge">Delete</span>
+        <h1>공부기록 삭제</h1>
+        <p>삭제하면 되돌릴 수 없습니다. 정말 삭제할까요?</p>
+    </div>
+
+    <div class="study-form-card">
+        <h2>{{ study.title }}</h2>
+        <p>{{ study.study_date }} / {{ study.hours }}시간 {{ study.minutes }}분</p>
+
+        <form method="post" class="delete-form">
+            {% csrf_token %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-dark">삭제하기</button>
+                <a href="{% url 'study:detail' study.pk %}" class="btn btn-light">취소</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+```
+
+---
+
+# 27. CSS도 서비스형으로 정리하기
+
+이번 편에서는 CSS가 너무 밋밋하면 서비스 전환 느낌이 잘 나지 않습니다.
+따라서 홈, 대시보드, 회원 폼까지 자연스럽게 어울리는 스타일로 정리해봅시다.
+
+```css title="static/css/style.css"
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+    background: #f6f7fb;
+    color: #1c2434;
+}
+
+ a {
+    text-decoration: none;
+    color: inherit;
+}
+
+button {
+    font: inherit;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e6e9f2;
+}
+
+.header-inner {
+    width: min(1180px, calc(100% - 32px));
+    margin: 0 auto;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.brand {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.main-nav {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.nav-button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+}
+
+.page-container {
+    width: min(1180px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 40px 0 80px;
+}
+
+.hero-section {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr;
+    gap: 24px;
+    align-items: stretch;
+    margin-bottom: 32px;
+}
+
+.hero-copy,
+.hero-card,
+.feature-card,
+.stat-card,
+.record-card,
+.detail-card,
+.study-form-card,
+.empty-box {
+    background: #ffffff;
+    border: 1px solid #e8ebf3;
+    border-radius: 24px;
+    box-shadow: 0 18px 40px rgba(26, 38, 66, 0.06);
+}
+
+.hero-copy {
+    padding: 36px;
+}
+
+.hero-copy h1 {
+    margin: 14px 0 14px;
+    font-size: clamp(2rem, 4vw, 3.3rem);
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+}
+
+.hero-copy p {
+    margin: 0;
+    max-width: 640px;
+    line-height: 1.7;
+    color: #546076;
+}
+
+.hero-card {
+    padding: 24px;
+    display: grid;
+    gap: 16px;
+    background: linear-gradient(180deg, #1d2433 0%, #303c57 100%);
+    color: #f7f9ff;
+}
+
+.mini-stat {
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.mini-stat span {
+    display: block;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 8px;
+}
+
+.mini-stat strong {
+    font-size: 1.1rem;
+}
+
+.hero-badge,
+.section-badge,
+.category-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.hero-badge,
+.section-badge {
+    background: #eef2ff;
+    color: #4156a6;
+}
+
+.category-pill {
+    background: #f0f4ff;
+    color: #3e538f;
+}
+
+.hero-actions,
+.form-actions,
+.card-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    font-weight: 700;
+}
+
+.btn-dark {
+    background: #202838;
+    color: #fff;
+}
+
+.btn-light {
+    background: #fff;
+    color: #1f2738;
+    border-color: #d8ddea;
+}
+
+.btn-light.danger {
+    color: #a33131;
+}
+
+.feature-grid,
+.stats-grid,
+.record-list {
+    display: grid;
+    gap: 18px;
+}
+
+.feature-grid {
+    grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 32px;
+}
+
+.feature-card {
+    padding: 24px;
+}
+
+.feature-card h2 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+}
+
+.feature-card p {
+    margin: 0;
+    color: #5a6477;
+    line-height: 1.7;
+}
+
+.dashboard-hero,
+.section-head.row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    margin: 24px 0 32px;
+}
+
+.stat-card {
+    padding: 22px;
+}
+
+.stat-card span {
+    display: block;
+    color: #657086;
+    margin-bottom: 10px;
+}
+
+.stat-card strong {
+    font-size: 1.4rem;
+    letter-spacing: -0.03em;
+}
+
+.record-section {
+    margin-top: 28px;
+}
+
+.record-list {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.record-card {
+    padding: 22px;
+}
+
+.record-top,
+.detail-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.record-card h3,
+.detail-card h1 {
+    margin: 0 0 12px;
+    letter-spacing: -0.03em;
+}
+
+.record-time,
+.record-date,
+.record-memo,
+.detail-meta,
+.detail-memo-box p {
+    color: #5b6578;
+}
+
+.record-memo.empty,
+.empty {
+    color: #8a92a3;
+}
+
+.detail-section,
+.form-section {
+    margin-top: 12px;
+}
+
+.detail-card,
+.study-form-card {
+    padding: 28px;
+}
+
+.detail-meta {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px;
+    display: grid;
+    gap: 10px;
+}
+
+.detail-memo-box {
+    padding: 20px;
+    border-radius: 18px;
+    background: #f8f9fc;
+    border: 1px solid #eceff6;
+}
+
+.section-head {
+    margin-bottom: 18px;
+}
+
+.section-head h1,
+.section-head h2 {
+    margin: 12px 0 10px;
+    letter-spacing: -0.03em;
+}
+
+.section-head p {
+    margin: 0;
+    color: #5e6779;
+    line-height: 1.7;
+}
+
+.form-section.narrow {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.study-form-card p {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.study-form-card input,
+.study-form-card select,
+.study-form-card textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid #d9dfeb;
+    background: #fff;
+    font: inherit;
+}
+
+.study-form-card textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+.empty-box {
+    padding: 36px;
+    text-align: center;
+}
+
+.empty-box h3 {
+    margin-top: 0;
+}
+
+.pagination {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pagination a,
+.current-page {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #dbe1ed;
+}
+
+@media (max-width: 960px) {
+    .hero-section,
+    .feature-grid,
+    .stats-grid,
+    .record-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .page-container,
+    .header-inner {
+        width: min(100% - 20px, 100%);
+    }
+
+    .hero-copy,
+    .hero-card,
+    .feature-card,
+    .stat-card,
+    .record-card,
+    .detail-card,
+    .study-form-card,
+    .empty-box {
+        border-radius: 20px;
+    }
+}
+```
+
+---
+
+# 28. StudyForm은 그대로 써도 되는가?
+
+대부분은 그대로 써도 됩니다.
+다만 중요한 점은 **author 필드를 form에 넣지 않는 것**입니다.
+
+작성자는 사용자가 직접 선택하는 값이 아니라,
+로그인한 사용자로 자동 연결되어야 하기 때문입니다.
+
+즉 StudyForm이 아래처럼 구성되어 있다면 괜찮습니다.
+
+```python title="study/forms.py"
+from django import forms
+from .models import Study
+ 
+ 
+class StudyForm(forms.ModelForm):
+    class Meta:
+        model = Study
+        fields = ['title', 'category', 'study_date', 'hours', 'minutes', 'memo']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'placeholder': '예: Django ORM 복습',
+            }),
+            'category': forms.Select(),
+            'study_date': forms.DateInput(attrs={
+                'type': 'date',
+            }),
+            'hours': forms.NumberInput(attrs={
+                'min': 0,
+                'placeholder': '예: 2',
+            }),
+            'minutes': forms.NumberInput(attrs={
+                'min': 0,
+                'max': 59,
+                'placeholder': '예: 30',
+            }),
+            'memo': forms.Textarea(attrs={
+                'rows': 6,
+                'placeholder': '오늘 공부한 내용, 어려웠던 점, 다시 복습할 포인트를 적어보세요.',
+            }),
+        }
+        labels = {
+            'title': '공부 제목',
+            'category': '카테고리',
+            'study_date': '공부 날짜',
+            'hours': '시간',
+            'minutes': '분',
+            'memo': '메모',
+        }
+ 
+    def clean_minutes(self):
+        minutes = self.cleaned_data['minutes']
+        if minutes >= 60:
+            raise forms.ValidationError('분은 0 이상 59 이하로 입력해주세요.')
+        return minutes
+```
+
+## 왜 author를 빼야 하나?
+
+만약 사용자가 author를 폼으로 선택할 수 있으면,
+남의 이름으로 기록을 만드는 이상한 상황이 생길 수 있습니다.
+
+즉 작성자는 폼 입력값이 아니라,
+**서버가 현재 로그인 사용자 기준으로 넣어야 하는 값**입니다.
+
+---
+
+# 29. 로그인하지 않으면 어떻게 되는가?
+
+지금 우리는 `LoginRequiredMixin`을 붙였기 때문에,
+로그인하지 않은 상태에서 아래 페이지에 접근하면 로그인 페이지로 이동합니다.
+
+* `/studies/`
+* `/studies/create/`
+* `/studies/<pk>/`
+* `/studies/<pk>/update/`
+* `/studies/<pk>/delete/`
+
+이 흐름이 바로 서비스에서 자주 보는 기본 인증 흐름입니다.
+
+```
+로그인 필요 페이지 접근
+→ 로그인 페이지로 이동
+→ 로그인 성공
+→ 원래 가려던 페이지 또는 지정 페이지로 이동
+```
+
+---
+
+# 30. 작성자 권한 처리는 왜 View에서 해야 하나?
+
+초보자는 종종 이렇게 생각합니다.
+
+> 템플릿에서 수정/삭제 버튼만 안 보이게 하면 되는 거 아닌가요?
+
+그것만으로는 부족합니다.
+왜냐하면 사용자가 URL을 직접 입력할 수도 있기 때문입니다.
+
+예를 들어 템플릿에서 버튼을 숨겼더라도,
+누군가 아래 주소를 직접 입력하면 문제가 생깁니다.
+
+```text
+/studies/3/update/
+/studies/3/delete/
+```
+
+그래서 **진짜 권한 검사는 View에서 해야 합니다.**
+
+이번 편에서는 아래 코드가 핵심입니다.
+
+```python
+def test_func(self):
+    return self.get_object().author == self.request.user
+```
+
+이 조건이 통과하지 못하면 수정/삭제/상세 접근 자체가 막히게 됩니다.
+
+---
+
+# 31. API 쪽은 어떻게 해야 할까?
+
+3편에서 DRF API를 이미 붙였기 때문에,
+이제는 API도 사용자 개념에 맞춰 조금 더 다듬을 필요가 있습니다.
+
+이번 4편에서는 브라우저 중심으로 진행하지만,
+나중을 위해 최소한 아래 정도는 알고 넘어가면 좋습니다.
+
+* Serializer에서 author를 읽기 전용으로 둘 수 있다.
+* ViewSet의 queryset도 사용자 기준으로 제한할 수 있다.
+* 생성 시 `perform_create()`에서 `author=self.request.user`를 넣을 수 있다.
+
+---
+
+# 32. 변경사항 및 주요 코드 최종본
+
+## views_generic.py의 코드를 views.py로 복사 및 붙여넣기, views_cbv 삭제하기
+
+기존 views_generic과 views_cbv는 함수형과 제네릭의 차이를 알아보기 위한 파일이였으므로 더이상 필요 없습니다.
+
+```python title="study/views.py"
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+from .forms import StudyForm
+from .models import Study
+ 
+ 
+class HomeView(TemplateView):
+    template_name = 'study/home.html'
+ 
+ 
+class StudyListGenericView(LoginRequiredMixin, ListView):
+    model = Study
+    template_name = 'study/study_list.html'
+    context_object_name = 'studies'
+    paginate_by = 5
+ 
+    def get_queryset(self):
+        return Study.objects.filter(author=self.request.user)
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        studies = Study.objects.filter(author=self.request.user)
+        total_count = studies.count()
+        total_minutes = sum(study.total_minutes for study in studies)
+        context['total_count'] = total_count
+        context['total_hours'] = total_minutes // 60
+        context['remain_minutes'] = total_minutes % 60
+        context['recent_studies'] = studies[:3]
+        return context
+ 
+ 
+class StudyDetailGenericView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = Study
+    template_name = 'study/study_detail.html'
+    context_object_name = 'study'
+ 
+    def test_func(self):
+        return self.get_object().author == self.request.user
+ 
+ 
+class StudyCreateGenericView(LoginRequiredMixin, CreateView):
+    model = Study
+    form_class = StudyForm
+    template_name = 'study/study_form.html'
+    success_url = reverse_lazy('study:list')
+ 
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '공부 기록 작성'
+        return context
+ 
+ 
+class StudyUpdateGenericView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Study
+    form_class = StudyForm
+    template_name = 'study/study_form.html'
+ 
+    def test_func(self):
+        return self.get_object().author == self.request.user
+ 
+    def get_success_url(self):
+        return reverse_lazy('study:detail', kwargs={'pk': self.object.pk})
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '공부 기록 수정'
+        return context
+ 
+ 
+class StudyDeleteGenericView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Study
+    template_name = 'study/study_confirm_delete.html'
+    success_url = reverse_lazy('study:list')
+    context_object_name = 'study'
+ 
+    def test_func(self):
+        return self.get_object().author == self.request.user
+```
+
+## views_generic.py가 최신이었으나, views.py로 수정했으니 url 경로도 수정해줍니다.
+
+```python title="study/urls.py"
+from django.urls import path
+from .views import (
+    HomeView,
+    StudyCreateGenericView,
+    StudyDeleteGenericView,
+    StudyDetailGenericView,
+    StudyListGenericView,
+    StudyUpdateGenericView,
+)
+ 
+app_name = 'study'
+ 
+urlpatterns = [
+    path('', HomeView.as_view(), name='home'),
+    path('studies/', StudyListGenericView.as_view(), name='list'),
+    path('studies/create/', StudyCreateGenericView.as_view(), name='create'),
+    path('studies/<int:pk>/', StudyDetailGenericView.as_view(), name='detail'),
+    path('studies/<int:pk>/update/', StudyUpdateGenericView.as_view(), name='update'),
+    path('studies/<int:pk>/delete/', StudyDeleteGenericView.as_view(), name='delete'),
+]
+```
+
+--
+
+# 33. 전체 실행 흐름 정리
+
+지금까지 만든 구조를 다시 한 번 흐름으로 보면 아래와 같습니다.
+
+```
+1. 사용자가 회원가입한다.
+2. 로그인한다.
+3. 공부기록 작성 페이지로 간다.
+4. 제목 / 카테고리 / 날짜 / 시간 / 메모를 입력한다.
+5. 저장 시 author는 현재 로그인 사용자로 자동 연결된다.
+6. 목록 페이지에서는 로그인한 사용자 본인의 기록만 보인다.
+7. 상세 / 수정 / 삭제도 작성자 본인만 접근 가능하다.
+8. 로그아웃하면 다시 공개 홈 화면으로 돌아간다.
+```
+
+---
+
+# 34. 브라우저에서 꼭 테스트할 체크포인트
+
+이번 편에서는 아래를 꼭 직접 테스트하세요.
+
+## 회원 기능 테스트
+
+* 회원가입이 되는가?
+* 로그인 페이지가 열리는가?
+* 로그인 성공 후 목록 페이지로 이동하는가?
+* 로그아웃 후 홈으로 돌아가는가?
+
+## 작성자 연결 테스트
+
+* 새 공부기록 작성 시 admin에서 author가 연결되어 보이는가?
+* 같은 브라우저에서 다른 사용자로 로그인하면 목록이 달라지는가?
+
+## 권한 테스트
+
+* 사용자 A가 쓴 글을 사용자 B가 URL로 접근했을 때 막히는가?
+* 수정/삭제 버튼이 작성자에게만 보이는가?
+
+---
+
+# 35. 자주 나오는 실수 정리
+
+## 1) `author`를 form에 넣어버림
+
+이러면 사용자가 작성자를 직접 선택하게 되어 구조가 이상해집니다.
+반드시 서버에서 자동 연결하세요.
+
+## 2) `LoginRequiredMixin` 순서를 뒤에 둠
+
+믹스인은 보통 왼쪽에 먼저 두는 편이 자연스럽습니다.
+
+예:
+
+```python
+class StudyListGenericView(LoginRequiredMixin, ListView):
+```
+
+## 3) `UserPassesTestMixin`만 믿고 버튼은 그대로 둠
+
+보안은 View에서 처리하고,
+UX는 템플릿에서도 한 번 더 정리하는 것이 좋습니다.
+
+## 4) 홈과 목록 URL 역할이 섞임
+
+서비스형 구조에서는 홈과 데이터 목록의 역할을 구분하는 편이 더 좋습니다.
+
+## 5) 기존 데이터에 author가 비어 있음
+
+기존에 만들어둔 Study 데이터는 author가 없을 수 있습니다.
+admin에서 확인하고 필요하면 새로 작성하거나 연결 상태를 점검하세요.
+
+---
+
+# 35. 이번 편에서 배운 핵심 문법 정리
+
+## 모델 연결
+
+```python
+author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+```
+
+## 로그인 필수
+
+```python
+class StudyListGenericView(LoginRequiredMixin, ListView):
+```
+
+## 작성자 자동 연결
+
+```python
+def form_valid(self, form):
+    form.instance.author = self.request.user
+    return super().form_valid(form)
+```
+
+## 작성자 권한 확인
+
+```python
+def test_func(self):
+    return self.get_object().author == self.request.user
+```
+
+## 사용자별 목록 제한
+
+```python
+def get_queryset(self):
+    return Study.objects.filter(author=self.request.user)
+```
+
+이 4개가 이번 4편의 핵심이라고 봐도 됩니다.
+
+---
+
+# 37. 이번 편이 왜 중요한가?
+
+이번 4편은 기능 개수만 보면 엄청 많아 보이지 않을 수 있습니다.
+하지만 프로젝트 전체 흐름에서는 아주 중요합니다.
+
+왜냐하면 이번 편부터 앱이 아래처럼 바뀌기 때문입니다.
+
+```
+실습용 CRUD 예제
+→ 사용자 개념이 있는 서비스형 프로젝트
+```
+
+이제부터는 아래 같은 확장이 가능해집니다.
+
+* 내 기록 검색
+* 내 카테고리별 필터
+* 내 공부 통계
+* 오늘 공부한 내용 회고
+* AI 요약
+* 마이페이지
+* 즐겨찾기 / 공개 / 비공개
+
+---
+
+# 38. 다음 편에서는 무엇을 할까?
+
+이번 4편에서 사용자 구조를 잡았으니,
+다음 5편에서는 이제 “기록이 많아졌을 때 관리하기 쉽게 만드는 기능”이 자연스럽습니다.
+
+예를 들면 아래 기능입니다.
+
+* 제목 검색
+* 카테고리 필터
+* 날짜 기준 정렬
+* 공부시간 기준 정렬
+* 페이지네이션 UX 개선
+* 빈 결과 화면 정리
+
+```
+회원별 기록 구조 완성
+→ 기록이 많아진다
+→ 원하는 기록을 빨리 찾고 싶다
+→ 검색 / 필터 / 정렬 / 페이지네이션 확장
+```
+
+---
+
+# 39. 체크리스트
+
+아래 항목이 모두 되면 이번 4편은 성공입니다.
+
+* [ ] `Study` 모델에 `author` 필드를 추가했다.
+* [ ] 마이그레이션을 정상 적용했다.
+* [ ] `accounts` 앱을 만들고 settings에 등록했다.
+* [ ] 회원가입 페이지를 만들었다.
+* [ ] 로그인 / 로그아웃이 동작한다.
+* [ ] `LOGIN_REDIRECT_URL`, `LOGOUT_REDIRECT_URL`, `LOGIN_URL`을 설정했다.
+* [ ] `HomeView`를 만들고 루트 홈 화면을 분리했다.
+* [ ] 공부기록 목록이 로그인한 사용자 기준으로만 보인다.
+* [ ] 공부기록 생성 시 작성자가 자동 저장된다.
+* [ ] 작성자 본인만 상세/수정/삭제 가능하게 처리했다.
+* [ ] 템플릿에서도 작성자에게만 수정/삭제 버튼이 보인다.
+* [ ] 홈 / 목록 / 폼 / 상세 화면이 서비스형 톤으로 정리되었다.
+
+---
+
+# 40. 마무리
+
+이번 4편에서는 공부시간 기록기를 단순 CRUD 실습에서 한 단계 더 끌어올려,
+**회원이 로그인해서 자신의 학습 기록을 관리하는 서비스형 앱**으로 개선했습니다.
+
+* User와 Study 연결
+* 회원가입 / 로그인 / 로그아웃
+* 내 기록만 보기
+* 작성자 권한 처리
+* 서비스형 홈 / 대시보드 UI 구성
+
+앞으로 검색, 회고, 첨부파일, AI 요약 기능을 붙이기 좋은 기반을 갖춘 상태가 되었습니다.
